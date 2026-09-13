@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import useStore from '../store/useStore';
-import { createPlace, loadPlaces } from '../lib/places';
+import { createPlace, loadPlaces, getAnnotationsForPlace } from '../lib/places';
 
 export default function MapView() {
   const mapContainer = useRef(null);
@@ -17,6 +17,10 @@ export default function MapView() {
   const pinPlacementMode = useStore((state) => state.pinPlacementMode);
   const pendingPinAnnotationId = useStore((state) => state.pendingPinAnnotationId);
   const cancelPinPlacement = useStore((state) => state.cancelPinPlacement);
+  const setMapView = useStore((state) => state.setMapView);
+  const setActiveSource = useStore((state) => state.setActiveSource);
+  const setCurrentPage = useStore((state) => state.setCurrentPage);
+  const sources = useStore((state) => state.sources);
 
   useEffect(() => {
     if (map.current) return; // Initialize only once
@@ -112,6 +116,19 @@ export default function MapView() {
     fetchPlaces();
   }, [currentProject, setPlaces]);
 
+  // Handle flyTo when navigating from annotation
+  useEffect(() => {
+    const flyToPlace = useStore.getState().flyToPlace;
+    if (flyToPlace && map.current && mapReady) {
+      map.current.flyTo({
+        center: [flyToPlace.lng, flyToPlace.lat],
+        zoom: 8,
+      });
+      // Clear the flyTo state
+      useStore.getState().flyToPlace = null;
+    }
+  }, [mapReady]);
+
   // Update markers when places change
   useEffect(() => {
     if (!map.current || !mapReady) return;
@@ -143,9 +160,24 @@ export default function MapView() {
         .addTo(map.current);
 
       // Click marker to navigate to linked annotation
-      el.addEventListener('click', async () => {
-        // TODO: Navigate to annotation
-        console.log('Navigate to annotation for place:', place.id);
+      el.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          const annotations = await getAnnotationsForPlace(place.id);
+          if (annotations && annotations.length > 0) {
+            const annotation = annotations[0]; // Use first linked annotation
+            // Find the source
+            const source = sources.find(s => s.id === annotation.source_id);
+            if (source) {
+              // Switch to PDF view
+              setMapView('source');
+              setActiveSource(source.id);
+              setCurrentPage(annotation.page_number);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to navigate to annotation:', err);
+        }
       });
 
       markersRef.current.push(marker);

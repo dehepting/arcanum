@@ -1,10 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import useStore from '../store/useStore';
 import { supabase } from '../lib/supabase';
+import { getPlaceForAnnotation } from '../lib/places';
 
 export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const [dragging, setDragging] = useState(false);
   const [draftRect, setDraftRect] = useState(null);
+  const [linkedAnnotations, setLinkedAnnotations] = useState(new Set());
   const startPos = useRef(null);
   const wrapRef = useRef(null);
 
@@ -13,11 +15,26 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const currentPage = useStore((state) => state.currentPage);
   const activeSourceId = useStore((state) => state.activeSourceId);
   const setSelectedAnnotation = useStore((state) => state.setSelectedAnnotation);
+  const setMapView = useStore((state) => state.setMapView);
+  const places = useStore((state) => state.places);
 
   // Get annotations for current page
   const pageAnnotations = annotations.filter(
     (ann) => ann.source_id === activeSourceId && ann.page_number === currentPage
   );
+
+  // Track which annotations are linked to places
+  useEffect(() => {
+    const linked = new Set();
+    places.forEach(place => {
+      if (place.annotation_place_links) {
+        place.annotation_place_links.forEach(link => {
+          linked.add(link.annotation_id);
+        });
+      }
+    });
+    setLinkedAnnotations(linked);
+  }, [places]);
 
   const handleMouseDown = (e) => {
     // Text tool: click to place text box
@@ -113,10 +130,26 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     startPos.current = null;
   };
 
-  const handleAnnotationClick = (ann, e) => {
-    // Only text annotations open modal on click
+  const handleAnnotationClick = async (ann, e) => {
+    e.stopPropagation();
+
+    // If linked to a place, navigate to it on the map
+    if (linkedAnnotations.has(ann.id)) {
+      try {
+        const place = await getPlaceForAnnotation(ann.id);
+        if (place) {
+          // Switch to map view
+          setMapView('map');
+          // Store the place to fly to (MapView will pick this up)
+          useStore.getState().flyToPlace = place;
+        }
+      } catch (err) {
+        console.error('Failed to navigate to place:', err);
+      }
+    }
+
+    // Text annotations also open modal on click
     if (ann.type === 'text') {
-      e.stopPropagation();
       setSelectedAnnotation(ann.id);
       useStore.getState().openAnnotationModal(ann);
     }
@@ -163,32 +196,66 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
       }}
     >
       {/* Render existing annotations */}
-      {pageAnnotations.map((ann) => (
-        <div
-          key={ann.id}
-          onClick={(e) => handleAnnotationClick(ann, e)}
-          onContextMenu={(e) => handleAnnotationRightClick(ann, e)}
-          style={{
-            position: 'absolute',
-            left: `${ann.rect_x * 100}%`,
-            top: `${ann.rect_y * 100}%`,
-            width: `${ann.rect_w * 100}%`,
-            height: `${ann.rect_h * 100}%`,
-            border: ann.type === 'text' ? '1px solid var(--accent)' : '1px solid rgba(212, 163, 115, 0.7)',
-            background: ann.type === 'text' ? 'var(--panel-2)' : 'rgba(212, 163, 115, 0.28)',
-            cursor: 'pointer',
-            pointerEvents: 'auto',
-            padding: ann.type === 'text' ? '4px 6px' : '0',
-            fontSize: ann.type === 'text' ? '11px' : 'inherit',
-            color: ann.type === 'text' ? 'var(--text)' : 'inherit',
-            whiteSpace: ann.type === 'text' ? 'pre-wrap' : 'normal',
-            overflow: ann.type === 'text' ? 'auto' : 'hidden',
-          }}
-          title={ann.type === 'highlight' ? 'Right-click to delete' : 'Click to edit'}
-        >
-          {ann.type === 'text' && ann.text}
-        </div>
-      ))}
+      {pageAnnotations.map((ann) => {
+        const isLinked = linkedAnnotations.has(ann.id);
+        return (
+          <div
+            key={ann.id}
+            onClick={(e) => handleAnnotationClick(ann, e)}
+            onContextMenu={(e) => handleAnnotationRightClick(ann, e)}
+            style={{
+              position: 'absolute',
+              left: `${ann.rect_x * 100}%`,
+              top: `${ann.rect_y * 100}%`,
+              width: `${ann.rect_w * 100}%`,
+              height: `${ann.rect_h * 100}%`,
+              border: isLinked
+                ? '2px solid var(--accent)'
+                : ann.type === 'text'
+                ? '1px solid var(--accent)'
+                : '1px solid rgba(212, 163, 115, 0.7)',
+              background: ann.type === 'text' ? 'var(--panel-2)' : 'rgba(212, 163, 115, 0.28)',
+              cursor: 'pointer',
+              pointerEvents: 'auto',
+              padding: ann.type === 'text' ? '4px 6px' : '0',
+              fontSize: ann.type === 'text' ? '11px' : 'inherit',
+              color: ann.type === 'text' ? 'var(--text)' : 'inherit',
+              whiteSpace: ann.type === 'text' ? 'pre-wrap' : 'normal',
+              overflow: ann.type === 'text' ? 'auto' : 'hidden',
+              boxShadow: isLinked ? '0 0 0 1px var(--accent)' : 'none',
+            }}
+            title={
+              isLinked
+                ? 'Click to view on map · Right-click to delete'
+                : ann.type === 'highlight'
+                ? 'Right-click to delete'
+                : 'Click to edit'
+            }
+          >
+            {ann.type === 'text' && ann.text}
+            {isLinked && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '-20px',
+                  right: '-8px',
+                  background: 'var(--accent)',
+                  borderRadius: '50%',
+                  width: '18px',
+                  height: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  border: '2px solid var(--bg)',
+                }}
+              >
+                📍
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {/* Draft rectangle while dragging */}
       {dragging && draftRect && (
