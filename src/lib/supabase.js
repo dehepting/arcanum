@@ -14,7 +14,7 @@ export const supabase = createClient(
 
 // Storage buckets
 export const BUCKETS = {
-  SOURCES: 'sources', // PDFs, scanned documents
+  SOURCES: 'source', // PDFs, scanned documents (matches bucket name)
   MAPS: 'map-overlays', // Historic map images
   ARTIFACTS: 'artifact-images', // Artifact photos
 };
