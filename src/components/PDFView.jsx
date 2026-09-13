@@ -104,7 +104,7 @@ export default function PDFView() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
       <div className="toolbar">
         <div className="toolbar-group">

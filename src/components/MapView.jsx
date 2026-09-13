@@ -185,7 +185,7 @@ export default function MapView() {
   }, [places, mapReady]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
       {/* Pin placement mode banner */}
       {pinPlacementMode && (
         <div style={{
@@ -220,7 +220,7 @@ export default function MapView() {
         </div>
       )}
 
-      <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+      <div ref={mapContainer} style={{ flex: 1, width: '100%' }} />
     </div>
   );
 }
