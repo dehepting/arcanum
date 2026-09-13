@@ -1,9 +1,16 @@
+import { useState } from 'react';
 import useStore from '../store/useStore';
+import ArtifactList from './ArtifactList';
+import ArtifactDetail from './ArtifactDetail';
+import ArtifactForm from './ArtifactForm';
 
 export default function Sidebar() {
+  const [showArtifactForm, setShowArtifactForm] = useState(false);
+  const [editingArtifact, setEditingArtifact] = useState(null);
+
   const annotations = useStore((state) => state.annotations);
-  const places = useStore((state) => state.places);
-  const artifacts = useStore((state) => state.artifacts);
+  const selectedArtifact = useStore((state) => state.selectedArtifact);
+  const setSelectedArtifact = useStore((state) => state.setSelectedArtifact);
 
   return (
     <div className="sidebar">
@@ -44,35 +51,35 @@ export default function Sidebar() {
         className="sidebar-section"
         style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
       >
-        <div className="sidebar-header">Artifacts</div>
-        <div className="sidebar-content">
-          {artifacts.length === 0 ? (
-            <div className="empty-state-text" style={{ padding: '20px 8px' }}>
-              Add artifact records with findspot locations.
-            </div>
-          ) : (
-            <div>
-              {artifacts.map((artifact) => (
-                <div
-                  key={artifact.id}
-                  style={{
-                    padding: '10px',
-                    borderBottom: '1px solid var(--line)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div style={{ fontSize: '12px', fontWeight: 500 }}>{artifact.title}</div>
-                  {artifact.location_name && (
-                    <div className="text-muted" style={{ fontSize: '11px', marginTop: '4px' }}>
-                      📍 {artifact.location_name}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {selectedArtifact ? (
+          <ArtifactDetail
+            artifact={selectedArtifact}
+            onBack={() => setSelectedArtifact(null)}
+            onEdit={() => {
+              setEditingArtifact(selectedArtifact);
+              setShowArtifactForm(true);
+            }}
+          />
+        ) : (
+          <ArtifactList
+            onAddClick={() => {
+              setEditingArtifact(null);
+              setShowArtifactForm(true);
+            }}
+            onArtifactClick={(artifact) => setSelectedArtifact(artifact)}
+          />
+        )}
       </div>
+
+      {/* Artifact Form Modal */}
+      <ArtifactForm
+        artifact={editingArtifact}
+        isOpen={showArtifactForm}
+        onClose={() => {
+          setShowArtifactForm(false);
+          setEditingArtifact(null);
+        }}
+      />
     </div>
   );
 }
