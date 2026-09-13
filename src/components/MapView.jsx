@@ -3,6 +3,8 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import useStore from '../store/useStore';
 import { createPlace, loadPlaces, getAnnotationsForPlace } from '../lib/places';
+import { loadOverlays } from '../lib/overlays';
+import OverlayGeoreference from './OverlayGeoreference';
 
 export default function MapView() {
   const mapContainer = useRef(null);
@@ -21,6 +23,10 @@ export default function MapView() {
   const setActiveSource = useStore((state) => state.setActiveSource);
   const setCurrentPage = useStore((state) => state.setCurrentPage);
   const sources = useStore((state) => state.sources);
+  const mapOverlays = useStore((state) => state.mapOverlays);
+  const setMapOverlays = useStore((state) => state.setMapOverlays);
+  const overlayMode = useStore((state) => state.overlayMode);
+  const openOverlayMode = useStore((state) => state.openOverlayMode);
 
   useEffect(() => {
     if (map.current) return; // Initialize only once
@@ -59,9 +65,15 @@ export default function MapView() {
       setMapReady(true);
     });
 
-    // Click handler for adding pins
+    // Click handler for adding pins and georeferencing overlays
     map.current.on('click', async (e) => {
       const state = useStore.getState();
+
+      // Check if in overlay georeferencing mode
+      if (state.overlayMode && state.onOverlayMapClick) {
+        state.onOverlayMapClick(e.lngLat);
+        return;
+      }
 
       // Check if in pin placement mode
       if (!state.pinPlacementMode || !state.pendingPinAnnotationId) return;
@@ -100,21 +112,25 @@ export default function MapView() {
     };
   }, [currentProject]);
 
-  // Load places when project changes
+  // Load places and overlays when project changes
   useEffect(() => {
     if (!currentProject?.id) return;
 
-    const fetchPlaces = async () => {
+    const fetchData = async () => {
       try {
-        const loadedPlaces = await loadPlaces(currentProject.id);
+        const [loadedPlaces, loadedOverlays] = await Promise.all([
+          loadPlaces(currentProject.id),
+          loadOverlays(currentProject.id),
+        ]);
         setPlaces(loadedPlaces);
+        setMapOverlays(loadedOverlays);
       } catch (err) {
-        console.error('Failed to load places:', err);
+        console.error('Failed to load map data:', err);
       }
     };
 
-    fetchPlaces();
-  }, [currentProject, setPlaces]);
+    fetchData();
+  }, [currentProject, setPlaces, setMapOverlays]);
 
   // Handle flyTo when navigating from annotation
   useEffect(() => {
@@ -184,6 +200,51 @@ export default function MapView() {
     });
   }, [places, mapReady]);
 
+  // Render map overlays
+  useEffect(() => {
+    if (!map.current || !mapReady) return;
+
+    // Remove existing overlay sources and layers
+    mapOverlays.forEach((overlay) => {
+      const layerId = `overlay-${overlay.id}`;
+      if (map.current.getLayer(layerId)) {
+        map.current.removeLayer(layerId);
+      }
+      if (map.current.getSource(layerId)) {
+        map.current.removeSource(layerId);
+      }
+    });
+
+    // Add overlay sources and layers
+    mapOverlays
+      .filter((overlay) => overlay.visible)
+      .forEach((overlay) => {
+        const layerId = `overlay-${overlay.id}`;
+
+        // Add image source with corner coordinates
+        map.current.addSource(layerId, {
+          type: 'image',
+          url: overlay.image_url,
+          coordinates: [
+            [overlay.top_left_lng, overlay.top_left_lat], // top-left
+            [overlay.top_right_lng, overlay.top_right_lat], // top-right
+            [overlay.bottom_right_lng, overlay.bottom_right_lat], // bottom-right
+            [overlay.bottom_left_lng, overlay.bottom_left_lat], // bottom-left
+          ],
+        });
+
+        // Add raster layer
+        map.current.addLayer({
+          id: layerId,
+          type: 'raster',
+          source: layerId,
+          paint: {
+            'raster-opacity': overlay.opacity || 0.7,
+          },
+        });
+      });
+  }, [mapOverlays, mapReady]);
+
   return (
     <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
       {/* Pin placement mode banner */}
@@ -222,7 +283,59 @@ export default function MapView() {
         </div>
       )}
 
+      {/* Overlay mode banner */}
+      {overlayMode && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            background: 'var(--accent-2)',
+            color: '#0e0f12',
+            padding: '10px 16px',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            fontWeight: 500,
+          }}
+        >
+          🗺️ Georeferencing Mode: Click on the map to place corner markers
+        </div>
+      )}
+
+      {/* Add overlay button */}
+      {!pinPlacementMode && !overlayMode && (
+        <button
+          onClick={openOverlayMode}
+          style={{
+            position: 'absolute',
+            bottom: '20px',
+            right: '20px',
+            zIndex: 1000,
+            background: 'var(--accent-2)',
+            color: '#0e0f12',
+            border: 'none',
+            padding: '10px 16px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 500,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+          title="Add historic map overlay"
+        >
+          <span>🗺️</span>
+          <span>Add Map Overlay</span>
+        </button>
+      )}
+
       <div ref={mapContainer} style={{ flex: 1, width: '100%' }} />
+
+      {/* Overlay georeferencing UI */}
+      <OverlayGeoreference />
     </div>
   );
 }

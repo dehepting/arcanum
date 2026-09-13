@@ -90,6 +90,16 @@ const useStore = create((set, get) => ({
   // Map overlays
   mapOverlays: [],
   setMapOverlays: (overlays) => set({ mapOverlays: overlays }),
+  addMapOverlay: (overlay) =>
+    set((state) => ({
+      mapOverlays: [...state.mapOverlays, overlay],
+    })),
+
+  // Overlay georeferencing mode
+  overlayMode: false,
+  openOverlayMode: () => set({ overlayMode: true }),
+  closeOverlayMode: () => set({ overlayMode: false }),
+  onOverlayMapClick: null,
 }));
 
 export default useStore;
