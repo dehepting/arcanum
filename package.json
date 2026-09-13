@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "format": "prettier --write \"src/**/*.{js,jsx,json,css}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,json,css}\"",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "husky"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
@@ -25,8 +26,19 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
     "oxlint": "^1.81.0",
     "prettier": "^3.9.6",
     "vite": "^8.3.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx}": [
+      "oxlint",
+      "prettier --write"
+    ],
+    "*.{json,css}": [
+      "prettier --write"
+    ]
   }
 }
