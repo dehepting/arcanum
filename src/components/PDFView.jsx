@@ -36,7 +36,7 @@ export default function PDFView() {
     const loadPDF = async () => {
       try {
         console.log('Loading PDF from:', activeSource.file_url);
-        const doc = await pdfjsLib.getDocument(activeSource.file_url).promise;
+        const doc = await pdfjsLib.getDocument({ url: activeSource.file_url }).promise;
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setCurrentPage(1);
