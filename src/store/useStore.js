@@ -86,6 +86,20 @@ const useStore = create((set, get) => ({
   // Artifacts
   artifacts: [],
   setArtifacts: (artifacts) => set({ artifacts }),
+  addArtifact: (artifact) =>
+    set((state) => ({
+      artifacts: [...state.artifacts, artifact],
+    })),
+  updateArtifactInStore: (artifactId, updates) =>
+    set((state) => ({
+      artifacts: state.artifacts.map((a) => (a.id === artifactId ? { ...a, ...updates } : a)),
+    })),
+  removeArtifact: (artifactId) =>
+    set((state) => ({
+      artifacts: state.artifacts.filter((a) => a.id !== artifactId),
+    })),
+  selectedArtifact: null,
+  setSelectedArtifact: (artifact) => set({ selectedArtifact: artifact }),
 
   // Map overlays
   mapOverlays: [],

@@ -6,6 +6,7 @@ import Workspace from './components/Workspace';
 import ProjectPicker from './components/ProjectPicker';
 import { loadSources } from './lib/upload';
 import { loadAnnotations } from './lib/annotations';
+import { loadArtifacts } from './lib/artifacts';
 import './styles/index.css';
 
 function App() {
@@ -31,16 +32,22 @@ function App() {
 
     const loadProjectData = async () => {
       try {
-        const sources = await loadSources(currentProject.id);
+        const [sources, artifacts] = await Promise.all([
+          loadSources(currentProject.id),
+          loadArtifacts(currentProject.id),
+        ]);
+
         // Update store with sources
         sources.forEach((source) => {
           useStore.getState().addSource(source);
         });
 
-        // TODO: Load annotations, places, artifacts
+        // Update store with artifacts
+        setArtifacts(artifacts);
+
+        // TODO: Load annotations, places
         setAnnotations([]);
         setPlaces([]);
-        setArtifacts([]);
       } catch (err) {
         console.error('Failed to load project data:', err);
       }
