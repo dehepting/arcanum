@@ -28,28 +28,55 @@ export default function AnnotationModal() {
   const handleSave = async () => {
     if (!pendingAnnotation) return;
 
+    // Text annotations require text
+    if (pendingAnnotation.type === 'text' && !noteText.trim()) {
+      alert('Please enter some text for the note');
+      return;
+    }
+
     setSaving(true);
     try {
-      const annotationData = {
-        source_id: activeSourceId,
-        page_number: currentPage,
-        type: 'highlight',
-        rect_x: pendingAnnotation.rect.x,
-        rect_y: pendingAnnotation.rect.y,
-        rect_w: pendingAnnotation.rect.w,
-        rect_h: pendingAnnotation.rect.h,
-        text: noteText.trim(),
-      };
+      // Check if editing existing annotation
+      if (pendingAnnotation.id) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('annotations')
+          .update({ text: noteText.trim() })
+          .eq('id', pendingAnnotation.id)
+          .select()
+          .single();
 
-      const { data, error } = await supabase
-        .from('annotations')
-        .insert([annotationData])
-        .select()
-        .single();
+        if (error) throw error;
 
-      if (error) throw error;
+        // Update in store
+        const currentAnnotations = useStore.getState().annotations;
+        useStore.getState().setAnnotations(
+          currentAnnotations.map(a => a.id === data.id ? data : a)
+        );
+      } else {
+        // Create new
+        const annotationData = {
+          source_id: activeSourceId,
+          page_number: currentPage,
+          type: pendingAnnotation.type || 'text',
+          rect_x: pendingAnnotation.rect.x,
+          rect_y: pendingAnnotation.rect.y,
+          rect_w: pendingAnnotation.rect.w,
+          rect_h: pendingAnnotation.rect.h,
+          text: noteText.trim(),
+        };
 
-      addAnnotation(data);
+        const { data, error } = await supabase
+          .from('annotations')
+          .insert([annotationData])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        addAnnotation(data);
+      }
+
       handleClose();
     } catch (err) {
       console.error('Failed to save annotation:', err);

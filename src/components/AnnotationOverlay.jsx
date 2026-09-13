@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import useStore from '../store/useStore';
+import { supabase } from '../lib/supabase';
 
 export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const [dragging, setDragging] = useState(false);
@@ -19,6 +20,31 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   );
 
   const handleMouseDown = (e) => {
+    // Text tool: click to place text box
+    if (activeTool === 'text') {
+      const rect = wrapRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+
+      // Create a small text box at click location
+      const textAnnotation = {
+        rect: {
+          x: x,
+          y: y,
+          w: 0.15, // Fixed width for text boxes
+          h: 0.05, // Will expand based on content
+        },
+        page: currentPage,
+        sourceId: activeSourceId,
+        type: 'text',
+      };
+
+      // Open modal to add text
+      useStore.getState().openAnnotationModal(textAnnotation);
+      return;
+    }
+
+    // Highlight tool: drag to create rectangle
     if (activeTool !== 'highlight') return;
 
     const rect = wrapRef.current.getBoundingClientRect();
@@ -47,7 +73,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     setDraftRect(newRect);
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = async () => {
     if (!dragging || !draftRect) return;
 
     // Minimum size check (avoid tiny accidental highlights)
@@ -58,15 +84,28 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
       return;
     }
 
-    // Create annotation with this rectangle
-    const annotation = {
-      rect: draftRect,
-      page: currentPage,
-      sourceId: activeSourceId,
-    };
+    // Save highlight directly (no modal for highlights)
+    try {
+      const { data, error } = await supabase
+        .from('annotations')
+        .insert([{
+          source_id: activeSourceId,
+          page_number: currentPage,
+          type: 'highlight',
+          rect_x: draftRect.x,
+          rect_y: draftRect.y,
+          rect_w: draftRect.w,
+          rect_h: draftRect.h,
+          text: null,
+        }])
+        .select()
+        .single();
 
-    // Trigger modal to add note
-    useStore.getState().openAnnotationModal(annotation);
+      if (error) throw error;
+      useStore.getState().addAnnotation(data);
+    } catch (err) {
+      console.error('Failed to save highlight:', err);
+    }
 
     // Reset
     setDragging(false);
@@ -74,9 +113,36 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     startPos.current = null;
   };
 
-  const handleAnnotationClick = (ann) => {
-    setSelectedAnnotation(ann.id);
-    useStore.getState().openAnnotationModal(ann);
+  const handleAnnotationClick = (ann, e) => {
+    // Only text annotations open modal on click
+    if (ann.type === 'text') {
+      e.stopPropagation();
+      setSelectedAnnotation(ann.id);
+      useStore.getState().openAnnotationModal(ann);
+    }
+  };
+
+  const handleAnnotationRightClick = async (ann, e) => {
+    e.preventDefault();
+    if (!confirm('Delete this annotation?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('annotations')
+        .delete()
+        .eq('id', ann.id);
+
+      if (error) throw error;
+
+      // Remove from store
+      const currentAnnotations = useStore.getState().annotations;
+      useStore.getState().setAnnotations(
+        currentAnnotations.filter(a => a.id !== ann.id)
+      );
+    } catch (err) {
+      console.error('Failed to delete annotation:', err);
+      alert('Failed to delete annotation');
+    }
   };
 
   return (
@@ -92,49 +158,35 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
         left: 0,
         width: canvasWidth,
         height: canvasHeight,
-        cursor: activeTool === 'highlight' ? 'crosshair' : 'default',
-        pointerEvents: activeTool !== 'select' ? 'auto' : 'none',
+        cursor: activeTool === 'highlight' ? 'crosshair' : activeTool === 'text' ? 'text' : 'default',
+        pointerEvents: 'auto',
       }}
     >
       {/* Render existing annotations */}
       {pageAnnotations.map((ann) => (
         <div
           key={ann.id}
-          onClick={() => handleAnnotationClick(ann)}
+          onClick={(e) => handleAnnotationClick(ann, e)}
+          onContextMenu={(e) => handleAnnotationRightClick(ann, e)}
           style={{
             position: 'absolute',
             left: `${ann.rect_x * 100}%`,
             top: `${ann.rect_y * 100}%`,
             width: `${ann.rect_w * 100}%`,
             height: `${ann.rect_h * 100}%`,
-            border: '1px solid rgba(212, 163, 115, 0.7)',
-            background: 'rgba(212, 163, 115, 0.28)',
+            border: ann.type === 'text' ? '1px solid var(--accent)' : '1px solid rgba(212, 163, 115, 0.7)',
+            background: ann.type === 'text' ? 'var(--panel-2)' : 'rgba(212, 163, 115, 0.28)',
             cursor: 'pointer',
             pointerEvents: 'auto',
+            padding: ann.type === 'text' ? '4px 6px' : '0',
+            fontSize: ann.type === 'text' ? '11px' : 'inherit',
+            color: ann.type === 'text' ? 'var(--text)' : 'inherit',
+            whiteSpace: ann.type === 'text' ? 'pre-wrap' : 'normal',
+            overflow: ann.type === 'text' ? 'auto' : 'hidden',
           }}
-          title={ann.text || 'Highlight'}
+          title={ann.type === 'highlight' ? 'Right-click to delete' : 'Click to edit'}
         >
-          {ann.text && (
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: '100%',
-                background: 'var(--panel-2)',
-                color: 'var(--text)',
-                border: '1px solid var(--line)',
-                padding: '2px 6px',
-                fontSize: '11px',
-                whiteSpace: 'nowrap',
-                maxWidth: '240px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                zIndex: 10,
-              }}
-            >
-              {ann.text}
-            </div>
-          )}
+          {ann.type === 'text' && ann.text}
         </div>
       ))}
 
