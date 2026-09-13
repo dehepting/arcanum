@@ -2,11 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import useStore from '../store/useStore';
 import { supabase } from '../lib/supabase';
 import { getPlaceForAnnotation } from '../lib/places';
+import { getArtifactsForAnnotation } from '../lib/artifact-sources';
+import ArtifactBadge from './ArtifactBadge';
 
 export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const [dragging, setDragging] = useState(false);
   const [draftRect, setDraftRect] = useState(null);
   const [linkedAnnotations, setLinkedAnnotations] = useState(new Set());
+  const [artifactLinks, setArtifactLinks] = useState(new Map());
   const startPos = useRef(null);
   const wrapRef = useRef(null);
 
@@ -35,6 +38,25 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     });
     setLinkedAnnotations(linked);
   }, [places]);
+
+  // Load artifact links for current page annotations
+  useEffect(() => {
+    const loadArtifactLinks = async () => {
+      const links = new Map();
+      for (const ann of pageAnnotations) {
+        const result = await getArtifactsForAnnotation(ann.id);
+        if (result.success && result.data.length > 0) {
+          // Store first artifact for badge display
+          links.set(ann.id, result.data[0].artifacts);
+        }
+      }
+      setArtifactLinks(links);
+    };
+
+    if (pageAnnotations.length > 0) {
+      loadArtifactLinks();
+    }
+  }, [pageAnnotations.length, activeSourceId, currentPage]);
 
   const handleMouseDown = (e) => {
     // Text tool: click to place text box
@@ -157,6 +179,11 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     }
   };
 
+  const handleArtifactBadgeClick = (artifact) => {
+    // Navigate to artifact detail view
+    useStore.getState().setSelectedArtifact(artifact);
+  };
+
   const handleAnnotationRightClick = async (ann, e) => {
     e.preventDefault();
     if (!confirm('Delete this annotation?')) return;
@@ -196,6 +223,9 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
       {/* Render existing annotations */}
       {pageAnnotations.map((ann) => {
         const isLinked = linkedAnnotations.has(ann.id);
+        const linkedArtifact = artifactLinks.get(ann.id);
+        const hasArtifactLink = !!linkedArtifact;
+
         return (
           <div
             key={ann.id}
@@ -209,9 +239,11 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
               height: `${ann.rect_h * 100}%`,
               border: isLinked
                 ? '2px solid var(--accent)'
-                : ann.type === 'text'
-                  ? '1px solid var(--accent)'
-                  : '1px solid rgba(212, 163, 115, 0.7)',
+                : hasArtifactLink
+                  ? '2px solid #667eea'
+                  : ann.type === 'text'
+                    ? '1px solid var(--accent)'
+                    : '1px solid rgba(212, 163, 115, 0.7)',
               background: ann.type === 'text' ? 'var(--panel-2)' : 'rgba(212, 163, 115, 0.28)',
               cursor: 'pointer',
               pointerEvents: 'auto',
@@ -220,7 +252,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
               color: ann.type === 'text' ? 'var(--text)' : 'inherit',
               whiteSpace: ann.type === 'text' ? 'pre-wrap' : 'normal',
               overflow: ann.type === 'text' ? 'auto' : 'hidden',
-              boxShadow: isLinked ? '0 0 0 1px var(--accent)' : 'none',
+              boxShadow: isLinked || hasArtifactLink ? '0 0 0 1px currentColor' : 'none',
             }}
             title={
               isLinked
@@ -250,6 +282,9 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
               >
                 📍
               </div>
+            )}
+            {hasArtifactLink && (
+              <ArtifactBadge artifact={linkedArtifact} onClick={handleArtifactBadgeClick} />
             )}
           </div>
         );

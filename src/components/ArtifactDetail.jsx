@@ -4,6 +4,7 @@ import { deleteArtifact } from '../lib/artifacts';
 import ProvenanceTimeline from './ProvenanceTimeline';
 import ProvenanceForm from './ProvenanceForm';
 import ClaimsList from './ClaimsList';
+import ArtifactSourcesList from './ArtifactSourcesList';
 
 const CATEGORY_ICONS = {
   'Pottery & Ceramics': '🏺',
@@ -76,7 +77,7 @@ export default function ArtifactDetail({ artifact, onBack, onEdit }) {
           background: 'var(--panel)',
         }}
       >
-        {['details', 'provenance', 'claims'].map((tab) => (
+        {['details', 'provenance', 'claims', 'sources'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -363,6 +364,8 @@ export default function ArtifactDetail({ artifact, onBack, onEdit }) {
         )}
 
         {activeTab === 'claims' && <ClaimsList artifactId={artifact.id} />}
+
+        {activeTab === 'sources' && <ArtifactSourcesList artifactId={artifact.id} />}
       </div>
 
       {/* Actions */}
