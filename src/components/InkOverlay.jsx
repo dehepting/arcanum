@@ -51,17 +51,19 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
         // Save to database
         const { data, error } = await supabase
           .from('annotations')
-          .insert([{
-            source_id: activeSourceId,
-            page_number: currentPage,
-            type: 'ink',
-            rect_x: rect.x,
-            rect_y: rect.y,
-            rect_w: rect.w,
-            rect_h: rect.h,
-            ink_data: pathJSON,
-            text: null,
-          }])
+          .insert([
+            {
+              source_id: activeSourceId,
+              page_number: currentPage,
+              type: 'ink',
+              rect_x: rect.x,
+              rect_y: rect.y,
+              rect_w: rect.w,
+              rect_h: rect.h,
+              ink_data: pathJSON,
+              text: null,
+            },
+          ])
           .select()
           .single();
 
@@ -101,9 +103,8 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
 
     // Get ink annotations for current page
     const inkAnnotations = annotations.filter(
-      (ann) => ann.source_id === activeSourceId &&
-               ann.page_number === currentPage &&
-               ann.type === 'ink'
+      (ann) =>
+        ann.source_id === activeSourceId && ann.page_number === currentPage && ann.type === 'ink'
     );
 
     // Render each ink annotation
@@ -146,9 +147,9 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
 
           // Remove from store
           const currentAnnotations = useStore.getState().annotations;
-          useStore.getState().setAnnotations(
-            currentAnnotations.filter(a => a.id !== target.annotationId)
-          );
+          useStore
+            .getState()
+            .setAnnotations(currentAnnotations.filter((a) => a.id !== target.annotationId));
 
           // Remove from canvas
           canvas.remove(target);

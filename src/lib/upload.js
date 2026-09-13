@@ -33,9 +33,7 @@ export async function uploadPDF(file, projectId) {
   }
 
   // Get public URL
-  const { data: urlData } = supabase.storage
-    .from(BUCKETS.SOURCES)
-    .getPublicUrl(uploadData.path);
+  const { data: urlData } = supabase.storage.from(BUCKETS.SOURCES).getPublicUrl(uploadData.path);
 
   // Create source record in database
   const { data: source, error: dbError } = await supabase
@@ -96,10 +94,7 @@ export async function deleteSource(sourceId, fileUrl) {
   }
 
   // Delete from database
-  const { error } = await supabase
-    .from('sources')
-    .delete()
-    .eq('id', sourceId);
+  const { error } = await supabase.from('sources').delete().eq('id', sourceId);
 
   if (error) {
     throw new Error(`Failed to delete source: ${error.message}`);

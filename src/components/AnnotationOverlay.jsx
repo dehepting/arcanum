@@ -26,9 +26,9 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   // Track which annotations are linked to places
   useEffect(() => {
     const linked = new Set();
-    places.forEach(place => {
+    places.forEach((place) => {
       if (place.annotation_place_links) {
-        place.annotation_place_links.forEach(link => {
+        place.annotation_place_links.forEach((link) => {
           linked.add(link.annotation_id);
         });
       }
@@ -105,16 +105,18 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     try {
       const { data, error } = await supabase
         .from('annotations')
-        .insert([{
-          source_id: activeSourceId,
-          page_number: currentPage,
-          type: 'highlight',
-          rect_x: draftRect.x,
-          rect_y: draftRect.y,
-          rect_w: draftRect.w,
-          rect_h: draftRect.h,
-          text: null,
-        }])
+        .insert([
+          {
+            source_id: activeSourceId,
+            page_number: currentPage,
+            type: 'highlight',
+            rect_x: draftRect.x,
+            rect_y: draftRect.y,
+            rect_w: draftRect.w,
+            rect_h: draftRect.h,
+            text: null,
+          },
+        ])
         .select()
         .single();
 
@@ -160,18 +162,13 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     if (!confirm('Delete this annotation?')) return;
 
     try {
-      const { error } = await supabase
-        .from('annotations')
-        .delete()
-        .eq('id', ann.id);
+      const { error } = await supabase.from('annotations').delete().eq('id', ann.id);
 
       if (error) throw error;
 
       // Remove from store
       const currentAnnotations = useStore.getState().annotations;
-      useStore.getState().setAnnotations(
-        currentAnnotations.filter(a => a.id !== ann.id)
-      );
+      useStore.getState().setAnnotations(currentAnnotations.filter((a) => a.id !== ann.id));
     } catch (err) {
       console.error('Failed to delete annotation:', err);
       alert('Failed to delete annotation');
@@ -191,7 +188,8 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
         left: 0,
         width: canvasWidth,
         height: canvasHeight,
-        cursor: activeTool === 'highlight' ? 'crosshair' : activeTool === 'text' ? 'text' : 'default',
+        cursor:
+          activeTool === 'highlight' ? 'crosshair' : activeTool === 'text' ? 'text' : 'default',
         pointerEvents: 'auto',
       }}
     >
@@ -212,8 +210,8 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
               border: isLinked
                 ? '2px solid var(--accent)'
                 : ann.type === 'text'
-                ? '1px solid var(--accent)'
-                : '1px solid rgba(212, 163, 115, 0.7)',
+                  ? '1px solid var(--accent)'
+                  : '1px solid rgba(212, 163, 115, 0.7)',
               background: ann.type === 'text' ? 'var(--panel-2)' : 'rgba(212, 163, 115, 0.28)',
               cursor: 'pointer',
               pointerEvents: 'auto',
@@ -228,8 +226,8 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
               isLinked
                 ? 'Click to view on map · Right-click to delete'
                 : ann.type === 'highlight'
-                ? 'Right-click to delete'
-                : 'Click to edit'
+                  ? 'Right-click to delete'
+                  : 'Click to edit'
             }
           >
             {ann.type === 'text' && ann.text}

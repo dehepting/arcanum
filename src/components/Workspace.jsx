@@ -8,9 +8,7 @@ export default function Workspace() {
 
   return (
     <div className="workspace">
-      <div className="main-pane">
-        {mapView === 'map' ? <MapView /> : <PDFView />}
-      </div>
+      <div className="main-pane">{mapView === 'map' ? <MapView /> : <PDFView />}</div>
       <Sidebar />
     </div>
   );

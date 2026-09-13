@@ -20,12 +20,12 @@ export async function createPlace(placeData, annotationId = null) {
 
   // Link to annotation if provided
   if (annotationId) {
-    const { error: linkError } = await supabase
-      .from('annotation_place_links')
-      .insert([{
+    const { error: linkError } = await supabase.from('annotation_place_links').insert([
+      {
         annotation_id: annotationId,
         place_id: place.id,
-      }]);
+      },
+    ]);
 
     if (linkError) {
       throw new Error(`Failed to link annotation to place: ${linkError.message}`);
@@ -43,12 +43,14 @@ export async function createPlace(placeData, annotationId = null) {
 export async function loadPlaces(projectId) {
   const { data, error } = await supabase
     .from('places')
-    .select(`
+    .select(
+      `
       *,
       annotation_place_links (
         annotation_id
       )
-    `)
+    `
+    )
     .eq('project_id', projectId)
     .order('created_at', { ascending: false });
 
@@ -67,10 +69,12 @@ export async function loadPlaces(projectId) {
 export async function getPlaceForAnnotation(annotationId) {
   const { data, error } = await supabase
     .from('annotation_place_links')
-    .select(`
+    .select(
+      `
       place_id,
       places (*)
-    `)
+    `
+    )
     .eq('annotation_id', annotationId)
     .single();
 
@@ -90,17 +94,19 @@ export async function getPlaceForAnnotation(annotationId) {
 export async function getAnnotationsForPlace(placeId) {
   const { data, error } = await supabase
     .from('annotation_place_links')
-    .select(`
+    .select(
+      `
       annotation_id,
       annotations (*)
-    `)
+    `
+    )
     .eq('place_id', placeId);
 
   if (error) {
     throw new Error(`Failed to get annotations: ${error.message}`);
   }
 
-  return data?.map(item => item.annotations) || [];
+  return data?.map((item) => item.annotations) || [];
 }
 
 /**
@@ -108,10 +114,7 @@ export async function getAnnotationsForPlace(placeId) {
  * @param {string} placeId - The place ID to delete
  */
 export async function deletePlace(placeId) {
-  const { error } = await supabase
-    .from('places')
-    .delete()
-    .eq('id', placeId);
+  const { error } = await supabase.from('places').delete().eq('id', placeId);
 
   if (error) {
     throw new Error(`Failed to delete place: ${error.message}`);
