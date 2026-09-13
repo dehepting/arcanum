@@ -115,3 +115,11 @@ This is a personal research tool, but PRs are welcome! Please open an issue firs
 ---
 
 Built with curiosity and caffeine. 🗺️
+
+## CI/CD Pipeline
+
+This project uses automated quality controls:
+- Pre-commit hooks (Husky + lint-staged)
+- GitHub Actions CI (lint + build + security audit)
+- Dependabot (automated dependency updates)
+- Branch protection (requires CI to pass)
