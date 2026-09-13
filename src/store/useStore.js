@@ -62,6 +62,19 @@ const useStore = create((set, get) => ({
     pendingAnnotation: null,
   }),
 
+  // Pin placement mode (for linking annotations to map)
+  pinPlacementMode: false,
+  pendingPinAnnotationId: null,
+  startPinPlacement: (annotationId) => set({
+    pinPlacementMode: true,
+    pendingPinAnnotationId: annotationId,
+    mapView: 'map', // Switch to map view
+  }),
+  cancelPinPlacement: () => set({
+    pinPlacementMode: false,
+    pendingPinAnnotationId: null,
+  }),
+
   // Artifacts
   artifacts: [],
   setArtifacts: (artifacts) => set({ artifacts }),

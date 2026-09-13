@@ -12,6 +12,7 @@ export default function AnnotationModal() {
   const addAnnotation = useStore((state) => state.addAnnotation);
   const currentPage = useStore((state) => state.currentPage);
   const activeSourceId = useStore((state) => state.activeSourceId);
+  const startPinPlacement = useStore((state) => state.startPinPlacement);
 
   useEffect(() => {
     if (modalOpen && pendingAnnotation) {
@@ -94,6 +95,16 @@ export default function AnnotationModal() {
     closeModal();
   };
 
+  const handleSaveAndLink = async () => {
+    // Save first
+    await handleSave();
+
+    // Then start pin placement mode
+    if (pendingAnnotation?.id) {
+      startPinPlacement(pendingAnnotation.id);
+    }
+  };
+
   if (!modalOpen) return null;
 
   return (
@@ -145,7 +156,7 @@ export default function AnnotationModal() {
           }}
         />
 
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between' }}>
           <button
             onClick={handleClose}
             style={{
@@ -159,21 +170,38 @@ export default function AnnotationModal() {
           >
             Cancel
           </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              background: 'var(--accent)',
-              border: 'var(--accent)',
-              color: '#fff',
-              padding: '6px 12px',
-              cursor: saving ? 'wait' : 'pointer',
-              borderRadius: '4px',
-              opacity: saving ? 0.7 : 1,
-            }}
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                background: 'var(--panel)',
+                border: '1px solid var(--line)',
+                color: 'var(--text)',
+                padding: '6px 12px',
+                cursor: saving ? 'wait' : 'pointer',
+                borderRadius: '4px',
+                opacity: saving ? 0.7 : 1,
+              }}
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              onClick={handleSaveAndLink}
+              disabled={saving}
+              style={{
+                background: 'var(--accent)',
+                border: 'var(--accent)',
+                color: '#fff',
+                padding: '6px 12px',
+                cursor: saving ? 'wait' : 'pointer',
+                borderRadius: '4px',
+                opacity: saving ? 0.7 : 1,
+              }}
+            >
+              {saving ? 'Saving...' : 'Save & Link to Map'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
