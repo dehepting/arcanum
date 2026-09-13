@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import useStore from '../store/useStore';
+import AnnotationOverlay from './AnnotationOverlay';
+import AnnotationModal from './AnnotationModal';
+import { loadAnnotations } from '../lib/annotations';
 
 // Set worker path from npm package (ensures version match)
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
@@ -11,6 +14,7 @@ export default function PDFView() {
   const overlayRef = useRef(null);
   const [pdfDoc, setPdfDoc] = useState(null);
   const [numPages, setNumPages] = useState(0);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const activeSourceId = useStore((state) => state.activeSourceId);
   const sources = useStore((state) => state.sources);
@@ -20,8 +24,25 @@ export default function PDFView() {
   const setScale = useStore((state) => state.setScale);
   const activeTool = useStore((state) => state.activeTool);
   const setActiveTool = useStore((state) => state.setActiveTool);
+  const setAnnotations = useStore((state) => state.setAnnotations);
 
   const activeSource = sources.find((s) => s.id === activeSourceId);
+
+  // Load annotations when source changes
+  useEffect(() => {
+    if (!activeSourceId) return;
+
+    const fetchAnnotations = async () => {
+      try {
+        const anns = await loadAnnotations(activeSourceId);
+        setAnnotations(anns);
+      } catch (err) {
+        console.error('Failed to load annotations:', err);
+      }
+    };
+
+    fetchAnnotations();
+  }, [activeSourceId, setAnnotations]);
 
   // Load PDF
   useEffect(() => {
@@ -60,6 +81,9 @@ export default function PDFView() {
 
       canvas.width = viewport.width;
       canvas.height = viewport.height;
+
+      // Update canvas size for overlay
+      setCanvasSize({ width: viewport.width, height: viewport.height });
 
       await page.render({ canvasContext: ctx, viewport }).promise;
     };
@@ -159,13 +183,18 @@ export default function PDFView() {
               left: 0,
               width: '100%',
               height: '100%',
-              cursor: activeTool === 'highlight' ? 'crosshair' : 'default',
             }}
           >
-            {/* TODO: Render annotations overlay */}
+            <AnnotationOverlay
+              canvasWidth={canvasSize.width}
+              canvasHeight={canvasSize.height}
+            />
           </div>
         </div>
       </div>
+
+      {/* Annotation Modal */}
+      <AnnotationModal />
     </div>
   );
 }

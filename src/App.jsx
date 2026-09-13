@@ -5,6 +5,7 @@ import Tabs from './components/Tabs';
 import Workspace from './components/Workspace';
 import ProjectPicker from './components/ProjectPicker';
 import { loadSources } from './lib/upload';
+import { loadAnnotations } from './lib/annotations';
 import './styles/index.css';
 
 function App() {

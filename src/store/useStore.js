@@ -50,6 +50,18 @@ const useStore = create((set, get) => ({
   selectedAnnotationId: null,
   setSelectedAnnotation: (id) => set({ selectedAnnotationId: id }),
 
+  // Annotation modal
+  annotationModalOpen: false,
+  pendingAnnotation: null,
+  openAnnotationModal: (annotation) => set({
+    annotationModalOpen: true,
+    pendingAnnotation: annotation,
+  }),
+  closeAnnotationModal: () => set({
+    annotationModalOpen: false,
+    pendingAnnotation: null,
+  }),
+
   // Artifacts
   artifacts: [],
   setArtifacts: (artifacts) => set({ artifacts }),
