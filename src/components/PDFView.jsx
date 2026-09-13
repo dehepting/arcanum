@@ -3,6 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import useStore from '../store/useStore';
 import AnnotationOverlay from './AnnotationOverlay';
+import InkOverlay from './InkOverlay';
 import AnnotationModal from './AnnotationModal';
 import { loadAnnotations } from '../lib/annotations';
 
@@ -188,6 +189,11 @@ export default function PDFView() {
             <AnnotationOverlay
               canvasWidth={canvasSize.width}
               canvasHeight={canvasSize.height}
+            />
+            <InkOverlay
+              canvasWidth={canvasSize.width}
+              canvasHeight={canvasSize.height}
+              active={activeTool === 'ink'}
             />
           </div>
         </div>
