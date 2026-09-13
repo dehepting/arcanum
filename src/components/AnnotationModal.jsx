@@ -15,6 +15,7 @@ export default function AnnotationModal() {
 
   useEffect(() => {
     if (modalOpen && pendingAnnotation) {
+      console.log('Opening modal with annotation:', pendingAnnotation);
       // If editing existing annotation
       if (pendingAnnotation.id) {
         setNoteText(pendingAnnotation.text || '');
@@ -22,6 +23,8 @@ export default function AnnotationModal() {
         // New annotation
         setNoteText('');
       }
+    } else if (!modalOpen) {
+      setNoteText('');
     }
   }, [modalOpen, pendingAnnotation]);
 
