@@ -71,7 +71,9 @@ export default function ProjectPicker() {
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ maxWidth: '500px', width: '100%', padding: '40px' }}>
-          <h1 style={{ fontSize: '24px', marginBottom: '12px', fontFamily: 'IBM Plex Serif, serif' }}>
+          <h1
+            style={{ fontSize: '24px', marginBottom: '12px', fontFamily: 'IBM Plex Serif, serif' }}
+          >
             Select a Project
           </h1>
           <p className="text-muted" style={{ marginBottom: '24px' }}>
@@ -118,9 +120,7 @@ export default function ProjectPicker() {
                         e.currentTarget.style.borderColor = 'var(--line)';
                       }}
                     >
-                      <div style={{ fontSize: '14px', fontWeight: 500 }}>
-                        {project.name}
-                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 500 }}>{project.name}</div>
                       <div className="text-muted" style={{ fontSize: '11px', marginTop: '4px' }}>
                         Updated {new Date(project.updated_at).toLocaleDateString()}
                       </div>
@@ -153,11 +153,7 @@ export default function ProjectPicker() {
                 }}
               />
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  className="btn"
-                  onClick={() => setShowCreate(false)}
-                  style={{ flex: 1 }}
-                >
+                <button className="btn" onClick={() => setShowCreate(false)} style={{ flex: 1 }}>
                   Cancel
                 </button>
                 <button

@@ -40,7 +40,10 @@ export default function Sidebar() {
       </div>
 
       {/* Artifacts Section */}
-      <div className="sidebar-section" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div
+        className="sidebar-section"
+        style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+      >
         <div className="sidebar-header">Artifacts</div>
         <div className="sidebar-content">
           {artifacts.length === 0 ? (
@@ -58,9 +61,7 @@ export default function Sidebar() {
                     cursor: 'pointer',
                   }}
                 >
-                  <div style={{ fontSize: '12px', fontWeight: 500 }}>
-                    {artifact.title}
-                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: 500 }}>{artifact.title}</div>
                   {artifact.location_name && (
                     <div className="text-muted" style={{ fontSize: '11px', marginTop: '4px' }}>
                       📍 {artifact.location_name}

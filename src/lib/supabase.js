@@ -4,7 +4,9 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials not found. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env');
+  console.warn(
+    'Supabase credentials not found. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env'
+  );
 }
 
 export const supabase = createClient(
@@ -21,19 +23,15 @@ export const BUCKETS = {
 
 // Helper: Upload file to Supabase Storage
 export async function uploadFile(bucket, file, path) {
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
+  const { data, error } = await supabase.storage.from(bucket).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
 
   if (error) throw error;
 
   // Get public URL
-  const { data: urlData } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(data.path);
+  const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
 
   return urlData.publicUrl;
 }

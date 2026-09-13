@@ -134,7 +134,7 @@ export default function MapView() {
     if (!map.current || !mapReady) return;
 
     // Clear existing markers
-    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
     // Add markers for all places
@@ -167,7 +167,7 @@ export default function MapView() {
           if (annotations && annotations.length > 0) {
             const annotation = annotations[0]; // Use first linked annotation
             // Find the source
-            const source = sources.find(s => s.id === annotation.source_id);
+            const source = sources.find((s) => s.id === annotation.source_id);
             if (source) {
               // Switch to PDF view
               setMapView('source');
@@ -188,21 +188,23 @@ export default function MapView() {
     <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
       {/* Pin placement mode banner */}
       {pinPlacementMode && (
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 1000,
-          background: 'var(--accent)',
-          color: '#fff',
-          padding: '10px 16px',
-          borderRadius: '6px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          display: 'flex',
-          gap: '12px',
-          alignItems: 'center',
-        }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: '10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            background: 'var(--accent)',
+            color: '#fff',
+            padding: '10px 16px',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'center',
+          }}
+        >
           <span>📍 Click on the map to place a pin</span>
           <button
             onClick={cancelPinPlacement}

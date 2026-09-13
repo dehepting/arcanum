@@ -10,9 +10,7 @@ export default function Topbar() {
         <span className="motto">collige et serva</span>
       </div>
       <div className="topbar-spacer" />
-      {currentProject && (
-        <div className="project-name">{currentProject.name}</div>
-      )}
+      {currentProject && <div className="project-name">{currentProject.name}</div>}
     </div>
   );
 }

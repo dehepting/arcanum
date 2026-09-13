@@ -131,16 +131,10 @@ export default function PDFView() {
         <div className="toolbar-separator" />
 
         <div className="toolbar-group">
-          <button
-            className="btn-icon"
-            onClick={() => setScale(Math.max(0.5, pdfScale - 0.2))}
-          >
+          <button className="btn-icon" onClick={() => setScale(Math.max(0.5, pdfScale - 0.2))}>
             −
           </button>
-          <button
-            className="btn-icon"
-            onClick={() => setScale(Math.min(3.0, pdfScale + 0.2))}
-          >
+          <button className="btn-icon" onClick={() => setScale(Math.min(3.0, pdfScale + 0.2))}>
             +
           </button>
         </div>
@@ -174,7 +168,14 @@ export default function PDFView() {
 
       {/* PDF Canvas */}
       <div style={{ flex: 1, overflow: 'auto', background: '#0a0b0d', padding: '20px' }}>
-        <div style={{ position: 'relative', margin: '0 auto', width: 'fit-content', boxShadow: '0 8px 40px rgba(0,0,0,.45)' }}>
+        <div
+          style={{
+            position: 'relative',
+            margin: '0 auto',
+            width: 'fit-content',
+            boxShadow: '0 8px 40px rgba(0,0,0,.45)',
+          }}
+        >
           <canvas ref={canvasRef} style={{ display: 'block' }} />
           <div
             ref={overlayRef}
@@ -186,10 +187,7 @@ export default function PDFView() {
               height: '100%',
             }}
           >
-            <AnnotationOverlay
-              canvasWidth={canvasSize.width}
-              canvasHeight={canvasSize.height}
-            />
+            <AnnotationOverlay canvasWidth={canvasSize.width} canvasHeight={canvasSize.height} />
             <InkOverlay
               canvasWidth={canvasSize.width}
               canvasHeight={canvasSize.height}

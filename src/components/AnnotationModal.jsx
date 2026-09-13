@@ -54,9 +54,9 @@ export default function AnnotationModal() {
 
         // Update in store
         const currentAnnotations = useStore.getState().annotations;
-        useStore.getState().setAnnotations(
-          currentAnnotations.map(a => a.id === data.id ? data : a)
-        );
+        useStore
+          .getState()
+          .setAnnotations(currentAnnotations.map((a) => (a.id === data.id ? data : a)));
       } else {
         // Create new
         const annotationData = {

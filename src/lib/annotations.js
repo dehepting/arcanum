@@ -24,10 +24,7 @@ export async function loadAnnotations(sourceId) {
  * @param {string} annotationId - The annotation ID to delete
  */
 export async function deleteAnnotation(annotationId) {
-  const { error } = await supabase
-    .from('annotations')
-    .delete()
-    .eq('id', annotationId);
+  const { error } = await supabase.from('annotations').delete().eq('id', annotationId);
 
   if (error) {
     throw new Error(`Failed to delete annotation: ${error.message}`);
