@@ -142,32 +142,43 @@ const TOOLS = [
       type: 'object',
       properties: {
         artifact_id: { type: 'string', description: 'Artifact UUID' },
-        event_type: {
+        date_from: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
+        date_to: { type: 'string', description: 'End date (YYYY-MM-DD)' },
+        is_current: {
+          type: 'boolean',
+          description: 'Is this the current ownership?',
+          default: false,
+        },
+        owner_name: { type: 'string', description: 'Owner/custodian name' },
+        owner_type: {
           type: 'string',
-          description: 'Type of provenance event',
+          description: 'Type of owner',
+          enum: ['museum', 'private', 'government', 'religious', 'in_situ', 'unknown', 'destroyed'],
+        },
+        location: { type: 'string', description: 'Location during this period' },
+        transfer_method: {
+          type: 'string',
+          description: 'How the artifact was transferred',
           enum: [
-            'discovery',
-            'acquisition',
-            'sale',
-            'transfer',
-            'loan',
-            'exhibition',
-            'conservation',
-            'repatriation',
+            'excavation',
+            'purchase',
+            'gift',
+            'inheritance',
             'theft',
-            'recovery',
-            'other',
+            'loan',
+            'repatriation',
+            'unknown',
           ],
         },
-        date_start: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
-        date_end: { type: 'string', description: 'End date (YYYY-MM-DD)' },
-        owner_name: { type: 'string', description: 'Owner/custodian name' },
-        location: { type: 'string', description: 'Location during this period' },
-        description: { type: 'string', description: 'Description of the event' },
-        source: { type: 'string', description: 'Source of information' },
+        transfer_details: { type: 'string', description: 'Details about the transfer' },
+        purchase_price: {
+          type: 'string',
+          description: 'Purchase price if applicable (e.g., "£500")',
+        },
+        notes: { type: 'string', description: 'Additional notes' },
         verified: { type: 'boolean', description: 'Is this verified?', default: false },
       },
-      required: ['artifact_id', 'event_type'],
+      required: ['artifact_id', 'owner_name'],
     },
   },
   {
@@ -186,19 +197,30 @@ const TOOLS = [
             'institution',
             'individual',
             'indigenous_group',
-            'religious_body',
-            'other',
+            'religious_organization',
           ],
         },
-        claim_basis: { type: 'string', description: 'Basis for the claim' },
-        claim_date: { type: 'string', description: 'Date claim was filed' },
+        claim_basis: {
+          type: 'string',
+          description: 'Basis for the claim',
+          enum: [
+            'cultural_heritage',
+            'illegal_export',
+            'looted',
+            'stolen',
+            'rightful_heir',
+            'sacred_object',
+          ],
+        },
+        claim_date: { type: 'string', description: 'Date claim was filed (YYYY-MM-DD)' },
         status: {
           type: 'string',
           description: 'Current status',
           enum: ['pending', 'under_review', 'accepted', 'rejected', 'settled', 'withdrawn'],
           default: 'pending',
         },
-        description: { type: 'string', description: 'Detailed description' },
+        details: { type: 'string', description: 'Detailed description of the claim' },
+        legal_reference: { type: 'string', description: 'Legal reference or case number' },
       },
       required: ['artifact_id', 'claimant_name', 'claim_basis'],
     },
@@ -373,18 +395,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'add_provenance': {
         const provenanceData = {
           artifact_id: args.artifact_id,
-          event_type: args.event_type,
-          date_start: args.date_start || null,
-          date_end: args.date_end || null,
-          owner_name: args.owner_name || null,
+          date_from: args.date_from || null,
+          date_to: args.date_to || null,
+          is_current: args.is_current || false,
+          owner_name: args.owner_name,
+          owner_type: args.owner_type || null,
           location: args.location || null,
-          description: args.description || null,
-          source: args.source || null,
+          transfer_method: args.transfer_method || null,
+          transfer_details: args.transfer_details || null,
+          purchase_price: args.purchase_price || null,
+          notes: args.notes || null,
           verified: args.verified || false,
         };
 
         const { data, error } = await supabase
-          .from('provenance')
+          .from('artifact_provenance')
           .insert([provenanceData])
           .select()
           .single();
@@ -409,10 +434,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           claim_basis: args.claim_basis,
           claim_date: args.claim_date || null,
           status: args.status || 'pending',
-          description: args.description || null,
+          details: args.details || null,
+          legal_reference: args.legal_reference || null,
         };
 
-        const { data, error } = await supabase.from('claims').insert([claimData]).select().single();
+        const { data, error } = await supabase
+          .from('artifact_claims')
+          .insert([claimData])
+          .select()
+          .single();
 
         if (error) throw error;
 
