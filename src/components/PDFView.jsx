@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import useStore from '../store/useStore';
 
-// Set worker path - use a stable CDN URL
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+// Set worker path from npm package (ensures version match)
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export default function PDFView() {
   const canvasRef = useRef(null);
@@ -24,10 +25,17 @@ export default function PDFView() {
 
   // Load PDF
   useEffect(() => {
-    if (!activeSource?.file_url) return;
+    console.log('Active source:', activeSource);
+    console.log('File URL:', activeSource?.file_url);
+
+    if (!activeSource?.file_url) {
+      console.warn('No file_url found in source');
+      return;
+    }
 
     const loadPDF = async () => {
       try {
+        console.log('Loading PDF from:', activeSource.file_url);
         const doc = await pdfjsLib.getDocument(activeSource.file_url).promise;
         setPdfDoc(doc);
         setNumPages(doc.numPages);
