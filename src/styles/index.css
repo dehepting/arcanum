@@ -83,6 +83,41 @@ body,
   font-size: 12px;
 }
 
+.topbar-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.topbar-link:hover {
+  background: var(--bg);
+  border-color: var(--accent-2);
+}
+
+.topbar-icon {
+  font-size: 14px;
+}
+
+.topbar-badge {
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
 /* Tabs */
 .tabs {
   display: flex;
@@ -181,6 +216,10 @@ body,
 }
 
 .sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 10px 16px;
   font-size: 11px;
   font-weight: 500;

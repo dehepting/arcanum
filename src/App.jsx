@@ -30,6 +30,9 @@ function App() {
   useEffect(() => {
     if (!currentProject) return;
 
+    // Save to localStorage for persistence
+    localStorage.setItem('arcanum_last_project_id', currentProject.id);
+
     const loadProjectData = async () => {
       try {
         const [sources, artifacts] = await Promise.all([

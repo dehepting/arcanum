@@ -1,0 +1,22 @@
+{
+  "name": "arcanum-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Arcanum artifact management",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "artifacts",
+    "archaeology"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@supabase/supabase-js": "^2.116.0"
+  }
+}
