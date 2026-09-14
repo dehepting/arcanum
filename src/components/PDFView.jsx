@@ -143,6 +143,13 @@ export default function PDFView() {
 
         <div className="toolbar-group">
           <button
+            className={`btn-icon ${activeTool === 'select' ? 'active' : ''}`}
+            onClick={() => setActiveTool('select')}
+            title="Select & Move"
+          >
+            ↖️
+          </button>
+          <button
             className={`btn-icon ${activeTool === 'highlight' ? 'active' : ''}`}
             onClick={() => setActiveTool('highlight')}
             title="Highlight"

@@ -126,12 +126,67 @@ export default function AnnotationModal() {
   };
 
   const handleSaveAndLink = async () => {
-    // Save first
-    await handleSave();
+    if (!pendingAnnotation) return;
 
-    // Then start pin placement mode
-    if (pendingAnnotation?.id) {
-      startPinPlacement(pendingAnnotation.id);
+    // Text annotations require text
+    if (pendingAnnotation.type === 'text' && !noteText.trim()) {
+      alert('Please enter some text for the note');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let annotationId = pendingAnnotation.id;
+
+      // Check if editing existing annotation or creating new
+      if (pendingAnnotation.id) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('annotations')
+          .update({ text: noteText.trim() })
+          .eq('id', pendingAnnotation.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const currentAnnotations = useStore.getState().annotations;
+        useStore
+          .getState()
+          .setAnnotations(currentAnnotations.map((a) => (a.id === data.id ? data : a)));
+      } else {
+        // Create new
+        const annotationData = {
+          source_id: activeSourceId,
+          page_number: currentPage,
+          type: pendingAnnotation.type || 'text',
+          rect_x: pendingAnnotation.rect.x,
+          rect_y: pendingAnnotation.rect.y,
+          rect_w: pendingAnnotation.rect.w,
+          rect_h: pendingAnnotation.rect.h,
+          text: noteText.trim(),
+        };
+
+        const { data, error } = await supabase
+          .from('annotations')
+          .insert([annotationData])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        addAnnotation(data);
+        annotationId = data.id;
+      }
+
+      // Now start pin placement with the annotation ID
+      handleClose();
+      startPinPlacement(annotationId);
+    } catch (err) {
+      console.error('Failed to save annotation:', err);
+      alert(`Failed to save annotation: ${err.message}`);
+    } finally {
+      setSaving(false);
     }
   };
 

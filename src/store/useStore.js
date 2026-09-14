@@ -27,7 +27,7 @@ const useStore = create((set, get) => ({
   setScale: (scale) => set({ pdfScale: scale }),
 
   // Annotation tool
-  activeTool: 'highlight', // 'highlight', 'ink', 'text', 'select'
+  activeTool: 'select', // 'select', 'highlight', 'ink', 'text'
   setActiveTool: (tool) => set({ activeTool: tool }),
 
   // Annotations for current source
