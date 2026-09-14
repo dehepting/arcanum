@@ -2,11 +2,19 @@ import useStore from '../store/useStore';
 
 export default function Topbar() {
   const currentProject = useStore((state) => state.currentProject);
+  const setCurrentProject = useStore((state) => state.setCurrentProject);
   const artifacts = useStore((state) => state.artifacts);
   const setMapView = useStore((state) => state.setMapView);
 
   const handleArtifactsClick = () => {
     setMapView('artifacts');
+  };
+
+  const handleHomeClick = () => {
+    if (confirm('Return to project selection? (Current work will be saved)')) {
+      setCurrentProject(null);
+      localStorage.removeItem('arcanum_last_project_id');
+    }
   };
 
   return (
@@ -18,6 +26,14 @@ export default function Topbar() {
       <div className="topbar-spacer" />
       {currentProject && (
         <>
+          <button
+            onClick={handleHomeClick}
+            className="topbar-link"
+            title="Return to project selection"
+          >
+            <span className="topbar-icon">🏠</span>
+            Projects
+          </button>
           <button
             onClick={handleArtifactsClick}
             className="topbar-link"
