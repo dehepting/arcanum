@@ -59,6 +59,9 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   }, [pageAnnotations.length, activeSourceId, currentPage]);
 
   const handleMouseDown = (e) => {
+    // Select tool: don't create new annotations
+    if (activeTool === 'select') return;
+
     // Text tool: click to place text box
     if (activeTool === 'text') {
       const rect = wrapRef.current.getBoundingClientRect();
@@ -216,7 +219,13 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
         width: canvasWidth,
         height: canvasHeight,
         cursor:
-          activeTool === 'highlight' ? 'crosshair' : activeTool === 'text' ? 'text' : 'default',
+          activeTool === 'select'
+            ? 'default'
+            : activeTool === 'highlight'
+              ? 'crosshair'
+              : activeTool === 'text'
+                ? 'text'
+                : 'default',
         pointerEvents: 'auto',
       }}
     >

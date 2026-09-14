@@ -4,17 +4,16 @@ export default function Topbar() {
   const currentProject = useStore((state) => state.currentProject);
   const setCurrentProject = useStore((state) => state.setCurrentProject);
   const artifacts = useStore((state) => state.artifacts);
-  const setMapView = useStore((state) => state.setMapView);
+  const setSelectedArtifact = useStore((state) => state.setSelectedArtifact);
 
   const handleArtifactsClick = () => {
-    setMapView('artifacts');
+    // Clear selected artifact to show full artifacts list
+    setSelectedArtifact(null);
   };
 
   const handleHomeClick = () => {
-    if (confirm('Return to project selection? (Current work will be saved)')) {
-      setCurrentProject(null);
-      localStorage.removeItem('arcanum_last_project_id');
-    }
+    setCurrentProject(null);
+    localStorage.removeItem('arcanum_last_project_id');
   };
 
   return (
