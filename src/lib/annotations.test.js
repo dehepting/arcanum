@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { loadAnnotations } from './annotations';
+import { loadAnnotations, deleteAnnotation, updateAnnotationText } from './annotations';
 import { supabase } from './supabase';
 
 // Mock Supabase
@@ -87,7 +87,76 @@ describe('annotations library', () => {
     });
   });
 
-  // Add more test suites for other functions as needed
-  // describe('deleteAnnotation', () => { ... });
-  // describe('updateAnnotationText', () => { ... });
+  describe('deleteAnnotation', () => {
+    it('should delete an annotation successfully', async () => {
+      const mockChain = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+      };
+
+      supabase.from.mockReturnValue(mockChain);
+
+      await deleteAnnotation('annotation-1');
+
+      expect(supabase.from).toHaveBeenCalledWith('annotations');
+      expect(mockChain.delete).toHaveBeenCalled();
+      expect(mockChain.eq).toHaveBeenCalledWith('id', 'annotation-1');
+    });
+
+    it('should throw error when delete fails', async () => {
+      const mockChain = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'Delete failed' } }),
+      };
+
+      supabase.from.mockReturnValue(mockChain);
+
+      await expect(deleteAnnotation('annotation-1')).rejects.toThrow(
+        'Failed to delete annotation: Delete failed'
+      );
+    });
+  });
+
+  describe('updateAnnotationText', () => {
+    it('should update annotation text successfully', async () => {
+      const updatedAnnotation = {
+        id: 'annotation-1',
+        text: 'Updated text',
+        type: 'text',
+      };
+
+      const mockChain = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: updatedAnnotation, error: null }),
+      };
+
+      supabase.from.mockReturnValue(mockChain);
+
+      const result = await updateAnnotationText('annotation-1', 'Updated text');
+
+      expect(supabase.from).toHaveBeenCalledWith('annotations');
+      expect(mockChain.update).toHaveBeenCalledWith({ text: 'Updated text' });
+      expect(mockChain.eq).toHaveBeenCalledWith('id', 'annotation-1');
+      expect(mockChain.select).toHaveBeenCalled();
+      expect(mockChain.single).toHaveBeenCalled();
+      expect(result).toEqual(updatedAnnotation);
+    });
+
+    it('should throw error when update fails', async () => {
+      const mockChain = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } }),
+      };
+
+      supabase.from.mockReturnValue(mockChain);
+
+      await expect(updateAnnotationText('annotation-1', 'New text')).rejects.toThrow(
+        'Failed to update annotation: Update failed'
+      );
+    });
+  });
 });
