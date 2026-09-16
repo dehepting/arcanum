@@ -15,7 +15,10 @@ export default function Sidebar() {
   return (
     <div className="sidebar">
       {/* Linked Marks Section */}
-      <div className="sidebar-section">
+      <div
+        className="sidebar-section"
+        style={{ maxHeight: '200px', display: 'flex', flexDirection: 'column' }}
+      >
         <div className="sidebar-header">Linked Marks</div>
         <div className="sidebar-content">
           {annotations.length === 0 ? (
@@ -49,7 +52,7 @@ export default function Sidebar() {
       {/* Artifacts Section */}
       <div
         className="sidebar-section"
-        style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+        style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
       >
         {selectedArtifact ? (
           <ArtifactDetail

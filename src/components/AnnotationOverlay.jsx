@@ -10,6 +10,8 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const [draftRect, setDraftRect] = useState(null);
   const [linkedAnnotations, setLinkedAnnotations] = useState(new Set());
   const [artifactLinks, setArtifactLinks] = useState(new Map());
+  const [draggedAnnotation, setDraggedAnnotation] = useState(null);
+  const [dragOffset, setDragOffset] = useState(null);
   const startPos = useRef(null);
   const wrapRef = useRef(null);
 
@@ -99,6 +101,26 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   };
 
   const handleMouseMove = (e) => {
+    // Handle annotation dragging in select mode
+    if (draggedAnnotation && dragOffset) {
+      const rect = wrapRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+
+      // Update annotation position (clamped to canvas bounds)
+      const newX = Math.max(0, Math.min(1 - draggedAnnotation.rect_w, x - dragOffset.x));
+      const newY = Math.max(0, Math.min(1 - draggedAnnotation.rect_h, y - dragOffset.y));
+
+      // Update in-memory annotation
+      setDraggedAnnotation({
+        ...draggedAnnotation,
+        rect_x: newX,
+        rect_y: newY,
+      });
+      return;
+    }
+
+    // Handle highlight creation
     if (!dragging || !startPos.current) return;
 
     const rect = wrapRef.current.getBoundingClientRect();
@@ -116,6 +138,36 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   };
 
   const handleMouseUp = async () => {
+    // Handle annotation drag end
+    if (draggedAnnotation) {
+      try {
+        const { error } = await supabase
+          .from('annotations')
+          .update({
+            rect_x: draggedAnnotation.rect_x,
+            rect_y: draggedAnnotation.rect_y,
+          })
+          .eq('id', draggedAnnotation.id);
+
+        if (error) throw error;
+
+        // Update in store
+        const currentAnnotations = useStore.getState().annotations;
+        useStore
+          .getState()
+          .setAnnotations(
+            currentAnnotations.map((a) => (a.id === draggedAnnotation.id ? draggedAnnotation : a))
+          );
+      } catch (err) {
+        console.error('Failed to update annotation position:', err);
+      }
+
+      setDraggedAnnotation(null);
+      setDragOffset(null);
+      return;
+    }
+
+    // Handle highlight creation end
     if (!dragging || !draftRect) return;
 
     // Minimum size check (avoid tiny accidental highlights)
@@ -157,8 +209,29 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     startPos.current = null;
   };
 
+  const handleAnnotationMouseDown = (ann, e) => {
+    e.stopPropagation();
+
+    // Only handle dragging in select mode
+    if (activeTool !== 'select') return;
+
+    const rect = wrapRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+
+    // Calculate offset from annotation's top-left corner
+    const offsetX = x - ann.rect_x;
+    const offsetY = y - ann.rect_y;
+
+    setDraggedAnnotation(ann);
+    setDragOffset({ x: offsetX, y: offsetY });
+  };
+
   const handleAnnotationClick = async (ann, e) => {
     e.stopPropagation();
+
+    // Don't navigate if we just dragged
+    if (draggedAnnotation) return;
 
     // If linked to a place, navigate to it on the map
     if (linkedAnnotations.has(ann.id)) {
@@ -175,8 +248,8 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
       }
     }
 
-    // Text annotations also open modal on click
-    if (ann.type === 'text') {
+    // Text annotations also open modal on click (only if not dragging)
+    if (ann.type === 'text' && activeTool !== 'select') {
       setSelectedAnnotation(ann.id);
       useStore.getState().openAnnotationModal(ann);
     }
@@ -220,7 +293,9 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
         height: canvasHeight,
         cursor:
           activeTool === 'select'
-            ? 'default'
+            ? draggedAnnotation
+              ? 'grabbing'
+              : 'default'
             : activeTool === 'highlight'
               ? 'crosshair'
               : activeTool === 'text'
@@ -234,18 +309,21 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
         const isLinked = linkedAnnotations.has(ann.id);
         const linkedArtifact = artifactLinks.get(ann.id);
         const hasArtifactLink = !!linkedArtifact;
+        const isDragging = draggedAnnotation?.id === ann.id;
+        const displayAnn = isDragging ? draggedAnnotation : ann;
 
         return (
           <div
             key={ann.id}
+            onMouseDown={(e) => handleAnnotationMouseDown(ann, e)}
             onClick={(e) => handleAnnotationClick(ann, e)}
             onContextMenu={(e) => handleAnnotationRightClick(ann, e)}
             style={{
               position: 'absolute',
-              left: `${ann.rect_x * 100}%`,
-              top: `${ann.rect_y * 100}%`,
-              width: `${ann.rect_w * 100}%`,
-              height: `${ann.rect_h * 100}%`,
+              left: `${displayAnn.rect_x * 100}%`,
+              top: `${displayAnn.rect_y * 100}%`,
+              width: `${displayAnn.rect_w * 100}%`,
+              height: `${displayAnn.rect_h * 100}%`,
               border: isLinked
                 ? '2px solid var(--accent)'
                 : hasArtifactLink
@@ -254,7 +332,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
                     ? '1px solid var(--accent)'
                     : '1px solid rgba(212, 163, 115, 0.7)',
               background: ann.type === 'text' ? 'var(--panel-2)' : 'rgba(212, 163, 115, 0.28)',
-              cursor: 'pointer',
+              cursor: activeTool === 'select' ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
               pointerEvents: 'auto',
               padding: ann.type === 'text' ? '4px 6px' : '0',
               fontSize: ann.type === 'text' ? '11px' : 'inherit',
@@ -262,13 +340,16 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
               whiteSpace: ann.type === 'text' ? 'pre-wrap' : 'normal',
               overflow: ann.type === 'text' ? 'auto' : 'hidden',
               boxShadow: isLinked || hasArtifactLink ? '0 0 0 1px currentColor' : 'none',
+              opacity: isDragging ? 0.7 : 1,
             }}
             title={
-              isLinked
-                ? 'Click to view on map · Right-click to delete'
-                : ann.type === 'highlight'
-                  ? 'Right-click to delete'
-                  : 'Click to edit'
+              activeTool === 'select'
+                ? 'Drag to move · Right-click to delete'
+                : isLinked
+                  ? 'Click to view on map · Right-click to delete'
+                  : ann.type === 'highlight'
+                    ? 'Right-click to delete'
+                    : 'Click to edit'
             }
           >
             {ann.type === 'text' && ann.text}
@@ -287,6 +368,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
                   justifyContent: 'center',
                   fontSize: '10px',
                   border: '2px solid var(--bg)',
+                  pointerEvents: 'none',
                 }}
               >
                 📍
