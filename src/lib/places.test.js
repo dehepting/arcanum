@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   createPlace,
+  updatePlace,
   loadPlaces,
   getPlaceForAnnotation,
   getAnnotationsForPlace,
@@ -112,6 +113,96 @@ describe('places library', () => {
 
       await expect(createPlace({ name: 'Test' }, 'annotation-1')).rejects.toThrow(
         'Failed to link annotation to place'
+      );
+    });
+  });
+
+  describe('updatePlace', () => {
+    it('should update place name', async () => {
+      const updates = { name: 'Updated Location Name' };
+      const updatedPlace = {
+        id: 'place-1',
+        name: 'Updated Location Name',
+        lng: -20.5,
+        lat: 36.8,
+      };
+
+      const mockChain = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: updatedPlace, error: null }),
+      };
+
+      supabase.from.mockReturnValue(mockChain);
+
+      const result = await updatePlace('place-1', updates);
+
+      expect(supabase.from).toHaveBeenCalledWith('places');
+      expect(mockChain.update).toHaveBeenCalledWith(updates);
+      expect(mockChain.eq).toHaveBeenCalledWith('id', 'place-1');
+      expect(result).toEqual(updatedPlace);
+    });
+
+    it('should update place note', async () => {
+      const updates = { note: 'Added new historical context' };
+      const updatedPlace = {
+        id: 'place-1',
+        name: 'Ancient Site',
+        note: 'Added new historical context',
+      };
+
+      const mockChain = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: updatedPlace, error: null }),
+      };
+
+      supabase.from.mockReturnValue(mockChain);
+
+      const result = await updatePlace('place-1', updates);
+
+      expect(result.note).toBe('Added new historical context');
+    });
+
+    it('should update place coordinates', async () => {
+      const updates = { lng: -21.0, lat: 37.0 };
+      const updatedPlace = {
+        id: 'place-1',
+        name: 'Ancient Site',
+        lng: -21.0,
+        lat: 37.0,
+      };
+
+      const mockChain = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: updatedPlace, error: null }),
+      };
+
+      supabase.from.mockReturnValue(mockChain);
+
+      const result = await updatePlace('place-1', updates);
+
+      expect(result.lng).toBe(-21.0);
+      expect(result.lat).toBe(37.0);
+    });
+
+    it('should throw error when update fails', async () => {
+      const mockError = new Error('Update failed');
+      const mockChain = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: mockError }),
+      };
+
+      supabase.from.mockReturnValue(mockChain);
+
+      await expect(updatePlace('place-1', { name: 'Test' })).rejects.toThrow(
+        'Failed to update place'
       );
     });
   });
