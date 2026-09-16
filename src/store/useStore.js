@@ -49,6 +49,14 @@ const useStore = create((set, get) => ({
     set((state) => ({
       places: [...state.places, place],
     })),
+  updatePlace: (placeId, updates) =>
+    set((state) => ({
+      places: state.places.map((p) => (p.id === placeId ? { ...p, ...updates } : p)),
+    })),
+  removePlace: (placeId) =>
+    set((state) => ({
+      places: state.places.filter((p) => p.id !== placeId),
+    })),
 
   // Selected annotation (for linking to map)
   selectedAnnotationId: null,

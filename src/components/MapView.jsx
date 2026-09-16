@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import * as maplibregl from 'maplibre-gl';
+import { Map, NavigationControl, Marker, Popup, setWorkerUrl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import useStore from '../store/useStore';
 import { createPlace, loadPlaces, getAnnotationsForPlace } from '../lib/places';
 import { loadOverlays } from '../lib/overlays';
 import OverlayGeoreference from './OverlayGeoreference';
+
+// Configure MapLibre GL worker for Vite compatibility
+// Using ?worker&url ensures proper bundling in both dev and production
+// See: https://github.com/openwatersio/openwaters.io/pull/122
+setWorkerUrl(workerUrl);
 
 export default function MapView() {
   const mapContainer = useRef(null);
@@ -35,7 +41,7 @@ export default function MapView() {
     const centerLat = currentProject?.map_center_lat || 36;
     const zoom = currentProject?.map_zoom || 3.4;
 
-    map.current = new maplibregl.Map({
+    map.current = new Map({
       container: mapContainer.current,
       style: {
         version: 8,
@@ -59,7 +65,7 @@ export default function MapView() {
       zoom,
     });
 
-    map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
+    map.current.addControl(new NavigationControl(), 'top-right');
 
     map.current.on('load', () => {
       setMapReady(true);
@@ -166,10 +172,10 @@ export default function MapView() {
         cursor: pointer;
       `;
 
-      const marker = new maplibregl.Marker({ element: el })
+      const marker = new Marker({ element: el })
         .setLngLat([place.lng, place.lat])
         .setPopup(
-          new maplibregl.Popup({ offset: 12 }).setHTML(
+          new Popup({ offset: 12 }).setHTML(
             `<strong>${place.name}</strong>${place.note ? `<div style="margin-top:4px;color:#8b8f99">${place.note}</div>` : ''}`
           )
         )

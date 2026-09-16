@@ -143,9 +143,16 @@ export default function OverlayGeoreference() {
           <button
             onClick={() => fileInputRef.current?.click()}
             className="btn btn-primary"
-            style={{ width: '100%', padding: '10px' }}
+            style={{ width: '100%', padding: '10px', marginBottom: '8px' }}
           >
             Select Map Image
+          </button>
+          <button
+            onClick={closeOverlayMode}
+            className="btn"
+            style={{ width: '100%', padding: '10px' }}
+          >
+            Cancel
           </button>
         </>
       ) : (

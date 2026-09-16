@@ -36,6 +36,27 @@ export async function createPlace(placeData, annotationId = null) {
 }
 
 /**
+ * Update a place's properties (name, note, coordinates)
+ * @param {string} placeId - The place ID to update
+ * @param {Object} updates - Object containing fields to update (name, note, lng, lat)
+ * @returns {Promise<Object>} The updated place
+ */
+export async function updatePlace(placeId, updates) {
+  const { data, error } = await supabase
+    .from('places')
+    .update(updates)
+    .eq('id', placeId)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update place: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
  * Load all places for a project with their linked annotations
  * @param {string} projectId - The project ID
  * @returns {Promise<Array>} Array of places with annotations
