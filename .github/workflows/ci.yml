@@ -37,9 +37,18 @@ jobs:
       - name: Lint code
         run: npm run lint
 
-      # Tests with coverage
-      - name: Run tests with coverage
+      # Frontend tests with coverage
+      - name: Run frontend tests with coverage
         run: npm run test:coverage
+
+      # MCP Server tests
+      - name: Install MCP server dependencies
+        run: npm ci
+        working-directory: ./mcp-server
+
+      - name: Run MCP server tests with coverage
+        run: npm run test:coverage
+        working-directory: ./mcp-server
 
       # Type checking (if we add it)
       # - name: Type check
