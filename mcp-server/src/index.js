@@ -454,6 +454,141 @@ const TOOLS = [
       required: ['person_id', 'place_id'],
     },
   },
+  // Batch Operations & Helper Tools
+  {
+    name: 'batch_create_entities',
+    description:
+      'Create multiple entities (people, events, theories) in a single operation for efficiency',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: { type: 'string', description: 'Project UUID' },
+        people: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              role: { type: 'string' },
+              birth_year: { type: 'number' },
+              death_year: { type: 'number' },
+              bio: { type: 'string' },
+              notes: { type: 'string' },
+            },
+            required: ['name'],
+          },
+          description: 'Array of people to create',
+        },
+        events: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              date_year: { type: 'number' },
+              date_precision: { type: 'string' },
+              event_type: { type: 'string' },
+              description: { type: 'string' },
+              notes: { type: 'string' },
+            },
+            required: ['name'],
+          },
+          description: 'Array of events to create',
+        },
+        theories: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              description: { type: 'string' },
+              proposed_location_id: { type: 'string' },
+              status: { type: 'string' },
+              confidence_level: { type: 'number' },
+              notes: { type: 'string' },
+            },
+            required: ['name'],
+          },
+          description: 'Array of theories to create',
+        },
+      },
+      required: ['project_id'],
+    },
+  },
+  {
+    name: 'get_annotation_context',
+    description: 'Get all entities linked to an annotation (people, events, theories)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        annotation_id: { type: 'string', description: 'Annotation UUID' },
+      },
+      required: ['annotation_id'],
+    },
+  },
+  {
+    name: 'get_entity_relationships',
+    description: 'Get all relationships for a given entity across the knowledge graph',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        entity_type: {
+          type: 'string',
+          enum: ['person', 'event', 'theory', 'place', 'artifact'],
+          description: 'Type of entity',
+        },
+        entity_id: { type: 'string', description: 'Entity UUID' },
+      },
+      required: ['entity_type', 'entity_id'],
+    },
+  },
+  {
+    name: 'bulk_link_annotation_to_entities',
+    description: 'Link an annotation to multiple entities at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        annotation_id: { type: 'string', description: 'Annotation UUID' },
+        people: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              person_id: { type: 'string' },
+              relationship_type: { type: 'string' },
+              quote: { type: 'string' },
+            },
+            required: ['person_id'],
+          },
+        },
+        events: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              event_id: { type: 'string' },
+              relationship_type: { type: 'string' },
+              quote: { type: 'string' },
+            },
+            required: ['event_id'],
+          },
+        },
+        theories: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              theory_id: { type: 'string' },
+              relationship_type: { type: 'string' },
+              quote: { type: 'string' },
+            },
+            required: ['theory_id'],
+          },
+        },
+      },
+      required: ['annotation_id'],
+    },
+  },
 ];
 
 // List tools handler
@@ -989,6 +1124,309 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: `Person linked to place successfully (${data.relationship_type})`,
+            },
+          ],
+        };
+      }
+
+      // Batch Operations & Helper Tools
+      case 'batch_create_entities': {
+        const results = { people: [], events: [], theories: [] };
+
+        // Create people
+        if (args.people && args.people.length > 0) {
+          const peopleData = args.people.map((p) => ({
+            project_id: args.project_id,
+            name: p.name,
+            role: p.role || null,
+            birth_year: p.birth_year || null,
+            death_year: p.death_year || null,
+            bio: p.bio || null,
+            notes: p.notes || null,
+          }));
+
+          const { data, error } = await supabase.from('people').insert(peopleData).select();
+
+          if (error) throw error;
+          results.people = data;
+        }
+
+        // Create events
+        if (args.events && args.events.length > 0) {
+          const eventsData = args.events.map((e) => ({
+            project_id: args.project_id,
+            name: e.name,
+            date_year: e.date_year || null,
+            date_precision: e.date_precision || 'year',
+            event_type: e.event_type || null,
+            description: e.description || null,
+            notes: e.notes || null,
+          }));
+
+          const { data, error } = await supabase.from('events').insert(eventsData).select();
+
+          if (error) throw error;
+          results.events = data;
+        }
+
+        // Create theories
+        if (args.theories && args.theories.length > 0) {
+          const theoriesData = args.theories.map((t) => ({
+            project_id: args.project_id,
+            name: t.name,
+            description: t.description || null,
+            proposed_location_id: t.proposed_location_id || null,
+            status: t.status || 'active',
+            confidence_level: t.confidence_level || 3,
+            notes: t.notes || null,
+          }));
+
+          const { data, error } = await supabase.from('theories').insert(theoriesData).select();
+
+          if (error) throw error;
+          results.theories = data;
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Batch entities created successfully:\n${results.people.length} people\n${results.events.length} events\n${results.theories.length} theories\n\n${JSON.stringify(results, null, 2)}`,
+            },
+          ],
+        };
+      }
+
+      case 'get_annotation_context': {
+        const context = { people: [], events: [], theories: [] };
+
+        // Get linked people
+        const { data: peopleLinks, error: peopleError } = await supabase
+          .from('annotation_people_links')
+          .select(
+            `
+            relationship_type,
+            quote,
+            person:people(*)
+          `
+          )
+          .eq('annotation_id', args.annotation_id);
+
+        if (peopleError) throw peopleError;
+        context.people = peopleLinks;
+
+        // Get linked events
+        const { data: eventsLinks, error: eventsError } = await supabase
+          .from('annotation_events_links')
+          .select(
+            `
+            relationship_type,
+            quote,
+            event:events(*)
+          `
+          )
+          .eq('annotation_id', args.annotation_id);
+
+        if (eventsError) throw eventsError;
+        context.events = eventsLinks;
+
+        // Get linked theories
+        const { data: theoriesLinks, error: theoriesError } = await supabase
+          .from('annotation_theories_links')
+          .select(
+            `
+            relationship_type,
+            quote,
+            theory:theories(*)
+          `
+          )
+          .eq('annotation_id', args.annotation_id);
+
+        if (theoriesError) throw theoriesError;
+        context.theories = theoriesLinks;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Annotation context:\n${JSON.stringify(context, null, 2)}`,
+            },
+          ],
+        };
+      }
+
+      case 'get_entity_relationships': {
+        const relationships = {};
+
+        switch (args.entity_type) {
+          case 'person': {
+            // Get annotations mentioning this person
+            const { data: annotations, error: annoError } = await supabase
+              .from('annotation_people_links')
+              .select(
+                `
+                relationship_type,
+                annotation:annotations(*)
+              `
+              )
+              .eq('person_id', args.entity_id);
+
+            if (annoError) throw annoError;
+
+            // Get places linked to this person
+            const { data: places, error: placesError } = await supabase
+              .from('people_places_links')
+              .select(
+                `
+                relationship_type,
+                place:places(*)
+              `
+              )
+              .eq('person_id', args.entity_id);
+
+            if (placesError) throw placesError;
+
+            relationships.annotations = annotations;
+            relationships.places = places;
+            break;
+          }
+
+          case 'event': {
+            // Get annotations mentioning this event
+            const { data: annotations, error: annoError } = await supabase
+              .from('annotation_events_links')
+              .select(
+                `
+                relationship_type,
+                annotation:annotations(*)
+              `
+              )
+              .eq('event_id', args.entity_id);
+
+            if (annoError) throw annoError;
+
+            // Get places linked to this event
+            const { data: places, error: placesError } = await supabase
+              .from('event_places_links')
+              .select(
+                `
+                relationship_type,
+                place:places(*)
+              `
+              )
+              .eq('event_id', args.entity_id);
+
+            if (placesError) throw placesError;
+
+            relationships.annotations = annotations;
+            relationships.places = places;
+            break;
+          }
+
+          case 'theory': {
+            // Get annotations supporting/contradicting this theory
+            const { data: annotations, error: annoError } = await supabase
+              .from('annotation_theories_links')
+              .select(
+                `
+                relationship_type,
+                annotation:annotations(*)
+              `
+              )
+              .eq('theory_id', args.entity_id);
+
+            if (annoError) throw annoError;
+
+            // Get proposed location if exists
+            const { data: theory, error: theoryError } = await supabase
+              .from('theories')
+              .select('proposed_location_id, place:places(*)')
+              .eq('id', args.entity_id)
+              .single();
+
+            if (theoryError) throw theoryError;
+
+            relationships.annotations = annotations;
+            relationships.proposed_location = theory.place || null;
+            break;
+          }
+
+          default:
+            throw new Error(`Unsupported entity type: ${args.entity_type}`);
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Entity relationships:\n${JSON.stringify(relationships, null, 2)}`,
+            },
+          ],
+        };
+      }
+
+      case 'bulk_link_annotation_to_entities': {
+        const results = { people: [], events: [], theories: [] };
+
+        // Link people
+        if (args.people && args.people.length > 0) {
+          const peopleLinks = args.people.map((p) => ({
+            annotation_id: args.annotation_id,
+            person_id: p.person_id,
+            relationship_type: p.relationship_type || 'mentions',
+            quote: p.quote || null,
+          }));
+
+          const { data, error } = await supabase
+            .from('annotation_people_links')
+            .insert(peopleLinks)
+            .select();
+
+          if (error) throw error;
+          results.people = data;
+        }
+
+        // Link events
+        if (args.events && args.events.length > 0) {
+          const eventsLinks = args.events.map((e) => ({
+            annotation_id: args.annotation_id,
+            event_id: e.event_id,
+            relationship_type: e.relationship_type || 'mentions',
+            quote: e.quote || null,
+          }));
+
+          const { data, error } = await supabase
+            .from('annotation_events_links')
+            .insert(eventsLinks)
+            .select();
+
+          if (error) throw error;
+          results.events = data;
+        }
+
+        // Link theories
+        if (args.theories && args.theories.length > 0) {
+          const theoriesLinks = args.theories.map((t) => ({
+            annotation_id: args.annotation_id,
+            theory_id: t.theory_id,
+            relationship_type: t.relationship_type || 'supports',
+            quote: t.quote || null,
+          }));
+
+          const { data, error } = await supabase
+            .from('annotation_theories_links')
+            .insert(theoriesLinks)
+            .select();
+
+          if (error) throw error;
+          results.theories = data;
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Bulk links created:\n${results.people.length} people\n${results.events.length} events\n${results.theories.length} theories`,
             },
           ],
         };

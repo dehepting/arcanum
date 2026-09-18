@@ -68,6 +68,12 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 - **link_event_to_place** - Link an event to a geographic location
 - **link_person_to_place** - Link a person to a geographic location
 
+### Batch Operations & Helpers
+- **batch_create_entities** - Create multiple people, events, and theories in a single operation
+- **get_annotation_context** - Get all entities (people, events, theories) linked to an annotation
+- **get_entity_relationships** - Get all relationships for a given entity across the knowledge graph
+- **bulk_link_annotation_to_entities** - Link an annotation to multiple entities at once
+
 ## Usage Examples
 
 ### Create a Project
@@ -129,6 +135,43 @@ Link an event to a place:
 - Event ID: [uuid]
 - Place ID: [uuid]
 - Relationship: occurred_at
+```
+
+### Batch Operations (Efficient Workflows)
+```
+Create multiple entities at once:
+batch_create_entities({
+  project_id: "[uuid]",
+  people: [
+    { name: "Plato", role: "historical_figure", birth_year: -427 },
+    { name: "Solon", role: "historical_figure", birth_year: -638 }
+  ],
+  events: [
+    { name: "Plato writes Timaeus", date_year: -360, event_type: "publication" }
+  ],
+  theories: [
+    { name: "Atlantis in Mediterranean", status: "active", confidence_level: 3 }
+  ]
+})
+
+Link multiple entities to an annotation:
+bulk_link_annotation_to_entities({
+  annotation_id: "[uuid]",
+  people: [
+    { person_id: "[uuid]", relationship_type: "mentions", quote: "..." }
+  ],
+  theories: [
+    { theory_id: "[uuid]", relationship_type: "supports", quote: "..." }
+  ]
+})
+
+Get all context for an annotation:
+get_annotation_context({ annotation_id: "[uuid]" })
+// Returns all linked people, events, and theories
+
+Get all relationships for an entity:
+get_entity_relationships({ entity_type: "person", entity_id: "[uuid]" })
+// Returns all annotations and places linked to this person
 ```
 
 ## Tool Schemas
