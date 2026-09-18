@@ -240,6 +240,220 @@ const TOOLS = [
       required: ['project_id', 'name', 'lng', 'lat'],
     },
   },
+  // Knowledge Graph Entity Tools
+  {
+    name: 'create_person',
+    description: 'Create a person entity (historical figure, author, researcher, collector)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: { type: 'string', description: 'Project UUID' },
+        name: { type: 'string', description: 'Person name' },
+        role: {
+          type: 'string',
+          description: 'Person role',
+          enum: ['author', 'historical_figure', 'researcher', 'owner', 'collector'],
+        },
+        birth_year: { type: 'number', description: 'Birth year (negative for BC)' },
+        death_year: { type: 'number', description: 'Death year (negative for BC)' },
+        bio: { type: 'string', description: 'Biography' },
+        notes: { type: 'string', description: 'Additional notes' },
+      },
+      required: ['project_id', 'name'],
+    },
+  },
+  {
+    name: 'create_event',
+    description: 'Create a historical event (discovery, publication, battle, expedition)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: { type: 'string', description: 'Project UUID' },
+        name: { type: 'string', description: 'Event name' },
+        date_year: { type: 'number', description: 'Year of event (negative for BC)' },
+        date_precision: {
+          type: 'string',
+          description: 'Date precision level',
+          enum: ['year', 'decade', 'century', 'circa'],
+          default: 'year',
+        },
+        event_type: {
+          type: 'string',
+          description: 'Type of event',
+          enum: ['disaster', 'discovery', 'publication', 'battle', 'expedition'],
+        },
+        description: { type: 'string', description: 'Event description' },
+        notes: { type: 'string', description: 'Additional notes' },
+      },
+      required: ['project_id', 'name'],
+    },
+  },
+  {
+    name: 'create_theory',
+    description: 'Create a research theory about a location, civilization, or artifact',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: { type: 'string', description: 'Project UUID' },
+        name: { type: 'string', description: 'Theory name' },
+        description: { type: 'string', description: 'Theory description' },
+        proposed_location_id: {
+          type: 'string',
+          description: 'Place UUID if theory proposes a location',
+        },
+        status: {
+          type: 'string',
+          description: 'Theory status',
+          enum: ['active', 'debunked', 'proven', 'historical'],
+          default: 'active',
+        },
+        confidence_level: {
+          type: 'number',
+          description: 'Confidence level 1-5',
+          minimum: 1,
+          maximum: 5,
+          default: 3,
+        },
+        notes: { type: 'string', description: 'Additional notes' },
+      },
+      required: ['project_id', 'name'],
+    },
+  },
+  {
+    name: 'search_people',
+    description: 'Search for people by name or role',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: { type: 'string', description: 'Project UUID' },
+        query: { type: 'string', description: 'Search query for name' },
+        role: { type: 'string', description: 'Filter by role' },
+        limit: { type: 'number', description: 'Max results', default: 10 },
+      },
+      required: ['project_id'],
+    },
+  },
+  {
+    name: 'search_events',
+    description: 'Search for events by name or type',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: { type: 'string', description: 'Project UUID' },
+        query: { type: 'string', description: 'Search query for name' },
+        event_type: { type: 'string', description: 'Filter by event type' },
+        limit: { type: 'number', description: 'Max results', default: 10 },
+      },
+      required: ['project_id'],
+    },
+  },
+  {
+    name: 'search_theories',
+    description: 'Search for theories by name or status',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: { type: 'string', description: 'Project UUID' },
+        query: { type: 'string', description: 'Search query for name' },
+        status: { type: 'string', description: 'Filter by status' },
+        limit: { type: 'number', description: 'Max results', default: 10 },
+      },
+      required: ['project_id'],
+    },
+  },
+  {
+    name: 'link_annotation_to_person',
+    description: 'Link a source annotation to a person mentioned in it',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        annotation_id: { type: 'string', description: 'Annotation UUID' },
+        person_id: { type: 'string', description: 'Person UUID' },
+        relationship_type: {
+          type: 'string',
+          description: 'Type of relationship',
+          enum: ['mentions', 'authored_by', 'about'],
+          default: 'mentions',
+        },
+        quote: { type: 'string', description: 'Relevant excerpt from annotation' },
+      },
+      required: ['annotation_id', 'person_id'],
+    },
+  },
+  {
+    name: 'link_annotation_to_event',
+    description: 'Link a source annotation to an event mentioned in it',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        annotation_id: { type: 'string', description: 'Annotation UUID' },
+        event_id: { type: 'string', description: 'Event UUID' },
+        relationship_type: {
+          type: 'string',
+          description: 'Type of relationship',
+          enum: ['mentions', 'describes', 'occurred_during'],
+          default: 'mentions',
+        },
+        quote: { type: 'string', description: 'Relevant excerpt from annotation' },
+      },
+      required: ['annotation_id', 'event_id'],
+    },
+  },
+  {
+    name: 'link_annotation_to_theory',
+    description: 'Link a source annotation to a theory',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        annotation_id: { type: 'string', description: 'Annotation UUID' },
+        theory_id: { type: 'string', description: 'Theory UUID' },
+        relationship_type: {
+          type: 'string',
+          description: 'Type of relationship',
+          enum: ['supports', 'contradicts', 'mentions'],
+          default: 'supports',
+        },
+        quote: { type: 'string', description: 'Relevant excerpt from annotation' },
+      },
+      required: ['annotation_id', 'theory_id'],
+    },
+  },
+  {
+    name: 'link_event_to_place',
+    description: 'Link an event to a geographic location',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        event_id: { type: 'string', description: 'Event UUID' },
+        place_id: { type: 'string', description: 'Place UUID' },
+        relationship_type: {
+          type: 'string',
+          description: 'Type of relationship',
+          enum: ['occurred_at', 'discovered_at', 'affected'],
+          default: 'occurred_at',
+        },
+      },
+      required: ['event_id', 'place_id'],
+    },
+  },
+  {
+    name: 'link_person_to_place',
+    description: 'Link a person to a geographic location',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        person_id: { type: 'string', description: 'Person UUID' },
+        place_id: { type: 'string', description: 'Place UUID' },
+        relationship_type: {
+          type: 'string',
+          description: 'Type of relationship',
+          enum: ['born_at', 'died_at', 'lived_at', 'discovered', 'visited'],
+          default: 'associated_with',
+        },
+      },
+      required: ['person_id', 'place_id'],
+    },
+  },
 ];
 
 // List tools handler
@@ -478,6 +692,303 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: `Place created successfully:\n${JSON.stringify(data, null, 2)}`,
+            },
+          ],
+        };
+      }
+
+      // Knowledge Graph Entity Tools
+      case 'create_person': {
+        const { data, error } = await supabase
+          .from('people')
+          .insert([
+            {
+              project_id: args.project_id,
+              name: args.name,
+              role: args.role || null,
+              birth_year: args.birth_year || null,
+              death_year: args.death_year || null,
+              bio: args.bio || null,
+              notes: args.notes || null,
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Person created successfully:\nID: ${data.id}\nName: ${data.name}\nRole: ${data.role || 'not specified'}`,
+            },
+          ],
+        };
+      }
+
+      case 'create_event': {
+        const { data, error } = await supabase
+          .from('events')
+          .insert([
+            {
+              project_id: args.project_id,
+              name: args.name,
+              date_year: args.date_year || null,
+              date_precision: args.date_precision || 'year',
+              event_type: args.event_type || null,
+              description: args.description || null,
+              notes: args.notes || null,
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Event created successfully:\nID: ${data.id}\nName: ${data.name}\nDate: ${data.date_year || 'not specified'}`,
+            },
+          ],
+        };
+      }
+
+      case 'create_theory': {
+        const { data, error } = await supabase
+          .from('theories')
+          .insert([
+            {
+              project_id: args.project_id,
+              name: args.name,
+              description: args.description || null,
+              proposed_location_id: args.proposed_location_id || null,
+              status: args.status || 'active',
+              confidence_level: args.confidence_level || 3,
+              notes: args.notes || null,
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Theory created successfully:\nID: ${data.id}\nName: ${data.name}\nStatus: ${data.status}\nConfidence: ${data.confidence_level}/5`,
+            },
+          ],
+        };
+      }
+
+      case 'search_people': {
+        let query = supabase.from('people').select('*').eq('project_id', args.project_id);
+
+        if (args.query) {
+          query = query.or(`name.ilike.%${args.query}%,bio.ilike.%${args.query}%`);
+        }
+
+        if (args.role) {
+          query = query.eq('role', args.role);
+        }
+
+        query = query.limit(args.limit || 10).order('created_at', { ascending: false });
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Found ${data.length} people:\n${JSON.stringify(data, null, 2)}`,
+            },
+          ],
+        };
+      }
+
+      case 'search_events': {
+        let query = supabase.from('events').select('*').eq('project_id', args.project_id);
+
+        if (args.query) {
+          query = query.or(`name.ilike.%${args.query}%,description.ilike.%${args.query}%`);
+        }
+
+        if (args.event_type) {
+          query = query.eq('event_type', args.event_type);
+        }
+
+        query = query.limit(args.limit || 10).order('created_at', { ascending: false });
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Found ${data.length} events:\n${JSON.stringify(data, null, 2)}`,
+            },
+          ],
+        };
+      }
+
+      case 'search_theories': {
+        let query = supabase.from('theories').select('*').eq('project_id', args.project_id);
+
+        if (args.query) {
+          query = query.or(`name.ilike.%${args.query}%,description.ilike.%${args.query}%`);
+        }
+
+        if (args.status) {
+          query = query.eq('status', args.status);
+        }
+
+        query = query.limit(args.limit || 10).order('created_at', { ascending: false });
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Found ${data.length} theories:\n${JSON.stringify(data, null, 2)}`,
+            },
+          ],
+        };
+      }
+
+      case 'link_annotation_to_person': {
+        const { data, error } = await supabase
+          .from('annotation_people_links')
+          .insert([
+            {
+              annotation_id: args.annotation_id,
+              person_id: args.person_id,
+              relationship_type: args.relationship_type || 'mentions',
+              quote: args.quote || null,
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Annotation linked to person successfully (${data.relationship_type})`,
+            },
+          ],
+        };
+      }
+
+      case 'link_annotation_to_event': {
+        const { data, error } = await supabase
+          .from('annotation_events_links')
+          .insert([
+            {
+              annotation_id: args.annotation_id,
+              event_id: args.event_id,
+              relationship_type: args.relationship_type || 'mentions',
+              quote: args.quote || null,
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Annotation linked to event successfully (${data.relationship_type})`,
+            },
+          ],
+        };
+      }
+
+      case 'link_annotation_to_theory': {
+        const { data, error } = await supabase
+          .from('annotation_theories_links')
+          .insert([
+            {
+              annotation_id: args.annotation_id,
+              theory_id: args.theory_id,
+              relationship_type: args.relationship_type || 'supports',
+              quote: args.quote || null,
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Annotation linked to theory successfully (${data.relationship_type})`,
+            },
+          ],
+        };
+      }
+
+      case 'link_event_to_place': {
+        const { data, error } = await supabase
+          .from('event_places_links')
+          .insert([
+            {
+              event_id: args.event_id,
+              place_id: args.place_id,
+              relationship_type: args.relationship_type || 'occurred_at',
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Event linked to place successfully (${data.relationship_type})`,
+            },
+          ],
+        };
+      }
+
+      case 'link_person_to_place': {
+        const { data, error } = await supabase
+          .from('people_places_links')
+          .insert([
+            {
+              person_id: args.person_id,
+              place_id: args.place_id,
+              relationship_type: args.relationship_type || 'associated_with',
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Person linked to place successfully (${data.relationship_type})`,
             },
           ],
         };
