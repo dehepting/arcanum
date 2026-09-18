@@ -122,6 +122,54 @@ const useStore = create((set, get) => ({
   openOverlayMode: () => set({ overlayMode: true }),
   closeOverlayMode: () => set({ overlayMode: false }),
   onOverlayMapClick: null,
+
+  // People (knowledge graph entities)
+  people: [],
+  setPeople: (people) => set({ people }),
+  addPerson: (person) =>
+    set((state) => ({
+      people: [...state.people, person],
+    })),
+  updatePerson: (personId, updates) =>
+    set((state) => ({
+      people: state.people.map((p) => (p.id === personId ? { ...p, ...updates } : p)),
+    })),
+  removePerson: (personId) =>
+    set((state) => ({
+      people: state.people.filter((p) => p.id !== personId),
+    })),
+
+  // Events (knowledge graph entities)
+  events: [],
+  setEvents: (events) => set({ events }),
+  addEvent: (event) =>
+    set((state) => ({
+      events: [...state.events, event],
+    })),
+  updateEvent: (eventId, updates) =>
+    set((state) => ({
+      events: state.events.map((e) => (e.id === eventId ? { ...e, ...updates } : e)),
+    })),
+  removeEvent: (eventId) =>
+    set((state) => ({
+      events: state.events.filter((e) => e.id !== eventId),
+    })),
+
+  // Theories (knowledge graph entities)
+  theories: [],
+  setTheories: (theories) => set({ theories }),
+  addTheory: (theory) =>
+    set((state) => ({
+      theories: [...state.theories, theory],
+    })),
+  updateTheory: (theoryId, updates) =>
+    set((state) => ({
+      theories: state.theories.map((t) => (t.id === theoryId ? { ...t, ...updates } : t)),
+    })),
+  removeTheory: (theoryId) =>
+    set((state) => ({
+      theories: state.theories.filter((t) => t.id !== theoryId),
+    })),
 }));
 
 export default useStore;
