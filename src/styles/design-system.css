@@ -1,0 +1,195 @@
+/**
+ * Arcanum Design System
+ *
+ * Consistent design tokens for colors, spacing, typography, and effects.
+ * Inspired by VS Code and GitHub's design language.
+ */
+
+:root {
+  /* ===== COLORS ===== */
+
+  /* Text Colors */
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --text-inverse: #0d1117;
+  --text-link: #58a6ff;
+  --text-link-hover: #79c0ff;
+
+  /* Background Colors */
+  --bg-canvas: #0d1117;
+  --bg-panel: #161b22;
+  --bg-panel-alt: #0d1117;
+  --bg-hover: #1c2128;
+  --bg-active: #21262d;
+  --bg-overlay: rgba(0, 0, 0, 0.7);
+
+  /* Border Colors */
+  --border-default: #30363d;
+  --border-muted: #21262d;
+  --border-emphasis: #6e7681;
+
+  /* Accent Colors */
+  --accent-primary: #58a6ff;
+  --accent-primary-hover: #79c0ff;
+  --accent-primary-active: #a5d6ff;
+  --accent-success: #3fb950;
+  --accent-warning: #d29922;
+  --accent-danger: #f85149;
+
+  /* ===== SPACING SCALE ===== */
+  /* 4px base unit for consistent rhythm */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ===== TYPOGRAPHY ===== */
+
+  /* Font Sizes */
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 24px;
+
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line Heights */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Letter Spacing */
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;
+  --letter-spacing-wider: 0.05em;
+
+  /* ===== EFFECTS ===== */
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+
+  /* Border Radius */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 100ms ease;
+  --transition-base: 150ms ease;
+  --transition-slow: 200ms ease;
+
+  /* Z-Index Scale */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-overlay: 1200;
+  --z-modal: 1300;
+  --z-popover: 1400;
+  --z-toast: 1500;
+
+  /* ===== COMPONENT-SPECIFIC ===== */
+
+  /* Panel Dimensions */
+  --panel-header-height: 35px;
+  --sidebar-min-width: 200px;
+  --sidebar-max-width: 600px;
+
+  /* Scrollbar */
+  --scrollbar-width: 8px;
+  --scrollbar-thumb: #cbd5e0;
+  --scrollbar-thumb-hover: #9ca3af;
+}
+
+/* ===== GLOBAL RESETS & BASE STYLES ===== */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  color: var(--text-primary);
+  background: var(--bg-canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== UTILITY CLASSES ===== */
+
+/* Text Utilities */
+.text-primary {
+  color: var(--text-primary);
+}
+.text-secondary {
+  color: var(--text-secondary);
+}
+.text-muted {
+  color: var(--text-muted);
+}
+
+/* Background Utilities */
+.bg-panel {
+  background: var(--bg-panel);
+}
+.bg-hover {
+  background: var(--bg-hover);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-md);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Focus Styles */
+*:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}

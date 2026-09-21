@@ -23,7 +23,7 @@ export default function Workspace() {
   // Right Panel: Entity Details + Sidebar content
   const rightPanel = (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ flex: '0 0 300px', borderBottom: '1px solid #e0e0e0' }}>
+      <div style={{ flex: '0 0 300px', borderBottom: '1px solid var(--border-default)' }}>
         <EntityDetailPanel />
       </div>
       <div style={{ flex: 1, overflow: 'auto' }}>

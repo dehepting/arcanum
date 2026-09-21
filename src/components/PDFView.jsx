@@ -174,13 +174,20 @@ export default function PDFView() {
       </div>
 
       {/* PDF Canvas */}
-      <div style={{ flex: 1, overflow: 'auto', background: '#0a0b0d', padding: '20px' }}>
+      <div
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          background: 'var(--bg-canvas)',
+          padding: 'var(--space-5)',
+        }}
+      >
         <div
           style={{
             position: 'relative',
             margin: '0 auto',
             width: 'fit-content',
-            boxShadow: '0 8px 40px rgba(0,0,0,.45)',
+            boxShadow: 'var(--shadow-lg)',
           }}
         >
           <canvas ref={canvasRef} style={{ display: 'block' }} />
