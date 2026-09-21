@@ -20,13 +20,18 @@ export default function Workspace() {
     </div>
   );
 
-  // Right Panel: Entity Details + Sidebar content
+  // Right Panel: Sidebar with integrated artifact details
+  const selectedArtifact = useStore((state) => state.selectedArtifact);
+
   const rightPanel = (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ flex: '0 0 300px', borderBottom: '1px solid var(--border-default)' }}>
-        <EntityDetailPanel />
-      </div>
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      {/* Only show EntityDetailPanel if an artifact is NOT selected (future: for other entities) */}
+      {!selectedArtifact && (
+        <div style={{ flex: '0 0 300px', borderBottom: '1px solid var(--border-default)' }}>
+          <EntityDetailPanel />
+        </div>
+      )}
+      <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
         <Sidebar />
       </div>
     </div>
