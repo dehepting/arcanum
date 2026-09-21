@@ -170,6 +170,36 @@ const useStore = create((set, get) => ({
     set((state) => ({
       theories: state.theories.filter((t) => t.id !== theoryId),
     })),
+
+  // Entity Pages (hybrid storage: metadata in DB, content in Storage)
+  entityPages: [], // Array of entity page metadata
+  setEntityPages: (pages) => set({ entityPages: pages }),
+  addEntityPage: (page) =>
+    set((state) => ({
+      entityPages: [...state.entityPages, page],
+    })),
+  updateEntityPageInStore: (entityId, updates) =>
+    set((state) => ({
+      entityPages: state.entityPages.map((p) =>
+        p.entity_id === entityId ? { ...p, ...updates } : p
+      ),
+    })),
+  removeEntityPage: (entityId) =>
+    set((state) => ({
+      entityPages: state.entityPages.filter((p) => p.entity_id !== entityId),
+    })),
+
+  // Entity Links (for network graph)
+  entityLinks: [],
+  setEntityLinks: (links) => set({ entityLinks: links }),
+  addEntityLink: (link) =>
+    set((state) => ({
+      entityLinks: [...state.entityLinks, link],
+    })),
+  removeEntityLink: (linkId) =>
+    set((state) => ({
+      entityLinks: state.entityLinks.filter((l) => l.id !== linkId),
+    })),
 }));
 
 export default useStore;
