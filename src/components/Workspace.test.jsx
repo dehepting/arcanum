@@ -19,6 +19,10 @@ vi.mock('./Sidebar', () => ({
   default: () => <div data-testid="sidebar">Sidebar</div>,
 }));
 
+vi.mock('./EntityExplorer', () => ({
+  default: () => <div data-testid="entity-explorer">EntityExplorer</div>,
+}));
+
 vi.mock('./IDEWorkspace', () => ({
   default: ({ leftPanel, centerPanel, rightPanel }) => (
     <div data-testid="ide-workspace">
@@ -44,6 +48,7 @@ describe('Workspace', () => {
 
     const { getByTestId, queryByTestId } = render(<Workspace />);
 
+    expect(getByTestId('entity-explorer')).toBeInTheDocument();
     expect(getByTestId('map-view')).toBeInTheDocument();
     expect(queryByTestId('pdf-view')).not.toBeInTheDocument();
     expect(getByTestId('sidebar')).toBeInTheDocument();
@@ -59,12 +64,13 @@ describe('Workspace', () => {
 
     const { getByTestId, queryByTestId } = render(<Workspace />);
 
+    expect(getByTestId('entity-explorer')).toBeInTheDocument();
     expect(getByTestId('pdf-view')).toBeInTheDocument();
     expect(queryByTestId('map-view')).not.toBeInTheDocument();
     expect(getByTestId('sidebar')).toBeInTheDocument();
   });
 
-  it('always renders Sidebar', () => {
+  it('always renders Sidebar and EntityExplorer', () => {
     useStore.mockImplementation((selector) => {
       const state = {
         mapView: 'map',
@@ -74,6 +80,7 @@ describe('Workspace', () => {
 
     const { getByTestId } = render(<Workspace />);
 
+    expect(getByTestId('entity-explorer')).toBeInTheDocument();
     expect(getByTestId('sidebar')).toBeInTheDocument();
   });
 
