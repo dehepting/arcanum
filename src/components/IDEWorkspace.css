@@ -1,0 +1,193 @@
+.ide-workspace {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  background: var(--bg-primary, #fff);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Panels */
+.ide-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-primary, #fff);
+  border-right: 1px solid var(--line, #e0e0e0);
+  transition: width 0.2s ease;
+}
+
+.ide-panel.collapsed {
+  width: 0 !important;
+  border: none;
+}
+
+.ide-left-panel {
+  flex-shrink: 0;
+  border-right: 1px solid var(--line, #e0e0e0);
+}
+
+.ide-center-panel {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: var(--bg-secondary, #f8f9fa);
+}
+
+.ide-right-panel {
+  flex-shrink: 0;
+  border-right: none;
+  border-left: 1px solid var(--line, #e0e0e0);
+}
+
+/* Panel Header */
+.ide-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-primary, #fff);
+  border-bottom: 1px solid var(--line, #e0e0e0);
+  min-height: 35px;
+}
+
+.ide-panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.ide-panel-collapse {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  transition: background-color 0.15s;
+}
+
+.ide-panel-collapse:hover {
+  background: var(--bg-hover, #f0f0f0);
+  color: var(--text-primary, #333);
+}
+
+/* Panel Content */
+.ide-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Resizers */
+.ide-resizer {
+  width: 4px;
+  background: transparent;
+  cursor: col-resize;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  transition: background-color 0.15s;
+}
+
+.ide-resizer:hover {
+  background: var(--accent, #2196f3);
+}
+
+.ide-resizer:active {
+  background: var(--accent-dark, #1976d2);
+}
+
+.ide-resizer-left {
+  margin-right: -2px;
+}
+
+.ide-resizer-right {
+  margin-left: -2px;
+}
+
+/* Collapsed Panel Indicators */
+.ide-collapsed-bar {
+  width: 40px;
+  flex-shrink: 0;
+  background: var(--bg-primary, #fff);
+  border-right: 1px solid var(--line, #e0e0e0);
+  display: flex;
+  align-items: flex-start;
+  padding-top: 8px;
+  justify-content: center;
+}
+
+.ide-collapsed-right {
+  border-right: none;
+  border-left: 1px solid var(--line, #e0e0e0);
+}
+
+.ide-expand-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.15s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ide-expand-btn:hover {
+  background: var(--bg-hover, #f0f0f0);
+  color: var(--text-primary, #333);
+}
+
+/* Cursor during resize */
+body.resizing-panel {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+/* Scrollbar Styling (for webkit browsers) */
+.ide-panel-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ide-panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ide-panel-content::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #ccc);
+  border-radius: 4px;
+}
+
+.ide-panel-content::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, #999);
+}
+
+/* Responsive - Mobile */
+@media (max-width: 768px) {
+  .ide-workspace {
+    flex-direction: column;
+  }
+
+  .ide-left-panel,
+  .ide-right-panel {
+    width: 100% !important;
+    max-height: 40vh;
+  }
+
+  .ide-resizer {
+    display: none;
+  }
+
+  .ide-collapsed-bar {
+    display: none;
+  }
+}

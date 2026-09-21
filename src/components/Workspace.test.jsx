@@ -19,6 +19,16 @@ vi.mock('./Sidebar', () => ({
   default: () => <div data-testid="sidebar">Sidebar</div>,
 }));
 
+vi.mock('./IDEWorkspace', () => ({
+  default: ({ leftPanel, centerPanel, rightPanel }) => (
+    <div data-testid="ide-workspace">
+      <div data-testid="left-panel">{leftPanel}</div>
+      <div data-testid="center-panel">{centerPanel}</div>
+      <div data-testid="right-panel">{rightPanel}</div>
+    </div>
+  ),
+}));
+
 describe('Workspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -67,7 +77,7 @@ describe('Workspace', () => {
     expect(getByTestId('sidebar')).toBeInTheDocument();
   });
 
-  it('has correct layout structure', () => {
+  it('has correct IDE layout structure', () => {
     useStore.mockImplementation((selector) => {
       const state = {
         mapView: 'map',
@@ -75,11 +85,13 @@ describe('Workspace', () => {
       return selector ? selector(state) : state;
     });
 
-    const { container } = render(<Workspace />);
+    const { container, getByTestId } = render(<Workspace />);
     const workspace = container.querySelector('.workspace');
-    const mainPane = container.querySelector('.main-pane');
 
     expect(workspace).toBeInTheDocument();
-    expect(mainPane).toBeInTheDocument();
+    expect(getByTestId('ide-workspace')).toBeInTheDocument();
+    expect(getByTestId('left-panel')).toBeInTheDocument();
+    expect(getByTestId('center-panel')).toBeInTheDocument();
+    expect(getByTestId('right-panel')).toBeInTheDocument();
   });
 });
