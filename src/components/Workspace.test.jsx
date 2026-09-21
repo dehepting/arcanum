@@ -23,6 +23,10 @@ vi.mock('./EntityExplorer', () => ({
   default: () => <div data-testid="entity-explorer">EntityExplorer</div>,
 }));
 
+vi.mock('./Tabs', () => ({
+  default: () => <div data-testid="tabs">Tabs</div>,
+}));
+
 vi.mock('./IDEWorkspace', () => ({
   default: ({ leftPanel, centerPanel, rightPanel }) => (
     <div data-testid="ide-workspace">
