@@ -456,6 +456,101 @@ const TOOLS = [
   },
   // Batch Operations & Helper Tools
   {
+    name: 'batch_create_artifacts',
+    description: 'Create multiple artifacts in a single operation for efficiency',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: { type: 'string', description: 'Project UUID' },
+        artifacts: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              category: { type: 'string' },
+              description: { type: 'string' },
+              period: { type: 'string' },
+              estimated_age: { type: 'string' },
+              material: { type: 'string' },
+              dimensions: { type: 'string' },
+              condition: { type: 'string' },
+              current_owner: { type: 'string' },
+              owner_type: { type: 'string' },
+              current_location: { type: 'string' },
+              accession_number: { type: 'string' },
+              findspot_name: { type: 'string' },
+              findspot_lng: { type: 'number' },
+              findspot_lat: { type: 'number' },
+              image_urls: { type: 'array', items: { type: 'string' } },
+              notes: { type: 'string' },
+            },
+            required: ['name', 'category'],
+          },
+          description: 'Array of artifacts to create',
+        },
+      },
+      required: ['project_id', 'artifacts'],
+    },
+  },
+  {
+    name: 'batch_create_places',
+    description: 'Create multiple map places/pins in a single operation for efficiency',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: { type: 'string', description: 'Project UUID' },
+        places: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              lng: { type: 'number' },
+              lat: { type: 'number' },
+              note: { type: 'string' },
+            },
+            required: ['name', 'lng', 'lat'],
+          },
+          description: 'Array of places to create',
+        },
+      },
+      required: ['project_id', 'places'],
+    },
+  },
+  {
+    name: 'batch_add_provenance',
+    description: 'Add multiple provenance entries in a single operation for efficiency',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        entries: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              artifact_id: { type: 'string' },
+              date_from: { type: 'string' },
+              date_to: { type: 'string' },
+              is_current: { type: 'boolean' },
+              owner_name: { type: 'string' },
+              owner_type: { type: 'string' },
+              location: { type: 'string' },
+              transfer_method: { type: 'string' },
+              transfer_details: { type: 'string' },
+              purchase_price: { type: 'string' },
+              notes: { type: 'string' },
+              verified: { type: 'boolean' },
+            },
+            required: ['artifact_id', 'owner_name'],
+          },
+          description: 'Array of provenance entries to create',
+        },
+      },
+      required: ['entries'],
+    },
+  },
+  {
     name: 'batch_create_entities',
     description:
       'Create multiple entities (people, events, theories) in a single operation for efficiency',
@@ -1130,6 +1225,108 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // Batch Operations & Helper Tools
+      case 'batch_create_artifacts': {
+        const artifactsData = args.artifacts.map((a) => {
+          const artifactData = {
+            project_id: args.project_id,
+            name: a.name,
+            category: a.category,
+            description: a.description || null,
+            period: a.period || null,
+            estimated_age: a.estimated_age || null,
+            material: a.material || null,
+            dimensions: a.dimensions || null,
+            condition: a.condition || null,
+            current_owner: a.current_owner || null,
+            owner_type: a.owner_type || null,
+            current_location: a.current_location || null,
+            accession_number: a.accession_number || null,
+            image_urls: a.image_urls || null,
+            notes: a.notes || null,
+          };
+
+          // Handle findspot as JSONB
+          if (a.findspot_name && a.findspot_lng && a.findspot_lat) {
+            artifactData.findspot = {
+              name: a.findspot_name,
+              lng: a.findspot_lng,
+              lat: a.findspot_lat,
+            };
+          }
+
+          return artifactData;
+        });
+
+        const { data, error } = await supabase.from('artifacts').insert(artifactsData).select();
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Batch artifacts created successfully:\n${data.length} artifacts created\n\n${data.map((a) => `- ${a.name} (${a.category})`).join('\n')}`,
+            },
+          ],
+        };
+      }
+
+      case 'batch_create_places': {
+        const placesData = args.places.map((p) => ({
+          project_id: args.project_id,
+          name: p.name,
+          lng: p.lng,
+          lat: p.lat,
+          note: p.note || null,
+        }));
+
+        const { data, error } = await supabase.from('places').insert(placesData).select();
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Batch places created successfully:\n${data.length} places created\n\n${data.map((p) => `- ${p.name} (${p.lng}, ${p.lat})`).join('\n')}`,
+            },
+          ],
+        };
+      }
+
+      case 'batch_add_provenance': {
+        const provenanceData = args.entries.map((e) => ({
+          artifact_id: e.artifact_id,
+          date_from: e.date_from || null,
+          date_to: e.date_to || null,
+          is_current: e.is_current || false,
+          owner_name: e.owner_name,
+          owner_type: e.owner_type || null,
+          location: e.location || null,
+          transfer_method: e.transfer_method || null,
+          transfer_details: e.transfer_details || null,
+          purchase_price: e.purchase_price || null,
+          notes: e.notes || null,
+          verified: e.verified || false,
+        }));
+
+        const { data, error } = await supabase
+          .from('artifact_provenance')
+          .insert(provenanceData)
+          .select();
+
+        if (error) throw error;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Batch provenance entries added successfully:\n${data.length} entries created`,
+            },
+          ],
+        };
+      }
+
       case 'batch_create_entities': {
         const results = { people: [], events: [], theories: [] };
 

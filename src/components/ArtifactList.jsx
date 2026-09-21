@@ -112,7 +112,7 @@ export default function ArtifactList({ onAddClick, onArtifactClick }) {
       </div>
 
       {/* Artifact List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px', minHeight: 0 }}>
         {filteredArtifacts.length === 0 ? (
           <div
             style={{

@@ -103,7 +103,7 @@ export default function ArtifactDetail({ artifact, onBack, onEdit }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {activeTab === 'details' && (
           <div style={{ padding: '16px' }}>
             {/* Images */}

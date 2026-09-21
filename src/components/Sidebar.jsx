@@ -13,14 +13,20 @@ export default function Sidebar() {
   const setSelectedArtifact = useStore((state) => state.setSelectedArtifact);
 
   return (
-    <div className="sidebar">
+    <div className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Linked Marks Section */}
       <div
         className="sidebar-section"
-        style={{ maxHeight: '200px', display: 'flex', flexDirection: 'column' }}
+        style={{
+          flex: '0 0 auto',
+          maxHeight: '200px',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
       >
         <div className="sidebar-header">Linked Marks</div>
-        <div className="sidebar-content">
+        <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-2)' }}>
           {annotations.length === 0 ? (
             <div className="empty-state-text" style={{ padding: '20px 8px' }}>
               Highlight text on a PDF page, add a note, then link it to a map pin.
@@ -52,7 +58,13 @@ export default function Sidebar() {
       {/* Artifacts Section */}
       <div
         className="sidebar-section"
-        style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+          overflow: 'hidden',
+        }}
       >
         {selectedArtifact ? (
           <ArtifactDetail
