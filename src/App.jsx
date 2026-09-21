@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import useStore from './store/useStore';
 import Topbar from './components/Topbar';
-import Tabs from './components/Tabs';
 import Workspace from './components/Workspace';
 import ProjectPicker from './components/ProjectPicker';
 import { loadSources } from './lib/upload';
@@ -76,7 +75,6 @@ function App() {
   return (
     <div className="app">
       <Topbar />
-      <Tabs />
       <Workspace />
     </div>
   );
