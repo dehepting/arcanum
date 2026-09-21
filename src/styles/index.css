@@ -1,42 +1,40 @@
-/* Arcanum — Dark scholarly research workspace */
+/* Arcanum — Research Workspace */
+
+/* Import Design System */
+@import './design-system.css';
 
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap');
 
 :root {
-  /* Dark theme palette */
-  --bg: #0e0f12;
-  --panel: #16181d;
-  --panel-2: #1c1f26;
-  --line: #2a2e36;
-  --text: #e8e6e1;
-  --text-muted: #8b8f99;
-  --accent: #c45c4a;
-  --accent-2: #d4a373;
-  --pin: #e8b86d;
-  --highlight: rgba(212, 163, 115, 0.28);
+  /* Legacy variable mappings (for backward compatibility) */
+  --bg: var(--bg-canvas);
+  --panel: var(--bg-panel);
+  --panel-2: var(--bg-panel-alt);
+  --line: var(--border-default);
+  --text: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --accent: var(--accent-primary);
+  --accent-2: var(--accent-primary-hover);
+  --pin: var(--accent-warning);
+  --highlight: rgba(9, 105, 218, 0.1);
 
-  /* Spacing */
+  /* Layout Dimensions */
   --topbar-h: 44px;
   --tabs-h: 36px;
   --toolbar-h: 40px;
   --sidebar-w: 320px;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 html,
 body,
 #root {
   height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-  font-size: 13px;
-  line-height: 1.5;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
 }
 
 /* Layout */

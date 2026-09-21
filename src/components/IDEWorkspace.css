@@ -2,7 +2,7 @@
   display: flex;
   height: 100%;
   width: 100%;
-  background: var(--bg-primary, #fff);
+  background: var(--bg-canvas);
   overflow: hidden;
   position: relative;
 }
@@ -12,9 +12,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg-primary, #fff);
-  border-right: 1px solid var(--line, #e0e0e0);
-  transition: width 0.2s ease;
+  background: var(--bg-panel-alt);
+  border-right: 1px solid var(--border-default);
+  transition: width var(--transition-base);
 }
 
 .ide-panel.collapsed {
@@ -24,20 +24,20 @@
 
 .ide-left-panel {
   flex-shrink: 0;
-  border-right: 1px solid var(--line, #e0e0e0);
+  border-right: 1px solid var(--border-default);
 }
 
 .ide-center-panel {
   flex: 1;
   min-width: 0;
   border: none;
-  background: var(--bg-secondary, #f8f9fa);
+  background: var(--bg-canvas);
 }
 
 .ide-right-panel {
   flex-shrink: 0;
   border-right: none;
-  border-left: 1px solid var(--line, #e0e0e0);
+  border-left: 1px solid var(--border-default);
 }
 
 /* Panel Header */
@@ -45,34 +45,34 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background: var(--bg-primary, #fff);
-  border-bottom: 1px solid var(--line, #e0e0e0);
-  min-height: 35px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-default);
+  min-height: var(--panel-header-height);
 }
 
 .ide-panel-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary, #666);
-  letter-spacing: 0.5px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  letter-spacing: var(--letter-spacing-wider);
   text-transform: uppercase;
 }
 
 .ide-panel-collapse {
   background: none;
   border: none;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 3px;
-  font-size: 12px;
-  transition: background-color 0.15s;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-base);
 }
 
 .ide-panel-collapse:hover {
-  background: var(--bg-hover, #f0f0f0);
-  color: var(--text-primary, #333);
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* Panel Content */
@@ -89,16 +89,16 @@
   cursor: col-resize;
   flex-shrink: 0;
   position: relative;
-  z-index: 10;
-  transition: background-color 0.15s;
+  z-index: var(--z-base);
+  transition: background-color var(--transition-base);
 }
 
 .ide-resizer:hover {
-  background: var(--accent, #2196f3);
+  background: var(--accent-primary);
 }
 
 .ide-resizer:active {
-  background: var(--accent-dark, #1976d2);
+  background: var(--accent-primary-active);
 }
 
 .ide-resizer-left {
@@ -113,28 +113,28 @@
 .ide-collapsed-bar {
   width: 40px;
   flex-shrink: 0;
-  background: var(--bg-primary, #fff);
-  border-right: 1px solid var(--line, #e0e0e0);
+  background: var(--bg-panel-alt);
+  border-right: 1px solid var(--border-default);
   display: flex;
   align-items: flex-start;
-  padding-top: 8px;
+  padding-top: var(--space-2);
   justify-content: center;
 }
 
 .ide-collapsed-right {
   border-right: none;
-  border-left: 1px solid var(--line, #e0e0e0);
+  border-left: 1px solid var(--border-default);
 }
 
 .ide-expand-btn {
   background: none;
   border: none;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: all 0.15s;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  transition: all var(--transition-base);
   width: 32px;
   height: 32px;
   display: flex;
@@ -143,32 +143,14 @@
 }
 
 .ide-expand-btn:hover {
-  background: var(--bg-hover, #f0f0f0);
-  color: var(--text-primary, #333);
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* Cursor during resize */
 body.resizing-panel {
   cursor: col-resize !important;
   user-select: none;
-}
-
-/* Scrollbar Styling (for webkit browsers) */
-.ide-panel-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.ide-panel-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.ide-panel-content::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb, #ccc);
-  border-radius: 4px;
-}
-
-.ide-panel-content::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover, #999);
 }
 
 /* Responsive - Mobile */
