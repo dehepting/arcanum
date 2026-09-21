@@ -37,86 +37,119 @@ export default function MapView() {
   useEffect(() => {
     if (map.current) return; // Initialize only once
 
+    if (!mapContainer.current) {
+      console.error('Map container ref is null!');
+      return;
+    }
+
     const centerLng = currentProject?.map_center_lng || -20;
     const centerLat = currentProject?.map_center_lat || 36;
     const zoom = currentProject?.map_zoom || 3.4;
 
-    map.current = new Map({
-      container: mapContainer.current,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors',
+    try {
+      map.current = new Map({
+        container: mapContainer.current,
+        style: {
+          version: 8,
+          sources: {
+            osm: {
+              type: 'raster',
+              tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              tileSize: 256,
+              attribution: '© OpenStreetMap contributors',
+            },
           },
+          layers: [
+            {
+              id: 'osm',
+              type: 'raster',
+              source: 'osm',
+            },
+          ],
         },
-        layers: [
-          {
-            id: 'osm',
-            type: 'raster',
-            source: 'osm',
-          },
-        ],
-      },
-      center: [centerLng, centerLat],
-      zoom,
-    });
+        center: [centerLng, centerLat],
+        zoom,
+      });
 
-    map.current.addControl(new NavigationControl(), 'top-right');
+      map.current.addControl(new NavigationControl(), 'top-right');
 
-    map.current.on('load', () => {
-      setMapReady(true);
-    });
+      map.current.on('load', () => {
+        setMapReady(true);
+        // Force resize after load to ensure proper rendering
+        setTimeout(() => {
+          map.current.resize();
+        }, 100);
+      });
 
-    // Click handler for adding pins and georeferencing overlays
-    map.current.on('click', async (e) => {
-      const state = useStore.getState();
+      map.current.on('error', (e) => {
+        console.error('Map error:', e);
+      });
 
-      // Check if in overlay georeferencing mode
-      if (state.overlayMode && state.onOverlayMapClick) {
-        state.onOverlayMapClick(e.lngLat);
-        return;
-      }
+      // Click handler for adding pins and georeferencing overlays
+      map.current.on('click', async (e) => {
+        const state = useStore.getState();
 
-      // Check if in pin placement mode
-      if (!state.pinPlacementMode || !state.pendingPinAnnotationId) return;
+        // Check if in overlay georeferencing mode
+        if (state.overlayMode && state.onOverlayMapClick) {
+          state.onOverlayMapClick(e.lngLat);
+          return;
+        }
 
-      const name = prompt('Name for this location?', 'Untitled Location');
-      if (name === null) {
-        state.cancelPinPlacement();
-        return;
-      }
+        // Check if in pin placement mode
+        if (!state.pinPlacementMode || !state.pendingPinAnnotationId) return;
 
-      try {
-        const place = await createPlace(
-          {
-            project_id: currentProject.id,
-            name: name || 'Untitled Location',
-            lng: e.lngLat.lng,
-            lat: e.lngLat.lat,
-            note: '',
-          },
-          state.pendingPinAnnotationId
-        );
+        const name = prompt('Name for this location?', 'Untitled Location');
+        if (name === null) {
+          state.cancelPinPlacement();
+          return;
+        }
 
-        state.addPlace(place);
-        state.cancelPinPlacement();
+        try {
+          const place = await createPlace(
+            {
+              project_id: currentProject.id,
+              name: name || 'Untitled Location',
+              lng: e.lngLat.lng,
+              lat: e.lngLat.lat,
+              note: '',
+            },
+            state.pendingPinAnnotationId
+          );
 
-        // Fly to the new pin
-        map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
-      } catch (err) {
-        console.error('Failed to create place:', err);
-        alert(`Failed to create pin: ${err.message}`);
-      }
-    });
+          state.addPlace(place);
+          state.cancelPinPlacement();
+
+          // Fly to the new pin
+          map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
+        } catch (err) {
+          console.error('Failed to create place:', err);
+          alert(`Failed to create pin: ${err.message}`);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to initialize map:', error);
+    }
 
     return () => {
       map.current?.remove();
+      map.current = null;
     };
   }, [currentProject]);
+
+  // Handle container resize
+  useEffect(() => {
+    if (!map.current || !mapContainer.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      map.current?.resize();
+    });
+
+    resizeObserver.observe(mapContainer.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [mapReady]);
 
   // Load places and overlays when project changes
   useEffect(() => {
@@ -252,7 +285,16 @@ export default function MapView() {
   }, [mapOverlays, mapReady]);
 
   return (
-    <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+    <div
+      style={{
+        flex: 1,
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        width: '100%',
+      }}
+    >
       {/* Pin placement mode banner */}
       {pinPlacementMode && (
         <div
@@ -338,7 +380,18 @@ export default function MapView() {
         </button>
       )}
 
-      <div ref={mapContainer} style={{ flex: 1, width: '100%' }} />
+      <div
+        ref={mapContainer}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+        }}
+      />
 
       {/* Overlay georeferencing UI */}
       <OverlayGeoreference />
