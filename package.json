@@ -18,6 +18,9 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
+    "@tiptap/extension-link": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
     "fabric": "^7.4.0",
     "maplibre-gl": "^6.9.0",
     "pdfjs-dist": "^6.3.289",
