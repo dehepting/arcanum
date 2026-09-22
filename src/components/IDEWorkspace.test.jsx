@@ -10,12 +10,17 @@ describe('IDEWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock localStorage
-    global.localStorage = {
+    const localStorageMock = {
       getItem: vi.fn(),
       setItem: vi.fn(),
       removeItem: vi.fn(),
       clear: vi.fn(),
     };
+    Object.defineProperty(global, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    });
   });
 
   it('renders with left and center panels', () => {
@@ -118,10 +123,8 @@ describe('IDEWorkspace', () => {
       />
     );
 
-    // Find the right panel collapse button (second collapse button)
-    const collapseButtons = screen.getAllByText('▶');
-    const rightCollapseButton = collapseButtons[1];
-
+    // Find the right panel collapse button using title
+    const rightCollapseButton = screen.getByTitle(/Collapse \(Cmd\+Alt\+B\)/);
     fireEvent.click(rightCollapseButton);
 
     const rightPanel = container.querySelector('.ide-right-panel');
@@ -129,10 +132,20 @@ describe('IDEWorkspace', () => {
   });
 
   it('loads panel widths from localStorage', () => {
-    global.localStorage.getItem = vi.fn((key) => {
-      if (key === 'ide-left-width') return '250';
-      if (key === 'ide-right-width') return '400';
-      return null;
+    const localStorageMock = {
+      getItem: vi.fn((key) => {
+        if (key === 'ide-left-width') return '250';
+        if (key === 'ide-right-width') return '400';
+        return null;
+      }),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    };
+    Object.defineProperty(global, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
     });
 
     const { container } = render(
@@ -164,7 +177,17 @@ describe('IDEWorkspace', () => {
   });
 
   it('uses default widths when localStorage is empty', () => {
-    global.localStorage.getItem = vi.fn(() => null);
+    const localStorageMock = {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    };
+    Object.defineProperty(global, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    });
 
     const { container } = render(
       <IDEWorkspace
