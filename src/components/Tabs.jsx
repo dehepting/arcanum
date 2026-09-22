@@ -131,7 +131,7 @@ export default function Tabs() {
             {tab.title}
             {tab.isDirty && <span className="dirty-indicator">•</span>}
           </span>
-          {tabs.length > 1 && (
+          {tab.type !== 'map' && (
             <button className="tab-close" onClick={(e) => handleCloseTab(tab, e)} title="Close tab">
               ×
             </button>
