@@ -87,7 +87,8 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
           const { error: saveError } = await updateEntityPage(
             entityId,
             newContent,
-            false // replace mode
+            false, // replace mode
+            { projectId, entityType, title } // for creating new pages
           );
 
           if (saveError) {

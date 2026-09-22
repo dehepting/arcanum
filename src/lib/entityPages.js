@@ -81,10 +81,14 @@ export async function getEntityPage(entityId) {
       .from('entity_pages')
       .select('*')
       .eq('entity_id', entityId)
-      .single();
+      .maybeSingle();
 
     if (dbError) throw dbError;
-    if (!page) throw new Error('Entity page not found');
+
+    // If page doesn't exist, return null data (not an error - it's a new entity)
+    if (!page) {
+      return { data: null, error: null };
+    }
 
     // 2. Get content from storage
     const { data: contentData, error: storageError } = await supabase.storage
@@ -103,23 +107,37 @@ export async function getEntityPage(entityId) {
 }
 
 /**
- * Update entity page content
+ * Update entity page content (creates page if it doesn't exist)
  * @param {string} entityId - Entity UUID
  * @param {string} content - New markdown content
  * @param {boolean} append - If true, append to existing content instead of replacing
+ * @param {object} pageInfo - Required for new pages: { projectId, entityType, title }
  * @returns {Promise<{data: object, error: Error}>}
  */
-export async function updateEntityPage(entityId, content, append = false) {
+export async function updateEntityPage(entityId, content, append = false, pageInfo = null) {
   try {
     // 1. Get current page metadata
     const { data: page, error: dbError } = await supabase
       .from('entity_pages')
       .select('*')
       .eq('entity_id', entityId)
-      .single();
+      .maybeSingle();
 
     if (dbError) throw dbError;
-    if (!page) throw new Error('Entity page not found');
+
+    // If page doesn't exist, create it
+    if (!page) {
+      if (!pageInfo || !pageInfo.projectId || !pageInfo.entityType || !pageInfo.title) {
+        throw new Error('Cannot create entity page: missing projectId, entityType, or title');
+      }
+      return await createEntityPage(
+        pageInfo.projectId,
+        entityId,
+        pageInfo.entityType,
+        pageInfo.title,
+        content
+      );
+    }
 
     let finalContent = content;
 
