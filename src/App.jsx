@@ -14,6 +14,7 @@ function App() {
   const setAnnotations = useStore((state) => state.setAnnotations);
   const setPlaces = useStore((state) => state.setPlaces);
   const setArtifacts = useStore((state) => state.setArtifacts);
+  const setSources = useStore((state) => state.setSources);
   const [loading, setLoading] = useState(true);
 
   // Load last project from localStorage on mount
@@ -40,9 +41,7 @@ function App() {
         ]);
 
         // Update store with sources
-        sources.forEach((source) => {
-          useStore.getState().addSource(source);
-        });
+        setSources(sources);
 
         // Update store with artifacts
         setArtifacts(artifacts);
@@ -56,7 +55,7 @@ function App() {
     };
 
     loadProjectData();
-  }, [currentProject, setAnnotations, setPlaces, setArtifacts]);
+  }, [currentProject, setAnnotations, setPlaces, setArtifacts, setSources]);
 
   if (loading) {
     return (
