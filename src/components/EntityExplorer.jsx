@@ -17,6 +17,7 @@ export default function EntityExplorer() {
   const theories = useStore((state) => state.theories);
   const places = useStore((state) => state.places);
   const artifacts = useStore((state) => state.artifacts);
+  const sources = useStore((state) => state.sources);
   const addTab = useStore((state) => state.addTab);
   const addSource = useStore((state) => state.addSource);
   const currentProject = useStore((state) => state.currentProject);
@@ -103,6 +104,15 @@ export default function EntityExplorer() {
         entityId: null, // Will be created on first save
         entityType,
       },
+    });
+  };
+
+  // Handle source click - opens source in tab
+  const handleSourceClick = (source) => {
+    addTab({
+      type: 'pdf',
+      title: source.title,
+      data: { source },
     });
   };
 
@@ -345,10 +355,26 @@ export default function EntityExplorer() {
         <div className="section-header" onClick={() => toggleSection('sources')}>
           <span className="section-icon">{expandedSections.sources ? '▼' : '▶'}</span>
           <span className="section-title">📄 Sources</span>
+          {sources.length > 0 && <span className="entity-count">({sources.length})</span>}
         </div>
         {expandedSections.sources && (
           <div className="section-content">
-            <div className="placeholder-text">No sources yet</div>
+            {sources.length === 0 ? (
+              <div className="placeholder-text">No sources yet</div>
+            ) : (
+              <div className="entity-list">
+                {sources.map((source) => (
+                  <div
+                    key={source.id}
+                    className="entity-result"
+                    onClick={() => handleSourceClick(source)}
+                  >
+                    <span className="entity-result-icon">📄</span>
+                    <span className="entity-result-name">{source.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <button className="add-source-btn" onClick={handleAddSource} disabled={uploading}>
               {uploading ? '⏳ Uploading...' : '+ Add Source'}
             </button>
