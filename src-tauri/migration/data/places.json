@@ -1,0 +1,209 @@
+[
+  {
+    "id": "5d2650fa-fe74-4897-a25c-ad2fb11abfa0",
+    "project_id": "0f19de86-eb91-4d1c-b16d-acd470716f64",
+    "name": "Test",
+    "lng": -7.24444578915643,
+    "lat": 37.915924765069,
+    "note": "",
+    "created_at": "2026-09-13T13:16:44.521695+00:00"
+  },
+  {
+    "id": "e806a535-3ba7-417d-a4cb-cf5bd422b50f",
+    "project_id": "42a054da-eb93-4535-9384-cbd8391dfb4f",
+    "name": "Central Temple, Atlantis (submerged site, Aegean basin)",
+    "lng": 25.4,
+    "lat": 36.4,
+    "note": "Findspot of the Trident of Poseidon",
+    "created_at": "2026-09-13T23:53:31.966181+00:00"
+  },
+  {
+    "id": "37a2b0da-9079-4757-a84d-3b3f1717063f",
+    "project_id": "42a054da-eb93-4535-9384-cbd8391dfb4f",
+    "name": "Temple of Cleito, Atlantis",
+    "lng": 25.45,
+    "lat": 36.35,
+    "note": "Findspot of the Atlantean Sun Disc",
+    "created_at": "2026-09-13T23:54:32.502798+00:00"
+  },
+  {
+    "id": "2891c668-7cb6-4b90-9c17-132d8342facd",
+    "project_id": "42a054da-eb93-4535-9384-cbd8391dfb4f",
+    "name": "Royal Palace, Atlantis",
+    "lng": 25.38,
+    "lat": 36.42,
+    "note": "Findspot of the Crown of Atlas",
+    "created_at": "2026-09-13T23:54:59.755456+00:00"
+  },
+  {
+    "id": "ab9771da-4f6b-43c8-8d42-372af465f79a",
+    "project_id": "42a054da-eb93-4535-9384-cbd8391dfb4f",
+    "name": "Main Temple, Atlantis",
+    "lng": 25.41,
+    "lat": 36.4,
+    "note": "Findspot of the Orichalcum Pillars",
+    "created_at": "2026-09-13T23:55:31.203049+00:00"
+  },
+  {
+    "id": "b45f85b0-ee93-4442-a28e-b39d34daad6a",
+    "project_id": "42a054da-eb93-4535-9384-cbd8391dfb4f",
+    "name": "Royal Archives, Atlantis",
+    "lng": 25.43,
+    "lat": 36.37,
+    "note": "Findspot of the Library of Cleito Scrolls",
+    "created_at": "2026-09-13T23:55:54.690612+00:00"
+  },
+  {
+    "id": "6fcebcc8-19db-4240-8b41-273e51e2e0d0",
+    "project_id": "42a054da-eb93-4535-9384-cbd8391dfb4f",
+    "name": "Harbor District, Atlantis",
+    "lng": 25.5,
+    "lat": 36.39,
+    "note": "Findspot of the Naval Navigation Charts",
+    "created_at": "2026-09-13T23:56:23.475768+00:00"
+  },
+  {
+    "id": "9af318fd-812e-4890-859d-74e680b03f52",
+    "project_id": "42a054da-eb93-4535-9384-cbd8391dfb4f",
+    "name": "Temple Entrance, Atlantis",
+    "lng": 25.39,
+    "lat": 36.41,
+    "note": "Findspot of the Ceremonial Bull Statues",
+    "created_at": "2026-09-13T23:56:50.499611+00:00"
+  },
+  {
+    "id": "7ebe9538-d519-40a2-9ea8-8bbbd16086ae",
+    "project_id": "266abc2b-1415-4c9c-9c22-eb86afe2a82e",
+    "name": "Pasca cave, Cundinamarca, Colombia",
+    "lng": -74.312,
+    "lat": 4.259,
+    "note": "Real findspot: the Muisca Raft was discovered here in 1969 by local farmers, placed inside a ceramic pot within a cave near Lázaro Fonte.",
+    "created_at": "2026-09-21T14:02:36.387064+00:00"
+  },
+  {
+    "id": "bea71eae-5aa4-40b3-8ee4-ac7e72d68f9b",
+    "project_id": "266abc2b-1415-4c9c-9c22-eb86afe2a82e",
+    "name": "Lake Siecha, Cundinamarca, Colombia",
+    "lng": -73.925,
+    "lat": 4.987,
+    "note": "Real findspot: the Siecha Raft was recovered here in 1856 by the Tovar brothers, who were draining the lake in search of gold.",
+    "created_at": "2026-09-21T14:03:04.906375+00:00"
+  },
+  {
+    "id": "ed4a12a9-db87-4e32-ac34-58043b8d2c6e",
+    "project_id": "266abc2b-1415-4c9c-9c22-eb86afe2a82e",
+    "name": "Quindío / Quimbaya region, Colombia",
+    "lng": -75.68,
+    "lat": 4.73,
+    "note": "Real region associated with Quimbaya burial mound finds, central Cauca River valley, Colombia.",
+    "created_at": "2026-09-21T14:03:21.657928+00:00"
+  },
+  {
+    "id": "5c91b740-bd06-425e-b8c6-b6514f12eb7e",
+    "project_id": "266abc2b-1415-4c9c-9c22-eb86afe2a82e",
+    "name": "Lake Guatavita, Cundinamarca, Colombia",
+    "lng": -73.7772,
+    "lat": 4.9754,
+    "note": "The real crater lake where the Muisca zipa investiture ritual behind the El Dorado legend took place, per Spanish chronicler accounts.",
+    "created_at": "2026-09-21T14:03:48.162888+00:00"
+  },
+  {
+    "id": "e8ab06ee-8970-4c87-8cc4-5f6a9cda2310",
+    "project_id": "be7a7081-fadd-49d9-b4a7-b18205e9440e",
+    "name": "Yonaguni Island, Ryukyu Islands, Japan",
+    "lng": 122.93,
+    "lat": 24.45,
+    "note": "Site of the disputed Yonaguni Monument formation, most-cited pop-culture 'evidence' for Lemuria/Mu.",
+    "created_at": "2026-09-21T22:04:59.059661+00:00"
+  },
+  {
+    "id": "e6f32ec9-9f16-47cd-89f5-e6d3fe30105e",
+    "project_id": "be7a7081-fadd-49d9-b4a7-b18205e9440e",
+    "name": "Sunda Shelf, Java Sea",
+    "lng": 108,
+    "lat": -3.5,
+    "note": "Real submerged Ice Age landmass; strongest genuine geological basis for a drowned Southeast Asian homeland.",
+    "created_at": "2026-09-21T22:04:59.059661+00:00"
+  },
+  {
+    "id": "a56889ce-a627-410a-b6b7-b48dff76100e",
+    "project_id": "be7a7081-fadd-49d9-b4a7-b18205e9440e",
+    "name": "Trinil, Solo River, Java, Indonesia",
+    "lng": 111.35,
+    "lat": -7.377,
+    "note": "Findspot of the real Java Man (Homo erectus) fossils, later misattributed to Lemuria in pop culture.",
+    "created_at": "2026-09-21T22:04:59.059661+00:00"
+  },
+  {
+    "id": "13e9886d-f8ca-406e-a0de-e33cb685ec1a",
+    "project_id": "be7a7081-fadd-49d9-b4a7-b18205e9440e",
+    "name": "Gulf of Khambhat, Gujarat, India",
+    "lng": 72.4,
+    "lat": 21.6,
+    "note": "Site of the disputed 2001 sonar survey claims of a submerged pre-Harappan city.",
+    "created_at": "2026-09-21T22:04:59.059661+00:00"
+  },
+  {
+    "id": "eac9b435-ec2a-49cb-a133-d4087970f2db",
+    "project_id": "4986db3b-ce9c-4de1-b63b-d1b68858c08d",
+    "name": "Tashilhunpo Monastery, Shigatse, Tibet",
+    "lng": 88.883,
+    "lat": 29.267,
+    "note": "Seat of the Panchen Lamas, traditional source of Shambhala guidebook texts including the Shambhala Lanyig.",
+    "created_at": "2026-09-21T22:05:58.656697+00:00"
+  },
+  {
+    "id": "89f5334c-003e-44b5-93c0-97dc3bd88704",
+    "project_id": "4986db3b-ce9c-4de1-b63b-d1b68858c08d",
+    "name": "Roerich Expedition Route (Central Asia)",
+    "lng": 87,
+    "lat": 43,
+    "note": "Approximate path of the real 1924-1928 Roerich expedition through Xinjiang, Altai, Mongolia, and Tibet in search of Shambhala.",
+    "created_at": "2026-09-21T22:05:58.656697+00:00"
+  },
+  {
+    "id": "60e5dd75-b02a-4872-8b2e-c009c78a7371",
+    "project_id": "4986db3b-ce9c-4de1-b63b-d1b68858c08d",
+    "name": "Xiaohe Cemetery, Tarim Basin, Xinjiang, China",
+    "lng": 88.3,
+    "lat": 40.5,
+    "note": "Real findspot of the Tarim Basin mummies, Bronze Age Xiaohe culture.",
+    "created_at": "2026-09-21T22:05:58.656697+00:00"
+  },
+  {
+    "id": "d4e8ca59-8984-4f0f-88be-93c3ada81adb",
+    "project_id": "c0a6688f-5778-4843-9778-209ad38638a8",
+    "name": "Shetland Islands, UK",
+    "lng": -1.28,
+    "lat": 60.35,
+    "note": "Leading candidate for Pytheas's Thule; identified by Agricola's Roman fleet and later adopted by Ptolemy.",
+    "created_at": "2026-09-21T22:06:59.566947+00:00"
+  },
+  {
+    "id": "62addd90-3627-4d63-908d-178691f22c5d",
+    "project_id": "c0a6688f-5778-4843-9778-209ad38638a8",
+    "name": "Iceland",
+    "lng": -19.02,
+    "lat": 64.96,
+    "note": "Leading modern scholarly candidate for Thule (Cunliffe and others), based on six days' sail and hours-of-daylight descriptions.",
+    "created_at": "2026-09-21T22:06:59.566947+00:00"
+  },
+  {
+    "id": "a6baac14-a340-4daa-b952-15da37f5259b",
+    "project_id": "c0a6688f-5778-4843-9778-209ad38638a8",
+    "name": "Smola, Norway",
+    "lng": 8.03,
+    "lat": 63.4,
+    "note": "Modern Norwegian candidate site actively promoting its claim to the Thule identification.",
+    "created_at": "2026-09-21T22:06:59.566947+00:00"
+  },
+  {
+    "id": "815b24ab-a918-4481-b0bb-231e52227854",
+    "project_id": "c0a6688f-5778-4843-9778-209ad38638a8",
+    "name": "Thule (Pituffik), Greenland",
+    "lng": -68.7,
+    "lat": 76.53,
+    "note": "Site of the historic Thule trading post that gave its name to the unrelated Thule archaeological culture.",
+    "created_at": "2026-09-21T22:06:59.566947+00:00"
+  }
+]

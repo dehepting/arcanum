@@ -1,0 +1,62 @@
+[
+  {
+    "id": "0f19de86-eb91-4d1c-b16d-acd470716f64",
+    "name": "Atlantis",
+    "description": null,
+    "created_at": "2026-09-13T02:45:49.794896+00:00",
+    "updated_at": "2026-09-13T02:45:49.794896+00:00",
+    "map_center_lng": -20,
+    "map_center_lat": 36,
+    "map_zoom": 3.4
+  },
+  {
+    "id": "42a054da-eb93-4535-9384-cbd8391dfb4f",
+    "name": "Atlantis: Lost Civilization Artifacts",
+    "description": "Comprehensive catalog of mythological artifacts from the lost city of Atlantis, focusing on the Bronze Age period (circa 9600 BCE) and connections to ancient Mediterranean cultures.",
+    "created_at": "2026-09-13T23:42:28.841206+00:00",
+    "updated_at": "2026-09-13T23:42:28.841206+00:00",
+    "map_center_lng": 25,
+    "map_center_lat": 35,
+    "map_zoom": 4.5
+  },
+  {
+    "id": "be7a7081-fadd-49d9-b4a7-b18205e9440e",
+    "name": "Lemuria: The Sunken Motherland",
+    "description": "Catalog of artifacts attributed to Lemuria (also called Mu), a hypothesized lost continent and civilization theorized by 19th-century naturalists and later popularized by occultist writers as an advanced antediluvian culture submerged beneath the Indian or Pacific Ocean.",
+    "created_at": "2026-09-21T13:57:03.49405+00:00",
+    "updated_at": "2026-09-21T13:57:03.49405+00:00",
+    "map_center_lng": 80,
+    "map_center_lat": -10,
+    "map_zoom": 3.2
+  },
+  {
+    "id": "266abc2b-1415-4c9c-9c22-eb86afe2a82e",
+    "name": "El Dorado: City of Gold",
+    "description": "Catalog of artifacts associated with El Dorado, the legendary golden city (and, in its earliest form, a golden man — the \"gilded one\") of South American lore, tied to the Muisca tribal ritual at Lake Guatavita and later inflated by Spanish conquistadors into a search for a lost city of gold.",
+    "created_at": "2026-09-21T13:57:06.584454+00:00",
+    "updated_at": "2026-09-21T13:57:06.584454+00:00",
+    "map_center_lng": -73.8,
+    "map_center_lat": 4.9,
+    "map_zoom": 5.5
+  },
+  {
+    "id": "4986db3b-ce9c-4de1-b63b-d1b68858c08d",
+    "name": "Shambhala: The Hidden Kingdom",
+    "description": "Catalog of artifacts attributed to Shambhala, the hidden kingdom of Tibetan Buddhist mythology described in the Kalachakra Tantra as a paradise of enlightened rulers concealed beyond the Himalayas, blending spiritual cosmology with legendary geography.",
+    "created_at": "2026-09-21T13:57:09.641454+00:00",
+    "updated_at": "2026-09-21T13:57:09.641454+00:00",
+    "map_center_lng": 90,
+    "map_center_lat": 32,
+    "map_zoom": 4
+  },
+  {
+    "id": "c0a6688f-5778-4843-9778-209ad38638a8",
+    "name": "Thule: The Northern Edge of the World",
+    "description": "Catalog of artifacts attributed to Thule, the far-northern land described by the Greek explorer Pytheas in the 4th century BCE and later mythologized as Hyperborea/Ultima Thule, a legendary civilization at the edge of the known world associated with the Arctic and sub-Arctic North Atlantic.",
+    "created_at": "2026-09-21T13:57:12.714689+00:00",
+    "updated_at": "2026-09-21T13:57:12.714689+00:00",
+    "map_center_lng": -18,
+    "map_center_lat": 68,
+    "map_zoom": 3.5
+  }
+]

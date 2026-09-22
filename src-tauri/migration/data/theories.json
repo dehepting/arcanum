@@ -1,0 +1,50 @@
+[
+  {
+    "id": "720aba75-94f0-4fd6-ab04-7bffadefc004",
+    "project_id": "be7a7081-fadd-49d9-b4a7-b18205e9440e",
+    "name": "Sundaland as the geological kernel of the Lemuria myth",
+    "description": "Of all locations proposed for Lemuria, the Sunda Shelf is the only one with unambiguous, mainstream-accepted geological evidence of a real landmass that was inhabited and later drowned by rising post-glacial seas. The original 1864 Lemuria hypothesis (Philip Sclater) was a zoogeographic land-bridge theory, not a claim about an advanced civilization -- that layer was added later by occultist writers (notably Helena Blavatsky). Yonaguni and Gulf of Khambhat claims remain scientifically contested and should not be treated as confirmatory.",
+    "proposed_location_id": null,
+    "status": "active",
+    "confidence_level": 3,
+    "notes": "Distinguishing real geology (Sundaland) from contested archaeology (Yonaguni, Khambhat) from pure mythology (Blavatsky's Lemuria) is the key to using this catalog responsibly.",
+    "created_at": "2026-09-21T22:05:27.439189+00:00",
+    "updated_at": "2026-09-21T22:05:27.439189+00:00"
+  },
+  {
+    "id": "7c1a1d27-b971-4c7b-9f5e-cde65d97bfad",
+    "project_id": "4986db3b-ce9c-4de1-b63b-d1b68858c08d",
+    "name": "Shambhala as spiritual allegory vs. literal geography",
+    "description": "Tibetan Buddhist scholarship itself is divided on whether Shambhala's Kalachakra Tantra descriptions and guidebook texts (like the Shambhala Lanyig) describe a literal place reachable by physical journey or an inner spiritual state / mandala reached through practice. Roerich's real 1924-1928 expedition treated it as both. No physical kingdom matching the descriptions has been located in Central Asia, and items like the Tarim Basin mummies are only loosely and unofficially associated with the legend by popular writers, not by the Buddhist textual tradition itself.",
+    "proposed_location_id": null,
+    "status": "active",
+    "confidence_level": 2,
+    "notes": "The Kalachakra Tantra and Shambhala Lanyig are the only genuinely primary sources; everything else in this catalog is either loosely associated evidence or documented search history, not confirmation of a physical kingdom.",
+    "created_at": "2026-09-21T22:06:30.122983+00:00",
+    "updated_at": "2026-09-21T22:06:30.122983+00:00"
+  },
+  {
+    "id": "95d5bac8-93a0-425d-80e4-44a28a47d0a8",
+    "project_id": "c0a6688f-5778-4843-9778-209ad38638a8",
+    "name": "Iceland vs. Shetland vs. Norway as Pytheas's real Thule",
+    "description": "Unlike Atlantis, Lemuria, and Shambhala, Thule very likely does refer to a real place Pytheas actually visited or heard credible reports of around 325 BCE -- the debate is which one. Barry Cunliffe argues the six-day sailing distance and 22-23 hour summer daylight match Iceland. Others (McPhail) favor Norway since Strabo describes Thule as inhabited, which Iceland was not in antiquity. A minority of classicists (Breeze, Wijsman) argue for Shetland based on Ptolemy's later identification and Agricola's Roman fleet account. No archaeological find has yet definitively settled the question.\", \"proposed_location_id\": null, \"confidence_level\": 3, \"status\": \"active\", \"notes\": \"This is the one project in the set where the underlying geography is almost certainly real -- the open question is which real island, not whether one exists.",
+    "proposed_location_id": null,
+    "status": "active",
+    "confidence_level": 3,
+    "notes": null,
+    "created_at": "2026-09-21T22:07:18.127753+00:00",
+    "updated_at": "2026-09-21T22:07:18.127753+00:00"
+  },
+  {
+    "id": "139da23e-e016-4c1f-8e01-75976e8b212c",
+    "project_id": "266abc2b-1415-4c9c-9c22-eb86afe2a82e",
+    "name": "El Dorado: real ritual, exaggerated myth",
+    "description": "Of the four projects in this set, El Dorado has the strongest and most direct physical evidence: the Muisca Raft is a genuine artifact depicting the actual ritual, and Lake Guatavita is the real, identified, physically accessible site. The 'city of gold' version of the myth was a Spanish colonial-era exaggeration of a real, more modest chiefly investiture ceremony. The lake's undisturbed sediment (protected from further dredging since the early 20th century) is plausibly the single most promising unexplored evidentiary site among all four projects.",
+    "proposed_location_id": "5c91b740-bd06-425e-b8c6-b6514f12eb7e",
+    "status": "proven",
+    "confidence_level": 5,
+    "notes": "Confidence level reflects that the underlying ritual and lake are historically confirmed, not that a literal 'city of gold' exists -- that part remains myth.",
+    "created_at": "2026-09-21T22:07:27.064654+00:00",
+    "updated_at": "2026-09-21T22:07:27.064654+00:00"
+  }
+]
