@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import useStore from '../store/useStore';
+import { uploadPDF } from '../lib/upload';
 import './EntityExplorer.css';
 
 /**
@@ -17,8 +18,11 @@ export default function EntityExplorer() {
   const places = useStore((state) => state.places);
   const artifacts = useStore((state) => state.artifacts);
   const addTab = useStore((state) => state.addTab);
+  const addSource = useStore((state) => state.addSource);
+  const currentProject = useStore((state) => state.currentProject);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     entities: true,
     sources: true,
@@ -100,6 +104,39 @@ export default function EntityExplorer() {
         entityType,
       },
     });
+  };
+
+  // Handle add source (PDF upload)
+  const handleAddSource = () => {
+    console.log('handleAddSource called');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      console.log('File selected:', file);
+      if (!file) return;
+
+      setUploading(true);
+      try {
+        console.log('Starting upload for project:', currentProject.id);
+        const source = await uploadPDF(file, currentProject.id);
+        console.log('Upload successful:', source);
+        addSource(source);
+        addTab({
+          type: 'pdf',
+          title: source.title,
+          data: { source },
+        });
+      } catch (err) {
+        console.error('Upload error:', err);
+        alert(`Failed to upload PDF: ${err.message}`);
+      } finally {
+        setUploading(false);
+      }
+    };
+    input.click();
+    console.log('File input clicked');
   };
 
   return (
@@ -312,7 +349,9 @@ export default function EntityExplorer() {
         {expandedSections.sources && (
           <div className="section-content">
             <div className="placeholder-text">No sources yet</div>
-            <button className="add-source-btn">+ Add Source</button>
+            <button className="add-source-btn" onClick={handleAddSource} disabled={uploading}>
+              {uploading ? '⏳ Uploading...' : '+ Add Source'}
+            </button>
           </div>
         )}
       </div>
