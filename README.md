@@ -16,7 +16,7 @@ Arcanum is a desktop-style research IDE for archaeological and historical invest
 - 📍 **Link annotations to map pins** for geographic context
 - 🏺 **Artifact catalog** with findspot locations
 - 🗺️ **Historic map overlays** with opacity and transform controls
-- 💾 **Cloud storage** via Supabase (access from anywhere)
+- 💾 **Local-first storage** with SQLite (your data stays on your machine)
 - 🌙 **Dark scholarly theme** optimized for long research sessions
 
 ## Tech Stack
@@ -24,8 +24,7 @@ Arcanum is a desktop-style research IDE for archaeological and historical invest
 - **Frontend**: Vite + React
 - **Map**: MapLibre GL (OpenStreetMap tiles)
 - **PDF**: PDF.js
-- **Backend**: Supabase (Postgres + Storage)
-- **Deployment**: Vercel
+- **Backend**: Tauri (Rust) + SQLite
 - **State**: Zustand
 
 ## Setup
@@ -38,56 +37,51 @@ cd arcanum
 npm install
 ```
 
-### 2. Set up Supabase
-
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Run the SQL schema in `docs/database-schema.sql` in the Supabase SQL Editor
-3. Create three storage buckets:
-   - `sources` (for PDFs)
-   - `map-overlays` (for historic maps)
-   - `artifact-images` (for artifact photos)
-4. Make all buckets **public** (Settings → Storage → bucket → Make public)
-
-### 3. Configure environment
+### 2. Run in development mode
 
 ```bash
-cp .env.example .env
+npm run tauri:dev
 ```
 
-Edit `.env` with your Supabase credentials:
+The app will launch with a local SQLite database at `~/Library/Application Support/com.arcanum.app/`
 
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-### 4. Run locally
+### 3. Build for production
 
 ```bash
-npm run dev
+npm run tauri:build
 ```
 
-Open http://localhost:5173
+This creates a `.dmg` installer in `src-tauri/target/release/bundle/dmg/`
 
-## Deploy to Vercel
+## Data Storage
 
-1. Push to GitHub
-2. Import project on [vercel.com](https://vercel.com)
-3. Add environment variables (same as `.env`)
-4. Deploy
+- **Database**: `~/Library/Application Support/com.arcanum.app/arcanum.db`
+- **Files**: `~/Library/Application Support/com.arcanum.app/storage/`
+  - `storage/sources/` - PDF documents
+  - `storage/artifacts/` - Artifact images
+  - `storage/map-overlays/` - Historic map overlays
+  - `storage/entity-pages/` - Entity page markdown files
 
-Vercel will auto-deploy on every push to `main`.
+## Migrating from Supabase
+
+If you have data in the old Supabase version:
+
+1. Export data: `cd src-tauri/migration && node export-from-supabase.js`
+2. Download files: `node download-files.js`
+3. Initialize database: `node init-database.js`
+4. Import data: `node import-to-sqlite.js`
 
 ## Roadmap
 
 ### v1.0 (Current)
 - [x] Project structure
-- [x] Supabase schema
-- [ ] PDF upload and tabbed viewer
-- [ ] Annotation overlay (highlight, ink, text)
-- [ ] Map pins with link to annotations
-- [ ] Basic artifact catalog
-- [ ] Historic map overlay with opacity control
+- [x] Local SQLite database
+- [x] Tauri desktop app
+- [x] PDF upload and tabbed viewer
+- [x] Annotation overlay (highlight, ink, text)
+- [x] Map pins with link to annotations
+- [x] Basic artifact catalog
+- [x] Historic map overlay with opacity control
 
 ### v1.1
 - [ ] Georeferencing UI for historic maps
@@ -97,7 +91,7 @@ Vercel will auto-deploy on every push to `main`.
 ### v2.0
 - [ ] MCP server for Claude integration
 - [ ] AI-assisted research and connections
-- [ ] Collaboration features
+- [ ] Cloud sync (optional)
 - [ ] Version control for annotations
 
 ## Demo Corpus
