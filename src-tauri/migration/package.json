@@ -1,0 +1,17 @@
+{
+  "name": "arcanum-migration",
+  "version": "1.0.0",
+  "description": "Supabase to SQLite migration scripts",
+  "private": true,
+  "scripts": {
+    "export": "node export-from-supabase.js",
+    "download": "node download-files.js",
+    "verify": "node verify-migration.js",
+    "migrate": "./run-migration.sh"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "dotenv": "^16.0.0",
+    "sqlite3": "^5.1.0"
+  }
+}

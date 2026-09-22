@@ -12,6 +12,7 @@ pub mod entity_pages;
 pub mod sources;
 pub mod projects;
 pub mod files;
+pub mod migration;
 
 // App state that holds the database connection and storage
 pub struct AppState {
@@ -35,6 +36,14 @@ impl From<rusqlite::Error> for CommandError {
 
 impl From<std::io::Error> for CommandError {
     fn from(err: std::io::Error) -> Self {
+        CommandError {
+            message: err.to_string(),
+        }
+    }
+}
+
+impl From<serde_json::Error> for CommandError {
+    fn from(err: serde_json::Error) -> Self {
         CommandError {
             message: err.to_string(),
         }

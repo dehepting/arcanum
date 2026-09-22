@@ -116,6 +116,14 @@ pub fn run() {
       commands::files::save_file_dialog,
       commands::files::open_file_dialog,
       commands::files::copy_file_to_storage,
+
+      // Migration commands
+      commands::migration::import_projects,
+      commands::migration::import_places,
+      commands::migration::import_artifacts,
+      commands::migration::import_people,
+      commands::migration::import_all_data,
+      commands::migration::import_files,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
