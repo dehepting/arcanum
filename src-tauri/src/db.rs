@@ -276,6 +276,7 @@ fn create_tables(conn: &Connection) -> Result<()> {
             id TEXT PRIMARY KEY,
             annotation_id TEXT NOT NULL,
             person_id TEXT NOT NULL,
+            relationship_type TEXT DEFAULT 'mentions',
             created_at TEXT NOT NULL,
             FOREIGN KEY (annotation_id) REFERENCES annotations(id) ON DELETE CASCADE,
             FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE
@@ -311,6 +312,28 @@ fn create_tables(conn: &Connection) -> Result<()> {
     )?;
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_annotation_theories_theory ON annotation_theories_links(theory_id)",
+        [],
+    )?;
+
+    // Annotation-Place links
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS annotation_place_links (
+            id TEXT PRIMARY KEY,
+            annotation_id TEXT NOT NULL,
+            place_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (annotation_id) REFERENCES annotations(id) ON DELETE CASCADE,
+            FOREIGN KEY (place_id) REFERENCES places(id) ON DELETE CASCADE
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_annotation_place_annotation ON annotation_place_links(annotation_id)",
+        [],
+    )?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_annotation_place_place ON annotation_place_links(place_id)",
         [],
     )?;
 

@@ -11,10 +11,12 @@ pub mod places;
 pub mod entity_pages;
 pub mod sources;
 pub mod projects;
+pub mod files;
 
-// App state that holds the database connection
+// App state that holds the database connection and storage
 pub struct AppState {
     pub db: Mutex<Connection>,
+    pub storage: crate::storage::AppStorage,
 }
 
 // Common error type for commands
