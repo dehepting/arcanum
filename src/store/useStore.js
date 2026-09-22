@@ -38,9 +38,60 @@ const useStore = create((set, get) => ({
       annotations: [...state.annotations, annotation],
     })),
 
-  // Map state
+  // Map state (deprecated - kept for backward compatibility)
   mapView: 'map', // 'map' or 'source'
   setMapView: (view) => set({ mapView: view }),
+
+  // Dynamic Tabs
+  tabs: [
+    {
+      id: 'default-map',
+      type: 'map',
+      title: 'Map',
+      data: null,
+      isDirty: false,
+    },
+  ],
+  activeTabId: 'default-map',
+  addTab: (tab) =>
+    set((state) => {
+      const newTab = {
+        id: tab.id || `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type: tab.type,
+        title: tab.title,
+        data: tab.data || null,
+        isDirty: false,
+      };
+      return {
+        tabs: [...state.tabs, newTab],
+        activeTabId: newTab.id,
+      };
+    }),
+  removeTab: (tabId) =>
+    set((state) => {
+      // Don't allow removing the last tab
+      if (state.tabs.length <= 1) return state;
+
+      const newTabs = state.tabs.filter((t) => t.id !== tabId);
+      let newActiveTabId = state.activeTabId;
+
+      // If we're removing the active tab, switch to the previous tab
+      if (state.activeTabId === tabId) {
+        const removedIndex = state.tabs.findIndex((t) => t.id === tabId);
+        const newIndex = Math.max(0, removedIndex - 1);
+        newActiveTabId = newTabs[newIndex].id;
+      }
+
+      return {
+        tabs: newTabs,
+        activeTabId: newActiveTabId,
+      };
+    }),
+  setActiveTab: (tabId) => set({ activeTabId: tabId }),
+  updateTab: (tabId, updates) =>
+    set((state) => ({
+      tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, ...updates } : t)),
+    })),
 
   // Places (pins)
   places: [],

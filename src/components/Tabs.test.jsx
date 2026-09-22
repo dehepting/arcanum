@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import Tabs from './Tabs';
 import useStore from '../store/useStore';
 import { uploadPDF, deleteSource } from '../lib/upload';
@@ -14,10 +14,11 @@ vi.mock('../lib/upload', () => ({
 }));
 
 describe('Tabs', () => {
-  const mockSetActiveSource = vi.fn();
-  const mockSetMapView = vi.fn();
-  const mockRemoveSource = vi.fn();
+  const mockAddTab = vi.fn();
+  const mockRemoveTab = vi.fn();
+  const mockSetActiveTab = vi.fn();
   const mockAddSource = vi.fn();
+  const mockRemoveSource = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -29,17 +30,26 @@ describe('Tabs', () => {
     // Mock console.error
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    // Default store state
+    // Default store state with new tab system
     useStore.mockImplementation((selector) => {
       const state = {
+        tabs: [
+          {
+            id: 'default-map',
+            type: 'map',
+            title: 'Map',
+            data: null,
+            isDirty: false,
+          },
+        ],
+        activeTabId: 'default-map',
         sources: [],
-        activeSourceId: null,
-        mapView: 'map',
         currentProject: { id: 'project-1', name: 'Test Project' },
-        setActiveSource: mockSetActiveSource,
-        setMapView: mockSetMapView,
-        removeSource: mockRemoveSource,
+        addTab: mockAddTab,
+        removeTab: mockRemoveTab,
+        setActiveTab: mockSetActiveTab,
         addSource: mockAddSource,
+        removeSource: mockRemoveSource,
       };
       return selector ? selector(state) : state;
     });
@@ -47,212 +57,103 @@ describe('Tabs', () => {
 
   it('renders map tab button', () => {
     render(<Tabs />);
-    expect(screen.getByText('🗺️ Map')).toBeInTheDocument();
+    expect(screen.getByText(/Map/)).toBeInTheDocument();
   });
 
-  it('renders add PDF button', () => {
+  it('renders add tab button', () => {
     render(<Tabs />);
-    expect(screen.getByText('+ PDF')).toBeInTheDocument();
+    const addButton = screen.getByRole('button', { name: /\+/ });
+    expect(addButton).toBeInTheDocument();
   });
 
-  it('shows map tab as active when mapView is "map"', () => {
-    useStore.mockImplementation((selector) => {
-      const state = {
-        sources: [],
-        mapView: 'map',
-        currentProject: { id: 'project-1' },
-        setMapView: mockSetMapView,
-      };
-      return selector ? selector(state) : state;
-    });
-
+  it('shows map tab as active', () => {
     render(<Tabs />);
-    const mapTab = screen.getByText('🗺️ Map').closest('button');
+    const mapTab = screen.getByText(/Map/).closest('button');
     expect(mapTab).toHaveClass('active');
   });
 
-  it('calls setMapView when map tab is clicked', () => {
-    render(<Tabs />);
-    fireEvent.click(screen.getByText('🗺️ Map'));
-    expect(mockSetMapView).toHaveBeenCalledWith('map');
-  });
-
-  it('renders source tabs', () => {
+  it('calls setActiveTab when tab is clicked', () => {
     useStore.mockImplementation((selector) => {
       const state = {
-        sources: [
-          { id: 'source-1', title: 'Document 1.pdf' },
-          { id: 'source-2', title: 'Document 2.pdf' },
+        tabs: [
+          { id: 'map-1', type: 'map', title: 'Map', data: null, isDirty: false },
+          { id: 'pdf-1', type: 'pdf', title: 'Test.pdf', data: { source: {} }, isDirty: false },
         ],
-        activeSourceId: null,
-        mapView: 'map',
-        currentProject: { id: 'project-1' },
-        setActiveSource: mockSetActiveSource,
-        setMapView: mockSetMapView,
-        removeSource: mockRemoveSource,
+        activeTabId: 'map-1',
+        sources: [],
+        currentProject: { id: 'project-1', name: 'Test Project' },
+        addTab: mockAddTab,
+        removeTab: mockRemoveTab,
+        setActiveTab: mockSetActiveTab,
         addSource: mockAddSource,
+        removeSource: mockRemoveSource,
       };
       return selector ? selector(state) : state;
     });
 
     render(<Tabs />);
-    expect(screen.getByText('Document 1.pdf')).toBeInTheDocument();
-    expect(screen.getByText('Document 2.pdf')).toBeInTheDocument();
+    const pdfTab = screen.getByText(/Test\.pdf/).closest('button');
+    fireEvent.click(pdfTab);
+    expect(mockSetActiveTab).toHaveBeenCalledWith('pdf-1');
   });
 
-  it('shows source tab as active when it is the active source', () => {
+  it('shows dropdown menu when add button is clicked', () => {
+    render(<Tabs />);
+    const addButton = screen.getByRole('button', { name: /\+/ });
+    fireEvent.click(addButton);
+    expect(screen.getByText(/Upload PDF/)).toBeInTheDocument();
+    expect(screen.getByText(/Person/)).toBeInTheDocument();
+  });
+
+  it('renders close button on non-default tabs', () => {
     useStore.mockImplementation((selector) => {
       const state = {
-        sources: [
-          { id: 'source-1', title: 'Document 1.pdf' },
-          { id: 'source-2', title: 'Document 2.pdf' },
+        tabs: [
+          { id: 'map-1', type: 'map', title: 'Map', data: null, isDirty: false },
+          { id: 'pdf-1', type: 'pdf', title: 'Test.pdf', data: { source: {} }, isDirty: false },
         ],
-        activeSourceId: 'source-1',
-        mapView: 'source',
-        currentProject: { id: 'project-1' },
-        setActiveSource: mockSetActiveSource,
-        setMapView: mockSetMapView,
-        removeSource: mockRemoveSource,
+        activeTabId: 'map-1',
+        sources: [],
+        currentProject: { id: 'project-1', name: 'Test Project' },
+        addTab: mockAddTab,
+        removeTab: mockRemoveTab,
+        setActiveTab: mockSetActiveTab,
         addSource: mockAddSource,
+        removeSource: mockRemoveSource,
       };
       return selector ? selector(state) : state;
     });
 
     render(<Tabs />);
-    const activeTab = screen.getByText('Document 1.pdf').closest('button');
-    expect(activeTab).toHaveClass('active');
+    const pdfTab = screen.getByText(/Test\.pdf/).closest('button');
+    const closeButton = pdfTab.querySelector('.tab-close');
+    expect(closeButton).toBeInTheDocument();
   });
 
-  it('calls setActiveSource and setMapView when source tab is clicked', () => {
+  it('does not show close button when only one tab', () => {
+    render(<Tabs />);
+    const mapTab = screen.getByText(/Map/).closest('button');
+    const closeButton = mapTab.querySelector('.tab-close');
+    expect(closeButton).not.toBeInTheDocument();
+  });
+
+  it('shows dirty indicator when tab has unsaved changes', () => {
     useStore.mockImplementation((selector) => {
       const state = {
-        sources: [{ id: 'source-1', title: 'Document 1.pdf' }],
-        activeSourceId: null,
-        mapView: 'map',
-        currentProject: { id: 'project-1' },
-        setActiveSource: mockSetActiveSource,
-        setMapView: mockSetMapView,
-        removeSource: mockRemoveSource,
+        tabs: [{ id: 'person-1', type: 'person', title: 'Aristotle', data: {}, isDirty: true }],
+        activeTabId: 'person-1',
+        sources: [],
+        currentProject: { id: 'project-1', name: 'Test Project' },
+        addTab: mockAddTab,
+        removeTab: mockRemoveTab,
+        setActiveTab: mockSetActiveTab,
         addSource: mockAddSource,
+        removeSource: mockRemoveSource,
       };
       return selector ? selector(state) : state;
     });
 
     render(<Tabs />);
-    fireEvent.click(screen.getByText('Document 1.pdf'));
-
-    expect(mockSetActiveSource).toHaveBeenCalledWith('source-1');
-    expect(mockSetMapView).toHaveBeenCalledWith('source');
+    expect(screen.getByText('•')).toBeInTheDocument();
   });
-
-  it('renders close button on source tabs', () => {
-    useStore.mockImplementation((selector) => {
-      const state = {
-        sources: [{ id: 'source-1', title: 'Document 1.pdf' }],
-        activeSourceId: null,
-        mapView: 'map',
-        currentProject: { id: 'project-1' },
-        setActiveSource: mockSetActiveSource,
-        setMapView: mockSetMapView,
-        removeSource: mockRemoveSource,
-        addSource: mockAddSource,
-      };
-      return selector ? selector(state) : state;
-    });
-
-    render(<Tabs />);
-    const closeButtons = screen.getAllByText('×');
-    expect(closeButtons.length).toBeGreaterThan(0);
-  });
-
-  it('calls deleteSource when close button is clicked and confirmed', async () => {
-    useStore.mockImplementation((selector) => {
-      const state = {
-        sources: [
-          { id: 'source-1', title: 'Document 1.pdf', file_url: 'http://example.com/doc.pdf' },
-        ],
-        activeSourceId: null,
-        mapView: 'map',
-        currentProject: { id: 'project-1' },
-        setActiveSource: mockSetActiveSource,
-        setMapView: mockSetMapView,
-        removeSource: mockRemoveSource,
-        addSource: mockAddSource,
-      };
-      return selector ? selector(state) : state;
-    });
-
-    deleteSource.mockResolvedValue({});
-
-    render(<Tabs />);
-    const closeButton = screen.getByText('×');
-    fireEvent.click(closeButton);
-
-    await waitFor(() => {
-      expect(confirm).toHaveBeenCalledWith('Delete "Document 1.pdf"?');
-      expect(deleteSource).toHaveBeenCalledWith('source-1', 'http://example.com/doc.pdf');
-      expect(mockRemoveSource).toHaveBeenCalledWith('source-1');
-    });
-  });
-
-  it('does not delete source when confirmation is cancelled', async () => {
-    confirm.mockReturnValue(false);
-
-    useStore.mockImplementation((selector) => {
-      const state = {
-        sources: [
-          { id: 'source-1', title: 'Document 1.pdf', file_url: 'http://example.com/doc.pdf' },
-        ],
-        activeSourceId: null,
-        mapView: 'map',
-        currentProject: { id: 'project-1' },
-        setActiveSource: mockSetActiveSource,
-        setMapView: mockSetMapView,
-        removeSource: mockRemoveSource,
-        addSource: mockAddSource,
-      };
-      return selector ? selector(state) : state;
-    });
-
-    render(<Tabs />);
-    const closeButton = screen.getByText('×');
-    fireEvent.click(closeButton);
-
-    await waitFor(() => {
-      expect(confirm).toHaveBeenCalledWith('Delete "Document 1.pdf"?');
-      expect(deleteSource).not.toHaveBeenCalled();
-      expect(mockRemoveSource).not.toHaveBeenCalled();
-    });
-  });
-
-  it('shows alert when delete fails', async () => {
-    useStore.mockImplementation((selector) => {
-      const state = {
-        sources: [
-          { id: 'source-1', title: 'Document 1.pdf', file_url: 'http://example.com/doc.pdf' },
-        ],
-        activeSourceId: null,
-        mapView: 'map',
-        currentProject: { id: 'project-1' },
-        setActiveSource: mockSetActiveSource,
-        setMapView: mockSetMapView,
-        removeSource: mockRemoveSource,
-        addSource: mockAddSource,
-      };
-      return selector ? selector(state) : state;
-    });
-
-    deleteSource.mockRejectedValue(new Error('Delete failed'));
-
-    render(<Tabs />);
-    const closeButton = screen.getByText('×');
-    fireEvent.click(closeButton);
-
-    await waitFor(() => {
-      expect(alert).toHaveBeenCalledWith('Failed to delete PDF: Delete failed');
-    });
-  });
-
-  // File upload tests skipped - complex DOM mocking interferes with happy-dom
-  // The handleAddPDF functionality is tested indirectly through integration tests
 });
