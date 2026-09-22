@@ -10,6 +10,7 @@ import './EntityExplorer.css';
  * - Click entities to open in tabs
  * - Create new entities
  * - Entity type filtering
+ * - Upload and manage PDF sources
  */
 export default function EntityExplorer() {
   const people = useStore((state) => state.people);
