@@ -35,7 +35,14 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         const { data, error: loadError } = await getEntityPage(entityId);
 
         if (loadError) {
-          throw new Error(loadError);
+          // Handle error object properly
+          const errorMessage =
+            typeof loadError === 'string'
+              ? loadError
+              : loadError.message || 'Failed to load entity page';
+          setError(errorMessage);
+          setLoading(false);
+          return;
         }
 
         if (data && data.content) {
@@ -84,7 +91,14 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
           );
 
           if (saveError) {
-            throw new Error(saveError);
+            // Handle error object properly
+            const errorMessage =
+              typeof saveError === 'string'
+                ? saveError
+                : saveError.message || 'Failed to save changes';
+            setError(errorMessage);
+            setSaving(false);
+            return;
           }
 
           // Mark tab as clean after successful save

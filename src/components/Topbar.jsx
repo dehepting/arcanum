@@ -3,13 +3,6 @@ import useStore from '../store/useStore';
 export default function Topbar() {
   const currentProject = useStore((state) => state.currentProject);
   const setCurrentProject = useStore((state) => state.setCurrentProject);
-  const artifacts = useStore((state) => state.artifacts);
-  const setSelectedArtifact = useStore((state) => state.setSelectedArtifact);
-
-  const handleArtifactsClick = () => {
-    // Clear selected artifact to show full artifacts list
-    setSelectedArtifact(null);
-  };
 
   const handleHomeClick = () => {
     setCurrentProject(null);
@@ -32,15 +25,6 @@ export default function Topbar() {
           >
             <span className="topbar-icon">🏠</span>
             Projects
-          </button>
-          <button
-            onClick={handleArtifactsClick}
-            className="topbar-link"
-            title="View artifacts database"
-          >
-            <span className="topbar-icon">🏺</span>
-            Artifacts
-            {artifacts.length > 0 && <span className="topbar-badge">{artifacts.length}</span>}
           </button>
           <div className="project-name">{currentProject.name}</div>
         </>
