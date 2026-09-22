@@ -266,3 +266,54 @@ export async function importAllData(dataDir) {
 export async function importFiles(filesDir) {
   return await invoke('import_files', { filesDir });
 }
+
+// Annotations
+export async function createAnnotation(annotationData) {
+  return await invoke('create_annotation', { input: annotationData });
+}
+
+export async function loadAnnotations(sourceId) {
+  return await invoke('load_annotations', { sourceId });
+}
+
+export async function updateAnnotation(annotationId, updates) {
+  return await invoke('update_annotation', { annotationId, input: updates });
+}
+
+export async function deleteAnnotation(annotationId) {
+  return await invoke('delete_annotation', { annotationId });
+}
+
+// Map Overlays
+export async function createOverlay(overlayData) {
+  return await invoke('create_overlay', { input: overlayData });
+}
+
+export async function loadOverlays(projectId) {
+  return await invoke('load_overlays', { projectId });
+}
+
+export async function updateOverlay(overlayId, updates) {
+  return await invoke('update_overlay', { overlayId, input: updates });
+}
+
+export async function deleteOverlay(overlayId) {
+  return await invoke('delete_overlay', { overlayId });
+}
+
+// Provenance
+export async function createProvenanceRecord(provenanceData) {
+  return await invoke('create_provenance_record', { input: provenanceData });
+}
+
+export async function getProvenance(entityId, entityType) {
+  return await invoke('get_provenance', { entityId, entityType });
+}
+
+export async function updateProvenanceRecord(recordId, updates) {
+  return await invoke('update_provenance_record', { recordId, input: updates });
+}
+
+export async function deleteProvenanceRecord(recordId) {
+  return await invoke('delete_provenance_record', { recordId });
+}

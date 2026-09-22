@@ -1,152 +1,88 @@
-import { supabase } from './supabase';
+import * as tauri from './tauri';
 
 /**
- * Get provenance history for an artifact
+ * Get provenance history for an entity
+ * @param {string} entityId - The entity ID
+ * @param {string} entityType - The entity type (artifact, person, place, etc.)
  */
-export async function getProvenance(artifactId) {
-  const { data, error } = await supabase
-    .from('artifact_provenance')
-    .select('*')
-    .eq('artifact_id', artifactId)
-    .order('sequence_order', { ascending: true });
-
-  if (error) throw error;
-  return data || [];
+export async function getProvenance(entityId, entityType = 'artifact') {
+  return await tauri.getProvenance(entityId, entityType);
 }
 
 /**
  * Create a new provenance entry
  */
 export async function createProvenanceEntry(entryData) {
-  const { data, error } = await supabase
-    .from('artifact_provenance')
-    .insert([
-      {
-        ...entryData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return await tauri.createProvenanceRecord(entryData);
 }
 
 /**
  * Update a provenance entry
  */
 export async function updateProvenanceEntry(entryId, updates) {
-  const { data, error } = await supabase
-    .from('artifact_provenance')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', entryId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return await tauri.updateProvenanceRecord(entryId, updates);
 }
 
 /**
  * Delete a provenance entry
  */
 export async function deleteProvenanceEntry(entryId) {
-  const { error } = await supabase.from('artifact_provenance').delete().eq('id', entryId);
-
-  if (error) throw error;
+  return await tauri.deleteProvenanceRecord(entryId);
 }
 
-/**
- * Reorder provenance entries
- */
-export async function reorderProvenance(artifactId, orderedIds) {
-  const updates = orderedIds.map((id, index) => ({
-    id,
-    sequence_order: index,
-  }));
-
-  const { error } = await supabase.from('artifact_provenance').upsert(updates);
-
-  if (error) throw error;
-}
+// Note: Claims and other provenance features from the old schema
+// have been consolidated into the provenance_records table.
+// Use event_type and event_data fields to distinguish different types of provenance records.
 
 /**
- * Get claims for an artifact
+ * Get claims for an artifact (compatibility function)
  */
 export async function getClaims(artifactId) {
-  const { data, error } = await supabase
-    .from('artifact_claims')
-    .select('*')
-    .eq('artifact_id', artifactId)
-    .order('claim_date', { ascending: false });
-
-  if (error) throw error;
-  return data || [];
+  const records = await getProvenance(artifactId, 'artifact');
+  return records.filter((r) => r.event_type === 'claim');
 }
 
 /**
- * Create a new claim
+ * Create a new claim (compatibility function)
  */
 export async function createClaim(claimData) {
-  const { data, error } = await supabase
-    .from('artifact_claims')
-    .insert([
-      {
-        ...claimData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return await createProvenanceEntry({
+    ...claimData,
+    entity_type: 'artifact',
+    event_type: 'claim',
+    event_data: JSON.stringify(claimData),
+  });
 }
 
 /**
- * Update a claim
+ * Update a claim (compatibility function)
  */
 export async function updateClaim(claimId, updates) {
-  const { data, error } = await supabase
-    .from('artifact_claims')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', claimId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return await updateProvenanceEntry(claimId, {
+    event_data: JSON.stringify(updates),
+  });
 }
 
 /**
- * Delete a claim
+ * Delete a claim (compatibility function)
  */
 export async function deleteClaim(claimId) {
-  const { error } = await supabase.from('artifact_claims').delete().eq('id', claimId);
-
-  if (error) throw error;
+  return await deleteProvenanceEntry(claimId);
 }
 
 /**
- * Get artifacts with disputed ownership
+ * Reorder provenance entries (not implemented - can be added later if needed)
+ */
+export async function reorderProvenance(artifactId, orderedIds) {
+  console.warn('reorderProvenance not yet implemented in Tauri backend');
+  // TODO: Add sequence_order field to provenance_records table if needed
+}
+
+/**
+ * Get artifacts with disputed ownership (not implemented)
  */
 export async function getDisputedArtifacts(projectId) {
-  const { data, error } = await supabase
-    .from('artifacts')
-    .select('*')
-    .eq('project_id', projectId)
-    .eq('has_disputed_ownership', true)
-    .order('name', { ascending: true });
-
-  if (error) throw error;
-  return data || [];
+  console.warn('getDisputedArtifacts not yet implemented in Tauri backend');
+  // TODO: Add has_disputed_ownership field to artifacts table if needed
+  return [];
 }

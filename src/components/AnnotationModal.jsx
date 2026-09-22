@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import useStore from '../store/useStore';
-import { supabase } from '../lib/supabase';
 import ArtifactLinkModal from './ArtifactLinkModal';
 import { getArtifactsForAnnotation } from '../lib/artifact-sources';
 

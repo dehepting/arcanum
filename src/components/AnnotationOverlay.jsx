@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import useStore from '../store/useStore';
-import { supabase } from '../lib/supabase';
 import { getPlaceForAnnotation } from '../lib/places';
 import { getArtifactsForAnnotation } from '../lib/artifact-sources';
 import ArtifactBadge from './ArtifactBadge';

@@ -13,6 +13,9 @@ pub mod sources;
 pub mod projects;
 pub mod files;
 pub mod migration;
+pub mod annotations;
+pub mod overlays;
+pub mod provenance;
 
 // App state that holds the database connection and storage
 pub struct AppState {

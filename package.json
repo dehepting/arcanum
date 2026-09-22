@@ -19,7 +19,6 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.116.0",
     "@tauri-apps/api": "^2.11.1",
     "@tiptap/extension-link": "^3.31.3",
     "@tiptap/react": "^3.31.3",

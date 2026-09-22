@@ -101,6 +101,24 @@ pub fn run() {
       commands::sources::update_source,
       commands::sources::delete_source,
 
+      // Annotation commands
+      commands::annotations::create_annotation,
+      commands::annotations::load_annotations,
+      commands::annotations::update_annotation,
+      commands::annotations::delete_annotation,
+
+      // Overlay commands
+      commands::overlays::create_overlay,
+      commands::overlays::load_overlays,
+      commands::overlays::update_overlay,
+      commands::overlays::delete_overlay,
+
+      // Provenance commands
+      commands::provenance::create_provenance_record,
+      commands::provenance::get_provenance,
+      commands::provenance::update_provenance_record,
+      commands::provenance::delete_provenance_record,
+
       // Entity page commands
       commands::entity_pages::create_entity_page,
       commands::entity_pages::get_entity_page,
