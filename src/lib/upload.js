@@ -1,7 +1,7 @@
-import { supabase, BUCKETS } from './supabase';
+import * as tauri from './tauri';
 
 /**
- * Upload a PDF file to Supabase Storage and create a source record
+ * Upload a PDF file to local storage and create a source record
  * @param {File} file - The PDF file to upload
  * @param {string} projectId - The project ID to associate with this source
  * @returns {Promise<Object>} The created source record
@@ -20,40 +20,22 @@ export async function uploadPDF(file, projectId) {
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   const filePath = `${projectId}/${timestamp}_${sanitizedName}`;
 
-  // Upload to Supabase Storage
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from(BUCKETS.SOURCES)
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
+  // Read file as ArrayBuffer
+  const arrayBuffer = await file.arrayBuffer();
+  const data = new Uint8Array(arrayBuffer);
 
-  if (uploadError) {
-    throw new Error(`Upload failed: ${uploadError.message}`);
-  }
-
-  // Get public URL
-  const { data: urlData } = supabase.storage.from(BUCKETS.SOURCES).getPublicUrl(uploadData.path);
+  // Upload to local storage
+  const uploadResult = await tauri.uploadFile('sources', filePath, data);
 
   // Create source record in database
-  const { data: source, error: dbError } = await supabase
-    .from('sources')
-    .insert([
-      {
-        project_id: projectId,
-        title: file.name,
-        file_url: urlData.publicUrl,
-        file_type: 'pdf',
-      },
-    ])
-    .select()
-    .single();
-
-  if (dbError) {
-    // If database insert fails, try to clean up the uploaded file
-    await supabase.storage.from(BUCKETS.SOURCES).remove([filePath]);
-    throw new Error(`Database error: ${dbError.message}`);
-  }
+  const source = await tauri.createSource({
+    project_id: projectId,
+    title: file.name,
+    file_name: sanitizedName,
+    storage_path: uploadResult.storage_path,
+    file_size: file.size,
+    mime_type: 'application/pdf',
+  });
 
   return source;
 }
@@ -64,39 +46,24 @@ export async function uploadPDF(file, projectId) {
  * @returns {Promise<Array>} Array of source records
  */
 export async function loadSources(projectId) {
-  const { data, error } = await supabase
-    .from('sources')
-    .select('*')
-    .eq('project_id', projectId)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    throw new Error(`Failed to load sources: ${error.message}`);
-  }
-
-  return data || [];
+  return await tauri.loadSources(projectId);
 }
 
 /**
  * Delete a source and its file
  * @param {string} sourceId - The source ID to delete
- * @param {string} fileUrl - The file URL to extract path from
+ * @param {string} storagePath - The storage path to delete
  */
-export async function deleteSource(sourceId, fileUrl) {
-  // Extract file path from URL
-  // URL format: https://[project].supabase.co/storage/v1/object/public/sources/[path]
-  const urlParts = fileUrl.split('/sources/');
-  if (urlParts.length === 2) {
-    const filePath = urlParts[1];
-
-    // Delete from storage
-    await supabase.storage.from(BUCKETS.SOURCES).remove([filePath]);
+export async function deleteSource(sourceId, storagePath) {
+  // Delete from storage
+  if (storagePath) {
+    try {
+      await tauri.deleteFile('sources', storagePath);
+    } catch (error) {
+      console.warn('Failed to delete file from storage:', error);
+    }
   }
 
   // Delete from database
-  const { error } = await supabase.from('sources').delete().eq('id', sourceId);
-
-  if (error) {
-    throw new Error(`Failed to delete source: ${error.message}`);
-  }
+  await tauri.deleteSource(sourceId);
 }

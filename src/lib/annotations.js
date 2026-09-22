@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import * as tauri from './tauri';
 
 /**
  * Load all annotations for a source
@@ -6,17 +6,7 @@ import { supabase } from './supabase';
  * @returns {Promise<Array>} Array of annotation records
  */
 export async function loadAnnotations(sourceId) {
-  const { data, error } = await supabase
-    .from('annotations')
-    .select('*')
-    .eq('source_id', sourceId)
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    throw new Error(`Failed to load annotations: ${error.message}`);
-  }
-
-  return data || [];
+  return await tauri.loadAnnotations(sourceId);
 }
 
 /**
@@ -24,11 +14,7 @@ export async function loadAnnotations(sourceId) {
  * @param {string} annotationId - The annotation ID to delete
  */
 export async function deleteAnnotation(annotationId) {
-  const { error } = await supabase.from('annotations').delete().eq('id', annotationId);
-
-  if (error) {
-    throw new Error(`Failed to delete annotation: ${error.message}`);
-  }
+  return await tauri.deleteAnnotation(annotationId);
 }
 
 /**
@@ -37,16 +23,13 @@ export async function deleteAnnotation(annotationId) {
  * @param {string} text - New text content
  */
 export async function updateAnnotationText(annotationId, text) {
-  const { data, error } = await supabase
-    .from('annotations')
-    .update({ text })
-    .eq('id', annotationId)
-    .select()
-    .single();
+  return await tauri.updateAnnotation(annotationId, { content: text });
+}
 
-  if (error) {
-    throw new Error(`Failed to update annotation: ${error.message}`);
-  }
-
-  return data;
+/**
+ * Create a new annotation
+ * @param {object} annotationData - Annotation data
+ */
+export async function createAnnotation(annotationData) {
+  return await tauri.createAnnotation(annotationData);
 }

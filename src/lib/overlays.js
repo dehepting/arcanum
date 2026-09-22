@@ -1,29 +1,23 @@
-import { supabase } from './supabase';
-
-const OVERLAYS_BUCKET = 'overlays';
+import * as tauri from './tauri';
 
 /**
- * Upload a map overlay image to Supabase Storage
+ * Upload a map overlay image
  */
 export async function uploadOverlay(file, projectId) {
+  // Read file as ArrayBuffer
+  const arrayBuffer = await file.arrayBuffer();
+  const data = new Uint8Array(arrayBuffer);
+
+  // Generate file path
   const fileExt = file.name.split('.').pop();
   const fileName = `${projectId}/${Date.now()}.${fileExt}`;
 
-  // Upload to Supabase Storage
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from(OVERLAYS_BUCKET)
-    .upload(fileName, file);
-
-  if (uploadError) throw uploadError;
-
-  // Get public URL
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(OVERLAYS_BUCKET).getPublicUrl(fileName);
+  // Upload to local storage
+  const result = await tauri.uploadFile('map-overlays', fileName, data);
 
   return {
     fileName,
-    publicUrl,
+    storagePath: result.storage_path,
   };
 }
 
@@ -31,57 +25,32 @@ export async function uploadOverlay(file, projectId) {
  * Create a new map overlay with georeferencing
  */
 export async function createOverlay(overlayData) {
-  const { data, error } = await supabase
-    .from('map_overlays')
-    .insert([overlayData])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return await tauri.createOverlay(overlayData);
 }
 
 /**
  * Load all overlays for a project
  */
 export async function loadOverlays(projectId) {
-  const { data, error } = await supabase
-    .from('map_overlays')
-    .select('*')
-    .eq('project_id', projectId)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data || [];
+  return await tauri.loadOverlays(projectId);
 }
 
 /**
  * Update overlay properties (opacity, visibility, etc.)
  */
 export async function updateOverlay(overlayId, updates) {
-  const { data, error } = await supabase
-    .from('map_overlays')
-    .update(updates)
-    .eq('id', overlayId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return await tauri.updateOverlay(overlayId, updates);
 }
 
 /**
  * Delete an overlay
  */
-export async function deleteOverlay(overlayId, imageUrl) {
+export async function deleteOverlay(overlayId, storagePath) {
   // Delete from database
-  const { error: dbError } = await supabase.from('map_overlays').delete().eq('id', overlayId);
-
-  if (dbError) throw dbError;
+  await tauri.deleteOverlay(overlayId);
 
   // Delete from storage
-  if (imageUrl) {
-    const fileName = imageUrl.split('/').slice(-2).join('/'); // Get "projectId/timestamp.ext"
-    await supabase.storage.from(OVERLAYS_BUCKET).remove([fileName]);
+  if (storagePath) {
+    await tauri.deleteFile('map-overlays', storagePath);
   }
 }

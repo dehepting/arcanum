@@ -77,14 +77,15 @@ const { getByText } = renderWithProviders(<MyComponent />, {
 });
 ```
 
-### `createMockSupabaseClient()`
+### `createMockTauriClient()`
 
-Creates a mock Supabase client for testing
+Creates a mock Tauri client for testing
 
 ```js
-const mockSupabase = createMockSupabaseClient();
-vi.mock('./lib/supabase', () => ({
-  supabase: mockSupabase
+const mockTauri = createMockTauriClient();
+vi.mock('./lib/tauri', () => ({
+  createProject: vi.fn(),
+  loadArtifacts: vi.fn()
 }));
 ```
 
@@ -124,17 +125,15 @@ useStore.mockReturnValue({
 });
 ```
 
-### Mock Supabase
+### Mock Tauri Commands
 
 ```js
-import { supabase } from './supabase';
+import * as tauri from './lib/tauri';
 
-vi.mock('./supabase', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn().mockResolvedValue({ data: [], error: null })
-    }))
-  }
+vi.mock('./lib/tauri', () => ({
+  createProject: vi.fn().mockResolvedValue({ id: '1', name: 'Test' }),
+  loadArtifacts: vi.fn().mockResolvedValue([]),
+  // ... mock other Tauri commands as needed
 }));
 ```
 

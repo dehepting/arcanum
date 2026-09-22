@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
 import useStore from '../store/useStore';
-import { supabase } from '../lib/supabase';
 
 export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
   const fabricCanvasRef = useRef(null);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import useStore from '../store/useStore';
-import { supabase } from '../lib/supabase';
+import * as tauri from '../lib/tauri';
 
 export default function ProjectPicker() {
   const [projects, setProjects] = useState([]);
@@ -12,16 +12,11 @@ export default function ProjectPicker() {
   const loadProjects = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await tauri.listProjects();
       setProjects(data || []);
     } catch (err) {
       console.error('Error loading projects:', err);
-      alert('Error loading projects. Check Supabase connection.');
+      alert('Error loading projects: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -32,13 +27,9 @@ export default function ProjectPicker() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .insert([{ name: newProjectName.trim() }])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await tauri.createProject({
+        name: newProjectName.trim(),
+      });
 
       setCurrentProject(data);
       localStorage.setItem('arcanum_last_project_id', data.id);
