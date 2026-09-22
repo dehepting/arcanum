@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import RichTextEditor from './RichTextEditor';
 import { getEntityPage, updateEntityPage } from '../lib/entityPages';
+import useStore from '../store/useStore';
 import './EntityPage.css';
 
 /**
@@ -10,13 +11,15 @@ import './EntityPage.css';
  * - Auto-save (debounced)
  * - Loading states
  * - Error handling
+ * - Tab dirty state integration
  */
-export default function EntityPage({ entityId, entityType, title, projectId, onClose }) {
+export default function EntityPage({ entityId, entityType, title, projectId, tabId, onClose }) {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [saveTimeout, setSaveTimeout] = useState(null);
+  const updateTab = useStore((state) => state.updateTab);
 
   // Load entity page content
   useEffect(() => {
@@ -57,6 +60,11 @@ export default function EntityPage({ entityId, entityType, title, projectId, onC
     (newContent) => {
       setContent(newContent);
 
+      // Mark tab as dirty
+      if (tabId) {
+        updateTab(tabId, { isDirty: true });
+      }
+
       // Clear existing timeout
       if (saveTimeout) {
         clearTimeout(saveTimeout);
@@ -78,6 +86,11 @@ export default function EntityPage({ entityId, entityType, title, projectId, onC
           if (saveError) {
             throw new Error(saveError);
           }
+
+          // Mark tab as clean after successful save
+          if (tabId) {
+            updateTab(tabId, { isDirty: false });
+          }
         } catch (err) {
           console.error('Error saving entity page:', err);
           setError(err.message || 'Failed to save changes');
@@ -88,7 +101,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, onC
 
       setSaveTimeout(timeout);
     },
-    [entityId, saveTimeout]
+    [entityId, saveTimeout, tabId, updateTab]
   );
 
   // Cleanup timeout on unmount

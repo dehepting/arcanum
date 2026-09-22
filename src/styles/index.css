@@ -172,20 +172,121 @@ body,
   color: var(--accent-primary);
 }
 
+.tab-icon {
+  font-size: var(--font-size-md);
+  line-height: 1;
+}
+
+.tab-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.dirty-indicator {
+  color: var(--accent-warning);
+  font-weight: var(--font-weight-bold);
+}
+
+.tab.dirty .tab-title {
+  font-style: italic;
+}
+
+.add-tab-container {
+  position: relative;
+}
+
 .add-tab {
-  padding: var(--space-1) var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 var(--space-2);
   border: 1px dashed var(--border-default);
   border-radius: var(--radius-sm);
   background: none;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   transition: all var(--transition-base);
 }
 
-.add-tab:hover {
+.add-tab:hover:not(:disabled) {
   border-color: var(--accent-primary-hover);
   color: var(--accent-primary-hover);
+  background: var(--bg-hover);
+}
+
+.add-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-tab-menu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  min-width: 200px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+  overflow: hidden;
+}
+
+.add-tab-menu-section {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.add-tab-menu-section:last-child {
+  border-bottom: none;
+}
+
+.add-tab-menu-label {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.add-tab-menu button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.add-tab-menu button:hover {
+  background: var(--bg-hover);
+}
+
+.add-tab-menu .menu-icon {
+  font-size: var(--font-size-md);
+  line-height: 1;
+}
+
+/* Tab Empty State */
+.tab-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--space-6);
+  color: var(--text-secondary);
+  text-align: center;
 }
 
 /* Workspace */

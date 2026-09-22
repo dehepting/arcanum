@@ -15,6 +15,10 @@ vi.mock('./PDFView', () => ({
   default: () => <div data-testid="pdf-view">PDFView</div>,
 }));
 
+vi.mock('./EntityPage', () => ({
+  default: () => <div data-testid="entity-page">EntityPage</div>,
+}));
+
 vi.mock('./EntityExplorer', () => ({
   default: () => <div data-testid="entity-explorer">EntityExplorer</div>,
 }));
@@ -37,40 +41,76 @@ describe('Workspace', () => {
     vi.clearAllMocks();
   });
 
-  it('renders MapView when mapView is "map"', () => {
+  it('renders MapView when active tab is map', () => {
     useStore.mockImplementation((selector) => {
       const state = {
-        mapView: 'map',
+        tabs: [{ id: 'map-1', type: 'map', title: 'Map', data: null, isDirty: false }],
+        activeTabId: 'map-1',
+        currentProject: { id: 'project-1', name: 'Test Project' },
       };
       return selector ? selector(state) : state;
     });
 
-    const { getByTestId, queryByTestId } = render(<Workspace />);
+    const { getByTestId } = render(<Workspace />);
 
     expect(getByTestId('entity-explorer')).toBeInTheDocument();
     expect(getByTestId('map-view')).toBeInTheDocument();
-    expect(queryByTestId('pdf-view')).not.toBeInTheDocument();
   });
 
-  it('renders PDFView when mapView is "source"', () => {
+  it('renders PDFView when active tab is pdf', () => {
     useStore.mockImplementation((selector) => {
       const state = {
-        mapView: 'source',
+        tabs: [
+          {
+            id: 'pdf-1',
+            type: 'pdf',
+            title: 'Test.pdf',
+            data: { source: { id: 'source-1', title: 'Test.pdf' } },
+            isDirty: false,
+          },
+        ],
+        activeTabId: 'pdf-1',
+        currentProject: { id: 'project-1', name: 'Test Project' },
       };
       return selector ? selector(state) : state;
     });
 
-    const { getByTestId, queryByTestId } = render(<Workspace />);
+    const { getByTestId } = render(<Workspace />);
 
     expect(getByTestId('entity-explorer')).toBeInTheDocument();
     expect(getByTestId('pdf-view')).toBeInTheDocument();
-    expect(queryByTestId('map-view')).not.toBeInTheDocument();
+  });
+
+  it('renders EntityPage when active tab is entity type', () => {
+    useStore.mockImplementation((selector) => {
+      const state = {
+        tabs: [
+          {
+            id: 'person-1',
+            type: 'person',
+            title: 'Aristotle',
+            data: { entityId: 'entity-1', entityType: 'person' },
+            isDirty: false,
+          },
+        ],
+        activeTabId: 'person-1',
+        currentProject: { id: 'project-1', name: 'Test Project' },
+      };
+      return selector ? selector(state) : state;
+    });
+
+    const { getByTestId } = render(<Workspace />);
+
+    expect(getByTestId('entity-explorer')).toBeInTheDocument();
+    expect(getByTestId('entity-page')).toBeInTheDocument();
   });
 
   it('always renders EntityExplorer', () => {
     useStore.mockImplementation((selector) => {
       const state = {
-        mapView: 'map',
+        tabs: [{ id: 'map-1', type: 'map', title: 'Map', data: null, isDirty: false }],
+        activeTabId: 'map-1',
+        currentProject: { id: 'project-1', name: 'Test Project' },
       };
       return selector ? selector(state) : state;
     });
@@ -84,7 +124,9 @@ describe('Workspace', () => {
   it('has correct IDE layout structure', () => {
     useStore.mockImplementation((selector) => {
       const state = {
-        mapView: 'map',
+        tabs: [{ id: 'map-1', type: 'map', title: 'Map', data: null, isDirty: false }],
+        activeTabId: 'map-1',
+        currentProject: { id: 'project-1', name: 'Test Project' },
       };
       return selector ? selector(state) : state;
     });
