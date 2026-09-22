@@ -7,7 +7,7 @@ import './IDEWorkspace.css';
  * Center: Main content area with tabs
  * Right: Entity details/properties
  */
-export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel }) {
+export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel = null }) {
   // Panel widths (stored in localStorage)
   const [leftWidth, setLeftWidth] = useState(() => {
     const stored = localStorage.getItem('ide-left-width');
@@ -74,7 +74,7 @@ export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel }) {
     };
   }, [resizing]);
 
-  // Keyboard shortcuts (Cmd+B for left, Cmd+Alt+B for right)
+  // Keyboard shortcuts (Cmd+B for left panel)
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Cmd+B or Ctrl+B - toggle left panel
@@ -82,8 +82,8 @@ export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel }) {
         e.preventDefault();
         setLeftCollapsed((prev) => !prev);
       }
-      // Cmd+Alt+B or Ctrl+Alt+B - toggle right panel
-      if ((e.metaKey || e.ctrlKey) && e.altKey && e.key === 'b') {
+      // Cmd+Alt+B or Ctrl+Alt+B - toggle right panel (if it exists)
+      if (rightPanel && (e.metaKey || e.ctrlKey) && e.altKey && e.key === 'b') {
         e.preventDefault();
         setRightCollapsed((prev) => !prev);
       }
@@ -91,7 +91,7 @@ export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel }) {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [rightPanel]);
 
   return (
     <div className="ide-workspace" ref={containerRef}>
@@ -141,48 +141,53 @@ export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel }) {
       {/* Center Panel */}
       <div className="ide-panel ide-center-panel">{centerPanel}</div>
 
-      {/* Collapsed Right Panel Indicator */}
-      {rightCollapsed && (
-        <div className="ide-collapsed-bar ide-collapsed-right">
-          <button
-            className="ide-expand-btn"
-            onClick={() => setRightCollapsed(false)}
-            title="Show Details (Cmd+Alt+B)"
-          >
-            ◀
-          </button>
-        </div>
-      )}
-
-      {/* Right Resizer */}
-      {!rightCollapsed && (
-        <div
-          className="ide-resizer ide-resizer-right"
-          onMouseDown={() => handleResizeStart('right')}
-        />
-      )}
-
-      {/* Right Panel */}
-      <div
-        className={`ide-panel ide-right-panel ${rightCollapsed ? 'collapsed' : ''}`}
-        style={{ width: rightCollapsed ? '0px' : `${rightWidth}px` }}
-      >
-        {!rightCollapsed && (
-          <>
-            <div className="ide-panel-header">
-              <span className="ide-panel-title">DETAILS</span>
+      {/* Right Panel (optional) */}
+      {rightPanel && (
+        <>
+          {/* Collapsed Right Panel Indicator */}
+          {rightCollapsed && (
+            <div className="ide-collapsed-bar ide-collapsed-right">
               <button
-                className="ide-panel-collapse"
-                onClick={() => setRightCollapsed(true)}
-                title="Collapse (Cmd+Alt+B)"
+                className="ide-expand-btn"
+                onClick={() => setRightCollapsed(false)}
+                title="Show Details (Cmd+Alt+B)"
               >
-                ▶
+                ◀
               </button>
             </div>
-            <div className="ide-panel-content">{rightPanel}</div>
-          </>
-        )}
-      </div>
+          )}
+
+          {/* Right Resizer */}
+          {!rightCollapsed && (
+            <div
+              className="ide-resizer ide-resizer-right"
+              onMouseDown={() => handleResizeStart('right')}
+            />
+          )}
+
+          {/* Right Panel */}
+          <div
+            className={`ide-panel ide-right-panel ${rightCollapsed ? 'collapsed' : ''}`}
+            style={{ width: rightCollapsed ? '0px' : `${rightWidth}px` }}
+          >
+            {!rightCollapsed && (
+              <>
+                <div className="ide-panel-header">
+                  <span className="ide-panel-title">DETAILS</span>
+                  <button
+                    className="ide-panel-collapse"
+                    onClick={() => setRightCollapsed(true)}
+                    title="Collapse (Cmd+Alt+B)"
+                  >
+                    ▶
+                  </button>
+                </div>
+                <div className="ide-panel-content">{rightPanel}</div>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
