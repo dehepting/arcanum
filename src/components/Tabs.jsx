@@ -45,17 +45,21 @@ export default function Tabs() {
   }, [showAddMenu]);
 
   const handleAddPDF = () => {
+    console.log('handleAddPDF called');
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/pdf';
     input.onchange = async (e) => {
       const file = e.target.files[0];
+      console.log('File selected:', file);
       if (!file) return;
 
       setUploading(true);
       setShowAddMenu(false);
       try {
+        console.log('Starting upload for project:', currentProject.id);
         const source = await uploadPDF(file, currentProject.id);
+        console.log('Upload successful:', source);
         addSource(source); // Still add to sources for backward compatibility
         addTab({
           type: 'pdf',
@@ -70,6 +74,7 @@ export default function Tabs() {
       }
     };
     input.click();
+    console.log('File input clicked');
   };
 
   const handleAddEntityPage = (entityType) => {
