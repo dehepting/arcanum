@@ -214,25 +214,18 @@ export default function MapView() {
         )
         .addTo(map.current);
 
-      // Click marker to navigate to linked annotation
-      el.addEventListener('click', async (e) => {
+      // Click marker to open place entity page
+      el.addEventListener('click', (e) => {
         e.stopPropagation();
-        try {
-          const annotations = await getAnnotationsForPlace(place.id);
-          if (annotations && annotations.length > 0) {
-            const annotation = annotations[0]; // Use first linked annotation
-            // Find the source
-            const source = sources.find((s) => s.id === annotation.source_id);
-            if (source) {
-              // Switch to PDF view
-              setMapView('source');
-              setActiveSource(source.id);
-              setCurrentPage(annotation.page_number);
-            }
-          }
-        } catch (err) {
-          console.error('Failed to navigate to annotation:', err);
-        }
+        const addTab = useStore.getState().addTab;
+        addTab({
+          type: 'place',
+          title: place.name,
+          data: {
+            entityId: place.id,
+            entityType: 'place',
+          },
+        });
       });
 
       markersRef.current.push(marker);
