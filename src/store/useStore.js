@@ -8,6 +8,7 @@ const useStore = create((set, get) => ({
   // Sources (PDFs/documents in tabs)
   sources: [],
   activeSourceId: null,
+  setSources: (sources) => set({ sources }),
   addSource: (source) =>
     set((state) => ({
       sources: [...state.sources, source],
