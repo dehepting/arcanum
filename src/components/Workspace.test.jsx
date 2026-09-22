@@ -15,10 +15,6 @@ vi.mock('./PDFView', () => ({
   default: () => <div data-testid="pdf-view">PDFView</div>,
 }));
 
-vi.mock('./Sidebar', () => ({
-  default: () => <div data-testid="sidebar">Sidebar</div>,
-}));
-
 vi.mock('./EntityExplorer', () => ({
   default: () => <div data-testid="entity-explorer">EntityExplorer</div>,
 }));
@@ -27,16 +23,11 @@ vi.mock('./Tabs', () => ({
   default: () => <div data-testid="tabs">Tabs</div>,
 }));
 
-vi.mock('./EntityDetailPanel', () => ({
-  default: () => <div data-testid="entity-detail-panel">EntityDetailPanel</div>,
-}));
-
 vi.mock('./IDEWorkspace', () => ({
-  default: ({ leftPanel, centerPanel, rightPanel }) => (
+  default: ({ leftPanel, centerPanel }) => (
     <div data-testid="ide-workspace">
       <div data-testid="left-panel">{leftPanel}</div>
       <div data-testid="center-panel">{centerPanel}</div>
-      <div data-testid="right-panel">{rightPanel}</div>
     </div>
   ),
 }));
@@ -59,7 +50,6 @@ describe('Workspace', () => {
     expect(getByTestId('entity-explorer')).toBeInTheDocument();
     expect(getByTestId('map-view')).toBeInTheDocument();
     expect(queryByTestId('pdf-view')).not.toBeInTheDocument();
-    expect(getByTestId('sidebar')).toBeInTheDocument();
   });
 
   it('renders PDFView when mapView is "source"', () => {
@@ -75,10 +65,9 @@ describe('Workspace', () => {
     expect(getByTestId('entity-explorer')).toBeInTheDocument();
     expect(getByTestId('pdf-view')).toBeInTheDocument();
     expect(queryByTestId('map-view')).not.toBeInTheDocument();
-    expect(getByTestId('sidebar')).toBeInTheDocument();
   });
 
-  it('always renders Sidebar and EntityExplorer', () => {
+  it('always renders EntityExplorer', () => {
     useStore.mockImplementation((selector) => {
       const state = {
         mapView: 'map',
@@ -89,7 +78,7 @@ describe('Workspace', () => {
     const { getByTestId } = render(<Workspace />);
 
     expect(getByTestId('entity-explorer')).toBeInTheDocument();
-    expect(getByTestId('sidebar')).toBeInTheDocument();
+    expect(getByTestId('ide-workspace')).toBeInTheDocument();
   });
 
   it('has correct IDE layout structure', () => {
@@ -107,6 +96,5 @@ describe('Workspace', () => {
     expect(getByTestId('ide-workspace')).toBeInTheDocument();
     expect(getByTestId('left-panel')).toBeInTheDocument();
     expect(getByTestId('center-panel')).toBeInTheDocument();
-    expect(getByTestId('right-panel')).toBeInTheDocument();
   });
 });
