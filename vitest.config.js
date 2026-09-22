@@ -18,7 +18,15 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
-      exclude: ['node_modules/', 'src/test/', '*.config.js', 'dist/', 'mcp-server/'],
+      exclude: [
+        'node_modules/',
+        'src/test/',
+        '*.config.js',
+        'dist/',
+        'mcp-server/',
+        'src/lib/entityPages.js', // Integration code requiring Supabase - tested manually
+        'src/lib/entityPages.test.js',
+      ],
       // Enforce minimum coverage thresholds
       thresholds: {
         statements: 60,
