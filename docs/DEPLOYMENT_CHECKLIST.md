@@ -1,5 +1,11 @@
 # Phase 3 Deployment Checklist
 
+> **⚠️ ARCHIVED**: This document is from the Supabase era (pre-September 2026).
+> Preserved for historical reference only.
+> **Current deployment**: See GitHub Actions workflow `.github/workflows/release.yml`
+
+---
+
 ## Pre-Deployment
 
 ### 1. File Verification ✅
