@@ -8,6 +8,7 @@
     "build": "vite build",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "build:install": "npm run tauri:build && rm -rf /Applications/Arcanum.app && cp -r src-tauri/target/release/bundle/macos/Arcanum.app /Applications/",
     "lint": "oxlint",
     "format": "prettier --write \"src/**/*.{js,jsx,json,css}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,json,css}\"",
