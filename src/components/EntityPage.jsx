@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import RichTextEditor from './RichTextEditor';
 import { getEntityPage, updateEntityPage } from '../lib/entityPages';
+import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
 import './EntityPage.css';
 
@@ -17,13 +18,14 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
   console.log('EntityPage render:', { entityId, entityType, title, projectId, tabId });
 
   const [content, setContent] = useState('');
+  const [entityData, setEntityData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [saveTimeout, setSaveTimeout] = useState(null);
   const updateTab = useStore((state) => state.updateTab);
 
-  // Load entity page content
+  // Load entity page content and metadata
   useEffect(() => {
     async function loadContent() {
       if (!entityId) {
@@ -34,6 +36,27 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
       try {
         setLoading(true);
         setError(null);
+
+        // Load entity metadata based on type
+        const commandMap = {
+          person: 'get_person',
+          event: 'get_event',
+          theory: 'get_theory',
+          place: 'get_place',
+          artifact: 'get_artifact',
+        };
+
+        const command = commandMap[entityType];
+        if (command) {
+          try {
+            const metadata = await invoke(command, { id: entityId });
+            setEntityData(metadata);
+          } catch (metadataError) {
+            console.error('Error loading entity metadata:', metadataError);
+          }
+        }
+
+        // Load entity page content
         const { data, error: loadError } = await getEntityPage(entityId);
 
         if (loadError) {
@@ -114,7 +137,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         } finally {
           setSaving(false);
         }
-      }, 2000); // 2 second debounce
+      }, 0); // Instant save
 
       setSaveTimeout(timeout);
     },
@@ -189,6 +212,123 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
           )}
         </div>
       </div>
+
+      {/* Entity Metadata */}
+      {entityData && (
+        <div className="entity-metadata">
+          {entityType === 'person' && (
+            <>
+              {entityData.role && (
+                <div className="metadata-field">
+                  <strong>Role:</strong> {entityData.role}
+                </div>
+              )}
+              {entityData.birth_date && (
+                <div className="metadata-field">
+                  <strong>Birth:</strong> {entityData.birth_date}
+                </div>
+              )}
+              {entityData.death_date && (
+                <div className="metadata-field">
+                  <strong>Death:</strong> {entityData.death_date}
+                </div>
+              )}
+              {entityData.bio && (
+                <div className="metadata-field">
+                  <strong>Bio:</strong> {entityData.bio}
+                </div>
+              )}
+            </>
+          )}
+          {entityType === 'place' && (
+            <>
+              {entityData.location && (
+                <div className="metadata-field">
+                  <strong>Location:</strong> {entityData.location}
+                </div>
+              )}
+              {entityData.coordinates && (
+                <div className="metadata-field">
+                  <strong>Coordinates:</strong> {entityData.coordinates}
+                </div>
+              )}
+              {entityData.description && (
+                <div className="metadata-field">
+                  <strong>Description:</strong> {entityData.description}
+                </div>
+              )}
+            </>
+          )}
+          {entityType === 'artifact' && (
+            <>
+              {entityData.material && (
+                <div className="metadata-field">
+                  <strong>Material:</strong> {entityData.material}
+                </div>
+              )}
+              {entityData.condition && (
+                <div className="metadata-field">
+                  <strong>Condition:</strong> {entityData.condition}
+                </div>
+              )}
+              {entityData.dating && (
+                <div className="metadata-field">
+                  <strong>Dating:</strong> {entityData.dating}
+                </div>
+              )}
+              {entityData.dimensions && (
+                <div className="metadata-field">
+                  <strong>Dimensions:</strong> {entityData.dimensions}
+                </div>
+              )}
+              {entityData.current_location && (
+                <div className="metadata-field">
+                  <strong>Current Location:</strong> {entityData.current_location}
+                </div>
+              )}
+            </>
+          )}
+          {entityType === 'event' && (
+            <>
+              {entityData.event_type && (
+                <div className="metadata-field">
+                  <strong>Type:</strong> {entityData.event_type}
+                </div>
+              )}
+              {entityData.start_date && (
+                <div className="metadata-field">
+                  <strong>Start:</strong> {entityData.start_date}
+                </div>
+              )}
+              {entityData.end_date && (
+                <div className="metadata-field">
+                  <strong>End:</strong> {entityData.end_date}
+                </div>
+              )}
+              {entityData.description && (
+                <div className="metadata-field">
+                  <strong>Description:</strong> {entityData.description}
+                </div>
+              )}
+            </>
+          )}
+          {entityType === 'theory' && (
+            <>
+              {entityData.status && (
+                <div className="metadata-field">
+                  <strong>Status:</strong> {entityData.status}
+                </div>
+              )}
+              {entityData.description && (
+                <div className="metadata-field">
+                  <strong>Description:</strong> {entityData.description}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       <div className="entity-page-content">
         <RichTextEditor
           key={entityId || 'new'} // Stable key based on entity, not content
