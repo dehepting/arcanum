@@ -22,6 +22,27 @@ function getEntityPageStoragePath(projectId, entityType, entityId) {
 }
 
 /**
+ * Get base storage path for all entity pages
+ */
+function getBaseStoragePath() {
+  const homeDir = os.homedir();
+  return join(homeDir, 'Library', 'Application Support', 'com.arcanum.app', 'storage');
+}
+
+/**
+ * Normalize storage path to absolute path
+ * Handles both relative paths from DB and absolute paths
+ */
+function normalizeStoragePath(storagePath) {
+  // If already absolute, return as-is
+  if (storagePath.startsWith('/') || storagePath.startsWith(os.homedir())) {
+    return storagePath;
+  }
+  // Convert relative path to absolute
+  return join(getBaseStoragePath(), storagePath);
+}
+
+/**
  * Ensure file exists for an entity page, creating empty file if missing
  * This repairs orphaned DB records
  */
@@ -235,18 +256,21 @@ export const entityPageHandlers = {
       throw new Error(`Entity page not found for entity: ${args.entity_id}`);
     }
 
+    // Normalize storage path (handle relative paths from DB)
+    const absolutePath = normalizeStoragePath(page.storage_path);
+
     // Read content from file with status reporting
     let content = '';
     let status = '';
 
-    const fileStatus = ensureFileExists(page.storage_path, false);
+    const fileStatus = ensureFileExists(absolutePath, false);
 
     if (fileStatus.missing) {
       status =
         '\n⚠️  WARNING: Database record exists but backing file is missing!\n' +
         'Use repair_entity_page to create an empty file, then update_entity_page to add content.\n';
     } else {
-      content = readFileSync(page.storage_path, 'utf8');
+      content = readFileSync(absolutePath, 'utf8');
     }
 
     return formatToolResponse(
@@ -265,10 +289,13 @@ export const entityPageHandlers = {
       throw new Error(`Entity page not found for entity: ${args.entity_id}`);
     }
 
+    // Normalize storage path (handle relative paths from DB)
+    const absolutePath = normalizeStoragePath(page.storage_path);
+
     const mode = args.mode || 'replace';
 
     // Auto-repair: ensure file exists before writing
-    const fileStatus = ensureFileExists(page.storage_path, true);
+    const fileStatus = ensureFileExists(absolutePath, true);
     let repairNote = '';
 
     if (fileStatus.repaired) {
@@ -281,12 +308,12 @@ export const entityPageHandlers = {
       if (fileStatus.repaired) {
         // File was just created empty, nothing to preserve
       } else {
-        existingContent = readFileSync(page.storage_path, 'utf8');
+        existingContent = readFileSync(absolutePath, 'utf8');
       }
-      writeFileSync(page.storage_path, existingContent + '\n\n' + args.content, 'utf8');
+      writeFileSync(absolutePath, existingContent + '\n\n' + args.content, 'utf8');
     } else {
       // Replace entire content
-      writeFileSync(page.storage_path, args.content, 'utf8');
+      writeFileSync(absolutePath, args.content, 'utf8');
     }
 
     // Update timestamp
@@ -307,8 +334,11 @@ export const entityPageHandlers = {
       throw new Error(`Entity page not found for entity: ${args.entity_id}`);
     }
 
+    // Normalize storage path (handle relative paths from DB)
+    const absolutePath = normalizeStoragePath(page.storage_path);
+
     // Auto-repair: ensure file exists before writing
-    const fileStatus = ensureFileExists(page.storage_path, true);
+    const fileStatus = ensureFileExists(absolutePath, true);
     let repairNote = '';
 
     if (fileStatus.repaired) {
@@ -329,9 +359,9 @@ export const entityPageHandlers = {
     // Read existing content and append
     let existingContent = '';
     if (!fileStatus.repaired) {
-      existingContent = readFileSync(page.storage_path, 'utf8');
+      existingContent = readFileSync(absolutePath, 'utf8');
     }
-    writeFileSync(page.storage_path, existingContent + note, 'utf8');
+    writeFileSync(absolutePath, existingContent + note, 'utf8');
 
     // Update timestamp
     const updateStmt = db.prepare('UPDATE entity_pages SET updated_at = ? WHERE entity_id = ?');
@@ -350,16 +380,19 @@ export const entityPageHandlers = {
       throw new Error(`Entity page not found for entity: ${args.entity_id}`);
     }
 
-    const fileStatus = ensureFileExists(page.storage_path, false);
+    // Normalize storage path (handle relative paths from DB)
+    const absolutePath = normalizeStoragePath(page.storage_path);
+
+    const fileStatus = ensureFileExists(absolutePath, false);
 
     if (fileStatus.exists) {
       return formatToolResponse(
-        `Entity page file already exists at:\n${page.storage_path}\n\nNo repair needed.`
+        `Entity page file already exists at:\n${absolutePath}\n\nNo repair needed.`
       );
     }
 
-    // Create the missing file
-    ensureFileExists(page.storage_path, true);
+    // Create the missing file with recursive directory creation
+    ensureFileExists(absolutePath, true);
 
     // Update timestamp to reflect repair
     const now = getCurrentTimestamp();
@@ -368,7 +401,7 @@ export const entityPageHandlers = {
 
     return formatToolResponse(
       `Entity page repaired successfully!\n\n` +
-        `Created empty file at: ${page.storage_path}\n\n` +
+        `Created empty file at: ${absolutePath}\n\n` +
         `You can now use update_entity_page or add_entity_note to add content.`
     );
   },
@@ -431,7 +464,8 @@ export const entityPageHandlers = {
 
     // Check which pages have missing files
     const pagesWithStatus = pages.map((page) => {
-      const hasFile = existsSync(page.storage_path);
+      const absolutePath = normalizeStoragePath(page.storage_path);
+      const hasFile = existsSync(absolutePath);
       return {
         ...page,
         file_status: hasFile ? 'ok' : 'MISSING',
