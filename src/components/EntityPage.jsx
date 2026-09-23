@@ -39,21 +39,25 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
 
         // Load entity metadata based on type
         const commandMap = {
-          person: 'get_person',
-          event: 'get_event',
-          theory: 'get_theory',
-          place: 'get_place',
-          artifact: 'get_artifact',
+          person: { command: 'get_person', param: 'person_id' },
+          event: { command: 'get_event', param: 'event_id' },
+          theory: { command: 'get_theory', param: 'theory_id' },
+          place: { command: 'get_place', param: 'place_id' },
+          artifact: { command: 'get_artifact', param: 'artifact_id' },
         };
 
-        const command = commandMap[entityType];
-        if (command) {
+        const config = commandMap[entityType];
+        console.log('EntityPage: Loading metadata', { entityType, config, entityId });
+        if (config) {
           try {
-            const metadata = await invoke(command, { id: entityId });
+            const metadata = await invoke(config.command, { [config.param]: entityId });
+            console.log('EntityPage: Metadata loaded', metadata);
             setEntityData(metadata);
           } catch (metadataError) {
             console.error('Error loading entity metadata:', metadataError);
           }
+        } else {
+          console.log('EntityPage: No command found for entityType', entityType);
         }
 
         // Load entity page content
