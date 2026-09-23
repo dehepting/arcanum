@@ -18,7 +18,9 @@ export default function EntityExplorer() {
   const theories = useStore((state) => state.theories);
   const places = useStore((state) => state.places);
   const artifacts = useStore((state) => state.artifacts);
+  const tabs = useStore((state) => state.tabs);
   const addTab = useStore((state) => state.addTab);
+  const setActiveTab = useStore((state) => state.setActiveTab);
   const addSource = useStore((state) => state.addSource);
   const currentProject = useStore((state) => state.currentProject);
 
@@ -75,16 +77,27 @@ export default function EntityExplorer() {
     filteredPlaces.length +
     filteredArtifacts.length;
 
-  // Handle entity click - opens entity in tab
+  // Handle entity click - opens entity in tab or switches to existing tab
   const handleEntityClick = (entity, entityType) => {
-    addTab({
-      type: entityType,
-      title: entity.name,
-      data: {
-        entityId: entity.id,
-        entityType,
-      },
-    });
+    // Check if tab already exists for this entity
+    const existingTab = tabs.find(
+      (tab) => tab.type === entityType && tab.data?.entityId === entity.id
+    );
+
+    if (existingTab) {
+      // Switch to existing tab instead of creating duplicate
+      setActiveTab(existingTab.id);
+    } else {
+      // Create new tab
+      addTab({
+        type: entityType,
+        title: entity.name,
+        data: {
+          entityId: entity.id,
+          entityType,
+        },
+      });
+    }
   };
 
   // Handle create new entity
