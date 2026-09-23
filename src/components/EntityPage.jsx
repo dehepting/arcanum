@@ -47,13 +47,17 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         };
 
         const command = commandMap[entityType];
+        console.log('EntityPage: Loading metadata', { entityType, command, entityId });
         if (command) {
           try {
             const metadata = await invoke(command, { id: entityId });
+            console.log('EntityPage: Metadata loaded', metadata);
             setEntityData(metadata);
           } catch (metadataError) {
             console.error('Error loading entity metadata:', metadataError);
           }
+        } else {
+          console.log('EntityPage: No command found for entityType', entityType);
         }
 
         // Load entity page content
