@@ -1,112 +1,154 @@
-# Phase 3 Quick Start Guide
+# Arcanum Quick Start Guide
 
-## 🎯 Goal
-Enable linking between artifacts and their mentions in PDF source documents.
+## 🚀 Getting Started in 5 Minutes
 
-## ⚡ 5-Minute Deploy
+### 1. Install Dependencies
 
-### 1. Database (REQUIRED FIRST!)
-```sql
--- In Supabase SQL Editor, run:
--- Copy/paste from: docs/artifact-source-links-schema.sql
-```
-
-### 2. Verify
 ```bash
-npm run dev
-# Open app, create annotation, look for "Link to Artifact" button
+cd arcanum
+npm install
 ```
 
-### 3. Done!
-All features automatically available.
+### 2. Launch the App
+
+**Development Mode** (for coding - auto-reloads on changes):
+```bash
+npm run tauri:dev
+```
+
+**Production Mode** (build and install to /Applications):
+```bash
+npm run build:install
+```
+
+### 3. Set Up Shell Aliases (Recommended)
+
+Add these to your `~/.zshrc` or `~/.bashrc`:
+
+```bash
+alias arcanum="cd /Users/davidhepting/arcanum && npm run tauri:dev"
+alias arcanum-build="cd /Users/davidhepting/arcanum && npm run build:install"
+```
+
+Then reload: `source ~/.zshrc`
+
+Now just type `arcanum` from anywhere to launch!
 
 ---
 
-## 📖 Quick Reference
+## 📂 Where Your Data Lives
 
-### User Workflows
-
-**Link existing artifact:**
-Annotation → "Link to Artifact" → Select → Done
-
-**Create from PDF:**
-Annotation → "Link to Artifact" → "Create New" → Fill form → Save
-
-**View sources:**
-Artifact detail → "Sources" tab → See all references
-
-**Navigate:**
-Badge on annotation → Click → Opens artifact detail
-
-### Visual Indicators
-
-| Appearance | Meaning |
-|------------|---------|
-| Orange border | Regular annotation |
-| Orange + 📍 | Linked to map place |
-| Purple + 🏺 | Linked to artifact |
-
-### Key Files
+All data is stored locally on your Mac:
 
 ```
-docs/artifact-source-links-schema.sql    ← Database migration
-src/lib/artifact-sources.js              ← API functions
-src/components/ArtifactLinkModal.jsx     ← Link UI
+~/Library/Application Support/com.arcanum.app/
+├── arcanum.db                    # SQLite database
+└── storage/
+    ├── sources/                  # Your PDF files
+    ├── artifacts/                # Artifact images
+    ├── map-overlays/             # Historic map overlays
+    └── entity-pages/             # Entity page content
 ```
 
-### API Usage
+---
 
-```javascript
-import { linkArtifactToAnnotation } from '../lib/artifact-sources';
+## 🎯 Basic Workflow
 
-const result = await linkArtifactToAnnotation(
-  artifactId,
-  annotationId,
-  'Quote from PDF...',
-  'Optional context'
-);
-```
+### Create a Project
+1. Launch Arcanum
+2. Click "New Project"
+3. Enter project name and description
+
+### Add a PDF
+1. Click "Upload PDF" or drag and drop
+2. PDF opens in a new tab
+3. Start annotating!
+
+### Annotate Documents
+- **Highlight**: Select text → Choose highlight tool
+- **Draw**: Click ink tool → Draw on PDF
+- **Notes**: Double-click anywhere → Add text note
+- **Link to Map**: Create annotation → Click 📍 → Place on map
+
+### Create Entities
+1. Click "+" in sidebar
+2. Choose type: Person, Place, Event, Theory, or Artifact
+3. Fill in details
+4. Link to annotations or map pins
+
+### Add Map Overlays
+1. Navigate to map view
+2. Click "Add Overlay"
+3. Upload historic map image
+4. Adjust opacity and position
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd + N` | New project |
+| `Cmd + O` | Open PDF |
+| `Cmd + W` | Close current tab |
+| `Cmd + T` | New tab |
+| `Cmd + ,` | Settings |
+| `Cmd + Q` | Quit |
 
 ---
 
 ## 🐛 Troubleshooting
 
-**Button not showing?**
-→ Annotation must be saved first (has an ID)
+### App Won't Launch
+```bash
+# Check for build errors
+npm run tauri:dev
 
-**Badge not appearing?**
-→ Refresh page, check browser console
+# Rebuild from scratch
+rm -rf src-tauri/target
+npm run tauri:build
+```
 
-**Sources tab empty?**
-→ Check RLS policies applied, user has project access
+### Database Issues
+The database is at `~/Library/Application Support/com.arcanum.app/arcanum.db`
 
-**Permission denied?**
-→ User must be member of artifact's project
+To reset (⚠️ deletes all data):
+```bash
+rm -rf ~/Library/Application\ Support/com.arcanum.app/
+```
 
----
-
-## 📚 Full Documentation
-
-- **PHASE3_COMPLETE.md** - Complete overview
-- **docs/verify-phase3.md** - Testing procedures
-- **docs/artifact-source-links-api.md** - Developer API
-- **docs/DEPLOYMENT_CHECKLIST.md** - Deploy guide
-
----
-
-## ✅ Checklist
-
-- [ ] Applied database schema
-- [ ] Tested link creation
-- [ ] Tested artifact creation from PDF
-- [ ] Verified Sources tab works
-- [ ] Checked badge interaction
-- [ ] No console errors
-- [ ] Ready to commit!
+### Files Not Loading
+Copy files to app storage directory:
+```bash
+cp -r storage/* ~/Library/Application\ Support/com.arcanum.app/storage/
+```
 
 ---
 
-**Status:** Ready for deployment
-**Time to deploy:** 5-15 minutes
-**Breaking changes:** None
-**Dependencies:** Supabase database migration only
+## 📖 Next Steps
+
+- **Full Documentation**: See [README.md](./README.md)
+- **Migration Guide**: See [TAURI_MIGRATION_PLAN.md](./TAURI_MIGRATION_PLAN.md) (historical)
+- **Development**: See [SETUP.md](./SETUP.md)
+
+---
+
+## 🎓 Example: Research Workflow
+
+1. **Upload primary source** (e.g., archaeological report PDF)
+2. **Highlight key passages** about artifact discoveries
+3. **Create place entities** for findspots
+4. **Link highlights to map pins** at findspot locations
+5. **Create artifact entries** with photos and descriptions
+6. **Link artifacts to source annotations** for provenance
+7. **Upload historic maps** as overlays for context
+8. **Build entity pages** with notes and connections
+
+Result: A rich, interconnected research database linking sources, places, artifacts, and evidence.
+
+---
+
+**Status**: Desktop app ready to use
+**Platform**: macOS (Apple Silicon + Intel)
+**Dependencies**: None (fully local)
+**Cost**: $0/month (no cloud services)

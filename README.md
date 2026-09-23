@@ -27,31 +27,45 @@ Arcanum is a desktop-style research IDE for archaeological and historical invest
 - **Backend**: Tauri (Rust) + SQLite
 - **State**: Zustand
 
-## Setup
+## Quick Start
 
-### 1. Clone and install
+### Installation
 
 ```bash
-git clone <your-repo-url> arcanum
+git clone https://github.com/dehepting/arcanum.git
 cd arcanum
 npm install
 ```
 
-### 2. Run in development mode
+### Development Workflow
+
+The easiest way to run Arcanum is with shell aliases. Add to your `~/.zshrc` (or `~/.bashrc`):
 
 ```bash
-npm run tauri:dev
+alias arcanum="cd /path/to/arcanum && npm run tauri:dev"
+alias arcanum-build="cd /path/to/arcanum && npm run build:install"
 ```
 
-The app will launch with a local SQLite database at `~/Library/Application Support/com.arcanum.app/`
+Then reload your shell: `source ~/.zshrc`
 
-### 3. Build for production
+Now you can:
+- **`arcanum`** - Launch development mode with auto-reload (for coding)
+- **`arcanum-build`** - Build and install production app to /Applications
+
+### Manual Commands
+
+If you prefer not to use aliases:
 
 ```bash
+# Development mode (auto-reload on code changes)
+npm run tauri:dev
+
+# Production build + install
+npm run build:install
+
+# Just build (creates .dmg in src-tauri/target/release/bundle/dmg/)
 npm run tauri:build
 ```
-
-This creates a `.dmg` installer in `src-tauri/target/release/bundle/dmg/`
 
 ## Data Storage
 
@@ -62,37 +76,47 @@ This creates a `.dmg` installer in `src-tauri/target/release/bundle/dmg/`
   - `storage/map-overlays/` - Historic map overlays
   - `storage/entity-pages/` - Entity page markdown files
 
-## Migrating from Supabase
+## Architecture
 
-If you have data in the old Supabase version:
+Arcanum is a **local-first desktop application** built with:
+- **Rust backend** (Tauri) for native performance
+- **SQLite database** for fast, reliable local storage
+- **React frontend** for rich UI
+- **MapLibre GL** for interactive mapping
+- **PDF.js** for document viewing
 
-1. Export data: `cd src-tauri/migration && node export-from-supabase.js`
-2. Download files: `node download-files.js`
-3. Initialize database: `node init-database.js`
-4. Import data: `node import-to-sqlite.js`
+All data stays on your machine - no cloud dependencies, no monthly costs.
 
 ## Roadmap
 
-### v1.0 (Current)
-- [x] Project structure
-- [x] Local SQLite database
-- [x] Tauri desktop app
+### ✅ v1.0 - Desktop Foundation (Complete)
+- [x] Tauri desktop app architecture
+- [x] Local SQLite database with hybrid storage
 - [x] PDF upload and tabbed viewer
-- [x] Annotation overlay (highlight, ink, text)
+- [x] Annotation overlay (highlight, ink, text notes)
 - [x] Map pins with link to annotations
-- [x] Basic artifact catalog
-- [x] Historic map overlay with opacity control
+- [x] Entity system (people, places, events, theories, artifacts)
+- [x] Entity pages with rich text editor
+- [x] Historic map overlays with opacity control
+- [x] Artifact-source linking
+- [x] Migration from Supabase to local-first
+- [x] Automated GitHub releases
 
-### v1.1
+### v1.1 - Enhanced Features (In Progress)
 - [ ] Georeferencing UI for historic maps
-- [ ] Full-text search across PDFs
-- [ ] Export reports
+- [ ] Full-text search across PDFs and entity pages
+- [ ] Network graph visualization improvements
+- [ ] Timeline visualization for chronological events
+- [ ] Advanced search and filtering
+- [ ] Export reports (PDF, Markdown)
 
-### v2.0
+### v2.0 - AI Integration (Planned)
 - [ ] MCP server for Claude integration
-- [ ] AI-assisted research and connections
+- [ ] AI-assisted entity extraction from PDFs
+- [ ] Automated relationship discovery
+- [ ] Smart search and connections
 - [ ] Cloud sync (optional)
-- [ ] Version control for annotations
+- [ ] Cross-platform (Windows, Linux)
 
 ## Demo Corpus
 
