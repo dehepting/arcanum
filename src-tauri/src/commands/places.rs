@@ -92,7 +92,7 @@ pub fn create_place(
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn get_place(
     place_id: String,
     state: State<AppState>,

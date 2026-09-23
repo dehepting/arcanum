@@ -96,7 +96,7 @@ pub fn create_person(
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn get_person(
     person_id: String,
     state: State<AppState>,

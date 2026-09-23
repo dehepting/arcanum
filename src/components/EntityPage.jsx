@@ -15,8 +15,6 @@ import './EntityPage.css';
  * - Tab dirty state integration
  */
 export default function EntityPage({ entityId, entityType, title, projectId, tabId, onClose }) {
-  console.log('EntityPage render:', { entityId, entityType, title, projectId, tabId });
-
   const [content, setContent] = useState('');
   const [entityData, setEntityData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,17 +45,13 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         };
 
         const config = commandMap[entityType];
-        console.log('EntityPage: Loading metadata', { entityType, config, entityId });
         if (config) {
           try {
             const metadata = await invoke(config.command, { [config.param]: entityId });
-            console.log('EntityPage: Metadata loaded', metadata);
             setEntityData(metadata);
           } catch (metadataError) {
             console.error('Error loading entity metadata:', metadataError);
           }
-        } else {
-          console.log('EntityPage: No command found for entityType', entityType);
         }
 
         // Load entity page content

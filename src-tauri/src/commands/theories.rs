@@ -78,7 +78,7 @@ pub fn create_theory(
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn get_theory(
     theory_id: String,
     state: State<AppState>,
