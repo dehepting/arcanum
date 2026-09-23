@@ -50,23 +50,34 @@ export async function createEntityPage(
  */
 export async function getEntityPage(entityId) {
   try {
+    console.log('getEntityPage called with entityId:', entityId);
+
     // 1. Get metadata from database
     const page = await tauri.getEntityPage(entityId);
+    console.log('Got page from database:', page);
 
     // If page doesn't exist, return null data
     if (!page) {
+      console.log('Page does not exist, returning null');
       return { data: null, error: null };
     }
 
     // 2. Get content from storage
+    console.log('Reading file from storage:', STORAGE_BUCKET, page.storage_path);
     const result = await tauri.readFile(STORAGE_BUCKET, page.storage_path);
+    console.log('Read file result:', result);
+    console.log('Result type:', typeof result);
+    console.log('Result keys:', Object.keys(result));
+
     const decoder = new TextDecoder();
     // result.data is the array of bytes
     const content = decoder.decode(new Uint8Array(result.data));
+    console.log('Decoded content:', content);
 
     return { data: { page, content }, error: null };
   } catch (error) {
     console.error('Error getting entity page:', error);
+    console.error('Error stack:', error.stack);
     return { data: null, error };
   }
 }
