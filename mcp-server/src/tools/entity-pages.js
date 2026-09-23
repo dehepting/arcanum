@@ -6,10 +6,18 @@ import { join, dirname } from 'path';
 import os from 'os';
 
 /**
- * Get storage path for entity page content
- * Must match Tauri app's storage bucket structure: entity-pages/{projectId}/entities/{type}/{id}.md
+ * Get RELATIVE storage path for database (Tauri compatibility)
+ * Returns: {projectId}/entities/{type}/{id}.md
  */
-function getEntityPageStoragePath(projectId, entityType, entityId) {
+function getRelativeStoragePath(projectId, entityType, entityId) {
+  return `${projectId}/entities/${entityType}/${entityId}.md`;
+}
+
+/**
+ * Get ABSOLUTE file system path for entity page content
+ * Returns: /Users/.../storage/entity-pages/{projectId}/entities/{type}/{id}.md
+ */
+function getAbsoluteStoragePath(projectId, entityType, entityId) {
   const homeDir = os.homedir();
   const basePath = join(homeDir, 'Library', 'Application Support', 'com.arcanum.app', 'storage');
   const entityPath = join(basePath, 'entity-pages', projectId, 'entities', entityType);
@@ -197,12 +205,21 @@ export const entityPageHandlers = {
     const id = generateUUID();
     const now = getCurrentTimestamp();
 
-    // Generate storage path
-    const storagePath = getEntityPageStoragePath(args.project_id, args.entity_type, args.entity_id);
+    // Generate paths: relative for DB (Tauri compatibility), absolute for file ops
+    const relativeStoragePath = getRelativeStoragePath(
+      args.project_id,
+      args.entity_type,
+      args.entity_id
+    );
+    const absoluteStoragePath = getAbsoluteStoragePath(
+      args.project_id,
+      args.entity_type,
+      args.entity_id
+    );
 
     // Use transaction for atomicity
     const transaction = db.transaction(() => {
-      // First, try to insert DB record
+      // First, try to insert DB record with RELATIVE path (Tauri compatibility)
       const stmt = db.prepare(`
         INSERT INTO entity_pages (id, project_id, entity_id, entity_type, title, storage_path, metadata, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -215,20 +232,20 @@ export const entityPageHandlers = {
         args.entity_id,
         args.entity_type,
         args.title,
-        storagePath,
+        relativeStoragePath,
         null,
         now,
         now
       );
 
-      // Then write file - if this fails, transaction will rollback
+      // Then write file using ABSOLUTE path - if this fails, transaction will rollback
       try {
-        writeFileSync(storagePath, args.content, 'utf8');
+        writeFileSync(absoluteStoragePath, args.content, 'utf8');
       } catch (fileError) {
         // Clean up any partial file
         try {
-          if (existsSync(storagePath)) {
-            unlinkSync(storagePath);
+          if (existsSync(absoluteStoragePath)) {
+            unlinkSync(absoluteStoragePath);
           }
         } catch (cleanupError) {
           // Ignore cleanup errors
