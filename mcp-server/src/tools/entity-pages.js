@@ -1,7 +1,7 @@
 import { getDatabase } from '../db.js';
 import { generateUUID } from '../utils/uuid.js';
 import { getCurrentTimestamp, formatToolResponse } from '../utils/formatters.js';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import os from 'os';
 
@@ -19,6 +19,27 @@ function getEntityPageStoragePath(projectId, entityType, entityId) {
   }
 
   return join(entityPath, `${entityId}.md`);
+}
+
+/**
+ * Ensure file exists for an entity page, creating empty file if missing
+ * This repairs orphaned DB records
+ */
+function ensureFileExists(storagePath, autoRepair = true) {
+  if (!existsSync(storagePath)) {
+    if (autoRepair) {
+      // Create parent directories if needed
+      const dir = dirname(storagePath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      // Create empty file to repair orphaned record
+      writeFileSync(storagePath, '', 'utf8');
+      return { repaired: true };
+    }
+    return { missing: true };
+  }
+  return { exists: true };
 }
 
 export const entityPageTools = [
@@ -86,6 +107,17 @@ export const entityPageTools = [
     },
   },
   {
+    name: 'repair_entity_page',
+    description: 'Repair an entity page that has a DB record but missing file (creates empty file)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        entity_id: { type: 'string', description: 'Entity UUID' },
+      },
+      required: ['entity_id'],
+    },
+  },
+  {
     name: 'link_entity_pages',
     description: 'Create a relationship link between two entity pages',
     inputSchema: {
@@ -138,31 +170,59 @@ export const entityPageHandlers = {
     // Generate storage path
     const storagePath = getEntityPageStoragePath(args.project_id, args.entity_type, args.entity_id);
 
-    // Write content to file
-    writeFileSync(storagePath, args.content, 'utf8');
+    // Use transaction for atomicity
+    const transaction = db.transaction(() => {
+      // First, try to insert DB record
+      const stmt = db.prepare(`
+        INSERT INTO entity_pages (id, project_id, entity_id, entity_type, title, storage_path, metadata, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING *
+      `);
 
-    // Store metadata in database
-    const stmt = db.prepare(`
-      INSERT INTO entity_pages (id, project_id, entity_id, entity_type, title, storage_path, metadata, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      RETURNING *
-    `);
+      const page = stmt.get(
+        id,
+        args.project_id,
+        args.entity_id,
+        args.entity_type,
+        args.title,
+        storagePath,
+        null,
+        now,
+        now
+      );
 
-    const page = stmt.get(
-      id,
-      args.project_id,
-      args.entity_id,
-      args.entity_type,
-      args.title,
-      storagePath,
-      null,
-      now,
-      now
-    );
+      // Then write file - if this fails, transaction will rollback
+      try {
+        writeFileSync(storagePath, args.content, 'utf8');
+      } catch (fileError) {
+        // Clean up any partial file
+        try {
+          if (existsSync(storagePath)) {
+            unlinkSync(storagePath);
+          }
+        } catch (cleanupError) {
+          // Ignore cleanup errors
+        }
+        throw new Error(`Failed to write entity page file: ${fileError.message}`);
+      }
 
-    return formatToolResponse(
-      `Entity page created successfully:\nID: ${page.id}\nTitle: ${page.title}\nType: ${page.entity_type}\nPath: ${page.storage_path}`
-    );
+      return page;
+    });
+
+    try {
+      const page = transaction();
+      return formatToolResponse(
+        `Entity page created successfully:\nID: ${page.id}\nTitle: ${page.title}\nType: ${page.entity_type}\nPath: ${page.storage_path}`
+      );
+    } catch (error) {
+      // If it's a UNIQUE constraint error, provide helpful message
+      if (error.message.includes('UNIQUE constraint failed')) {
+        throw new Error(
+          `Entity page already exists for entity ${args.entity_id}. Use update_entity_page to modify it, or repair_entity_page if the file is missing.`
+        );
+      }
+      throw error;
+    }
   },
 
   get_entity_page: (args) => {
@@ -175,14 +235,23 @@ export const entityPageHandlers = {
       throw new Error(`Entity page not found for entity: ${args.entity_id}`);
     }
 
-    // Read content from file
+    // Read content from file with status reporting
     let content = '';
-    if (existsSync(page.storage_path)) {
+    let status = '';
+
+    const fileStatus = ensureFileExists(page.storage_path, false);
+
+    if (fileStatus.missing) {
+      status =
+        '\n⚠️  WARNING: Database record exists but backing file is missing!\n' +
+        'Use repair_entity_page to create an empty file, then update_entity_page to add content.\n';
+    } else {
       content = readFileSync(page.storage_path, 'utf8');
     }
 
     return formatToolResponse(
-      `Entity Page: ${page.title}\nType: ${page.entity_type}\nCreated: ${page.created_at}\n\n---\n\n${content}`
+      `Entity Page: ${page.title}\nType: ${page.entity_type}\nCreated: ${page.created_at}\n` +
+        `Last updated: ${page.updated_at}${status}\n\n---\n\n${content}`
     );
   },
 
@@ -198,9 +267,23 @@ export const entityPageHandlers = {
 
     const mode = args.mode || 'replace';
 
+    // Auto-repair: ensure file exists before writing
+    const fileStatus = ensureFileExists(page.storage_path, true);
+    let repairNote = '';
+
+    if (fileStatus.repaired) {
+      repairNote = ' (auto-repaired missing file)';
+    }
+
     if (mode === 'append') {
-      // Append to existing content
-      appendFileSync(page.storage_path, '\n\n' + args.content, 'utf8');
+      // Read existing content if file was just created
+      let existingContent = '';
+      if (fileStatus.repaired) {
+        // File was just created empty, nothing to preserve
+      } else {
+        existingContent = readFileSync(page.storage_path, 'utf8');
+      }
+      writeFileSync(page.storage_path, existingContent + '\n\n' + args.content, 'utf8');
     } else {
       // Replace entire content
       writeFileSync(page.storage_path, args.content, 'utf8');
@@ -211,7 +294,7 @@ export const entityPageHandlers = {
     const updateStmt = db.prepare('UPDATE entity_pages SET updated_at = ? WHERE entity_id = ?');
     updateStmt.run(now, args.entity_id);
 
-    return formatToolResponse(`Entity page updated successfully (${mode} mode)`);
+    return formatToolResponse(`Entity page updated successfully (${mode} mode)${repairNote}`);
   },
 
   add_entity_note: (args) => {
@@ -222,6 +305,14 @@ export const entityPageHandlers = {
 
     if (!page) {
       throw new Error(`Entity page not found for entity: ${args.entity_id}`);
+    }
+
+    // Auto-repair: ensure file exists before writing
+    const fileStatus = ensureFileExists(page.storage_path, true);
+    let repairNote = '';
+
+    if (fileStatus.repaired) {
+      repairNote = ' (auto-repaired missing file)';
     }
 
     // Create timestamped note
@@ -235,14 +326,51 @@ export const entityPageHandlers = {
     });
     const note = `\n\n---\n\n**Note added ${timestamp}:**\n\n${args.note}`;
 
-    // Append note
-    appendFileSync(page.storage_path, note, 'utf8');
+    // Read existing content and append
+    let existingContent = '';
+    if (!fileStatus.repaired) {
+      existingContent = readFileSync(page.storage_path, 'utf8');
+    }
+    writeFileSync(page.storage_path, existingContent + note, 'utf8');
 
     // Update timestamp
     const updateStmt = db.prepare('UPDATE entity_pages SET updated_at = ? WHERE entity_id = ?');
     updateStmt.run(now, args.entity_id);
 
-    return formatToolResponse(`Note added to entity page successfully`);
+    return formatToolResponse(`Note added to entity page successfully${repairNote}`);
+  },
+
+  repair_entity_page: (args) => {
+    const db = getDatabase();
+
+    const stmt = db.prepare('SELECT * FROM entity_pages WHERE entity_id = ?');
+    const page = stmt.get(args.entity_id);
+
+    if (!page) {
+      throw new Error(`Entity page not found for entity: ${args.entity_id}`);
+    }
+
+    const fileStatus = ensureFileExists(page.storage_path, false);
+
+    if (fileStatus.exists) {
+      return formatToolResponse(
+        `Entity page file already exists at:\n${page.storage_path}\n\nNo repair needed.`
+      );
+    }
+
+    // Create the missing file
+    ensureFileExists(page.storage_path, true);
+
+    // Update timestamp to reflect repair
+    const now = getCurrentTimestamp();
+    const updateStmt = db.prepare('UPDATE entity_pages SET updated_at = ? WHERE entity_id = ?');
+    updateStmt.run(now, args.entity_id);
+
+    return formatToolResponse(
+      `Entity page repaired successfully!\n\n` +
+        `Created empty file at: ${page.storage_path}\n\n` +
+        `You can now use update_entity_page or add_entity_note to add content.`
+    );
   },
 
   link_entity_pages: (args) => {
@@ -301,8 +429,26 @@ export const entityPageHandlers = {
     const stmt = db.prepare(query);
     const pages = stmt.all(...params);
 
+    // Check which pages have missing files
+    const pagesWithStatus = pages.map((page) => {
+      const hasFile = existsSync(page.storage_path);
+      return {
+        ...page,
+        file_status: hasFile ? 'ok' : 'MISSING',
+      };
+    });
+
+    const missingCount = pagesWithStatus.filter((p) => p.file_status === 'MISSING').length;
+    let warning = '';
+
+    if (missingCount > 0) {
+      warning =
+        `\n\n⚠️  WARNING: ${missingCount} page(s) have missing backing files!\n` +
+        `Use repair_entity_page to fix them.\n`;
+    }
+
     return formatToolResponse(
-      `Found ${pages.length} entity pages:\n${JSON.stringify(pages, null, 2)}`
+      `Found ${pages.length} entity pages:${warning}\n${JSON.stringify(pagesWithStatus, null, 2)}`
     );
   },
 };
