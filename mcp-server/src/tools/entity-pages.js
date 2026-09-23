@@ -7,11 +7,12 @@ import os from 'os';
 
 /**
  * Get storage path for entity page content
+ * Must match Tauri app's storage bucket structure: entity-pages/{projectId}/entities/{type}/{id}.md
  */
 function getEntityPageStoragePath(projectId, entityType, entityId) {
   const homeDir = os.homedir();
   const basePath = join(homeDir, 'Library', 'Application Support', 'com.arcanum.app', 'storage');
-  const entityPath = join(basePath, projectId, 'entities', entityType);
+  const entityPath = join(basePath, 'entity-pages', projectId, 'entities', entityType);
 
   // Create directories if they don't exist
   if (!existsSync(entityPath)) {
@@ -23,10 +24,18 @@ function getEntityPageStoragePath(projectId, entityType, entityId) {
 
 /**
  * Get base storage path for all entity pages
+ * Must match Tauri app's entity-pages bucket
  */
 function getBaseStoragePath() {
   const homeDir = os.homedir();
-  return join(homeDir, 'Library', 'Application Support', 'com.arcanum.app', 'storage');
+  return join(
+    homeDir,
+    'Library',
+    'Application Support',
+    'com.arcanum.app',
+    'storage',
+    'entity-pages'
+  );
 }
 
 /**
