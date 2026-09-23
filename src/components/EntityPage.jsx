@@ -218,9 +218,9 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         <div className="entity-metadata">
           {entityType === 'person' && (
             <>
-              {entityData.role && (
+              {entityData.occupation && (
                 <div className="metadata-field">
-                  <strong>Role:</strong> {entityData.role}
+                  <strong>Occupation:</strong> {entityData.occupation}
                 </div>
               )}
               {entityData.birth_date && (
@@ -233,23 +233,23 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
                   <strong>Death:</strong> {entityData.death_date}
                 </div>
               )}
-              {entityData.bio && (
+              {entityData.description && (
                 <div className="metadata-field">
-                  <strong>Bio:</strong> {entityData.bio}
+                  <strong>Description:</strong> {entityData.description}
                 </div>
               )}
             </>
           )}
           {entityType === 'place' && (
             <>
-              {entityData.location && (
+              {(entityData.lat || entityData.lng) && (
                 <div className="metadata-field">
-                  <strong>Location:</strong> {entityData.location}
+                  <strong>Coordinates:</strong> {entityData.lat}, {entityData.lng}
                 </div>
               )}
-              {entityData.coordinates && (
+              {entityData.place_type && (
                 <div className="metadata-field">
-                  <strong>Coordinates:</strong> {entityData.coordinates}
+                  <strong>Type:</strong> {entityData.place_type}
                 </div>
               )}
               {entityData.description && (
@@ -261,48 +261,39 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
           )}
           {entityType === 'artifact' && (
             <>
-              {entityData.material && (
+              {entityData.category && (
                 <div className="metadata-field">
-                  <strong>Material:</strong> {entityData.material}
+                  <strong>Category:</strong> {entityData.category}
                 </div>
               )}
-              {entityData.condition && (
+              {entityData.date_range && (
                 <div className="metadata-field">
-                  <strong>Condition:</strong> {entityData.condition}
+                  <strong>Date Range:</strong> {entityData.date_range}
                 </div>
               )}
-              {entityData.dating && (
+              {entityData.owner_name && (
                 <div className="metadata-field">
-                  <strong>Dating:</strong> {entityData.dating}
+                  <strong>Owner:</strong> {entityData.owner_name}
+                  {entityData.owner_type && ` (${entityData.owner_type})`}
                 </div>
               )}
-              {entityData.dimensions && (
+              {entityData.description && (
                 <div className="metadata-field">
-                  <strong>Dimensions:</strong> {entityData.dimensions}
-                </div>
-              )}
-              {entityData.current_location && (
-                <div className="metadata-field">
-                  <strong>Current Location:</strong> {entityData.current_location}
+                  <strong>Description:</strong> {entityData.description}
                 </div>
               )}
             </>
           )}
           {entityType === 'event' && (
             <>
-              {entityData.event_type && (
+              {entityData.event_date && (
                 <div className="metadata-field">
-                  <strong>Type:</strong> {entityData.event_type}
+                  <strong>Date:</strong> {entityData.event_date}
                 </div>
               )}
-              {entityData.start_date && (
+              {entityData.location && (
                 <div className="metadata-field">
-                  <strong>Start:</strong> {entityData.start_date}
-                </div>
-              )}
-              {entityData.end_date && (
-                <div className="metadata-field">
-                  <strong>End:</strong> {entityData.end_date}
+                  <strong>Location:</strong> {entityData.location}
                 </div>
               )}
               {entityData.description && (
@@ -314,11 +305,6 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
           )}
           {entityType === 'theory' && (
             <>
-              {entityData.status && (
-                <div className="metadata-field">
-                  <strong>Status:</strong> {entityData.status}
-                </div>
-              )}
               {entityData.description && (
                 <div className="metadata-field">
                   <strong>Description:</strong> {entityData.description}
