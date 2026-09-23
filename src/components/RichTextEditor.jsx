@@ -1,6 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
 import { useEffect } from 'react';
 import EditorToolbar from './EditorToolbar';
 import './RichTextEditor.css';
@@ -39,15 +38,10 @@ export default function RichTextEditor({
           },
         },
       }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'editor-link',
-        },
-      }),
     ],
-    content,
+    content: content || '',
     editable,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: 'rich-text-editor-content',

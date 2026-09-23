@@ -14,6 +14,8 @@ import './EntityPage.css';
  * - Tab dirty state integration
  */
 export default function EntityPage({ entityId, entityType, title, projectId, tabId, onClose }) {
+  console.log('EntityPage render:', { entityId, entityType, title, projectId, tabId });
+
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -189,6 +191,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
       </div>
       <div className="entity-page-content">
         <RichTextEditor
+          key={entityId || 'new'} // Stable key based on entity, not content
           content={content}
           onChange={handleContentChange}
           placeholder={`Write about ${title}...`}
