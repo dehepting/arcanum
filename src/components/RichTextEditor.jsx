@@ -39,8 +39,9 @@ export default function RichTextEditor({
         },
       }),
     ],
-    content,
+    content: content || '',
     editable,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: 'rich-text-editor-content',

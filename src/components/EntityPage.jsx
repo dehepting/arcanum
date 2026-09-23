@@ -191,7 +191,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
       </div>
       <div className="entity-page-content">
         <RichTextEditor
-          key={content} // Force remount when content changes to avoid TipTap schema errors
+          key={entityId || 'new'} // Stable key based on entity, not content
           content={content}
           onChange={handleContentChange}
           placeholder={`Write about ${title}...`}
