@@ -59,9 +59,10 @@ export async function getEntityPage(entityId) {
     }
 
     // 2. Get content from storage
-    const fileData = await tauri.readFile(STORAGE_BUCKET, page.storage_path);
+    const result = await tauri.readFile(STORAGE_BUCKET, page.storage_path);
     const decoder = new TextDecoder();
-    const content = decoder.decode(new Uint8Array(fileData));
+    // result.data is the array of bytes
+    const content = decoder.decode(new Uint8Array(result.data));
 
     return { data: { page, content }, error: null };
   } catch (error) {
@@ -96,9 +97,9 @@ export async function updateEntityPage(entityId, content, append = false, pageIn
 
     // 2. If appending, get current content first
     if (append) {
-      const fileData = await tauri.readFile(STORAGE_BUCKET, page.storage_path);
+      const result = await tauri.readFile(STORAGE_BUCKET, page.storage_path);
       const decoder = new TextDecoder();
-      const currentContent = decoder.decode(new Uint8Array(fileData));
+      const currentContent = decoder.decode(new Uint8Array(result.data));
       finalContent = currentContent + '\n\n' + content;
     }
 
