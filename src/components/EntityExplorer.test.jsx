@@ -8,6 +8,7 @@ vi.mock('../store/useStore');
 
 describe('EntityExplorer', () => {
   const mockAddTab = vi.fn();
+  const mockSetActiveTab = vi.fn();
 
   const mockPeople = [
     { id: '1', name: 'Aristotle' },
@@ -32,7 +33,9 @@ describe('EntityExplorer', () => {
         theories: mockTheories,
         places: mockPlaces,
         artifacts: mockArtifacts,
+        tabs: [], // No existing tabs, so addTab should be called
         addTab: mockAddTab,
+        setActiveTab: mockSetActiveTab,
       };
       return selector ? selector(state) : state;
     });
@@ -144,6 +147,43 @@ describe('EntityExplorer', () => {
         entityType: 'event',
       },
     });
+  });
+
+  it('switches to existing tab instead of creating duplicate', () => {
+    // Mock store with existing tab for Aristotle
+    useStore.mockImplementation((selector) => {
+      const state = {
+        people: mockPeople,
+        events: mockEvents,
+        theories: mockTheories,
+        places: mockPlaces,
+        artifacts: mockArtifacts,
+        tabs: [
+          {
+            id: 'tab-1',
+            type: 'person',
+            data: { entityId: '1', entityType: 'person' },
+          },
+        ],
+        addTab: mockAddTab,
+        setActiveTab: mockSetActiveTab,
+      };
+      return selector ? selector(state) : state;
+    });
+
+    render(<EntityExplorer />);
+
+    // Expand people section
+    const peopleSection = screen.getByText(/People/).closest('.entity-type-item');
+    fireEvent.click(peopleSection);
+
+    // Click on Aristotle (which already has a tab)
+    const aristotleEntity = screen.getByText('Aristotle');
+    fireEvent.click(aristotleEntity);
+
+    // Should switch to existing tab, not create new one
+    expect(mockSetActiveTab).toHaveBeenCalledWith('tab-1');
+    expect(mockAddTab).not.toHaveBeenCalled();
   });
 
   it('creates new entity when create button is clicked', () => {

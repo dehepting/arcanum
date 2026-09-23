@@ -6,6 +6,7 @@ import ProjectPicker from './components/ProjectPicker';
 import { loadSources } from './lib/upload';
 import { loadAnnotations } from './lib/annotations';
 import { loadArtifacts } from './lib/artifacts';
+import { invoke } from '@tauri-apps/api/core';
 import './styles/index.css';
 
 function App() {
@@ -15,6 +16,9 @@ function App() {
   const setPlaces = useStore((state) => state.setPlaces);
   const setArtifacts = useStore((state) => state.setArtifacts);
   const setSources = useStore((state) => state.setSources);
+  const setPeople = useStore((state) => state.setPeople);
+  const setEvents = useStore((state) => state.setEvents);
+  const setTheories = useStore((state) => state.setTheories);
   const [loading, setLoading] = useState(true);
 
   // Load last project from localStorage on mount
@@ -35,27 +39,41 @@ function App() {
 
     const loadProjectData = async () => {
       try {
-        const [sources, artifacts] = await Promise.all([
+        const [sources, artifacts, places, people, events, theories] = await Promise.all([
           loadSources(currentProject.id),
           loadArtifacts(currentProject.id),
+          invoke('list_places', { projectId: currentProject.id }),
+          invoke('list_people', { projectId: currentProject.id }),
+          invoke('list_events', { projectId: currentProject.id }),
+          invoke('list_theories', { projectId: currentProject.id }),
         ]);
 
-        // Update store with sources
+        // Update store with all data
         setSources(sources);
-
-        // Update store with artifacts
         setArtifacts(artifacts);
+        setPlaces(places);
+        setPeople(people);
+        setEvents(events);
+        setTheories(theories);
 
-        // TODO: Load annotations, places
+        // TODO: Load annotations
         setAnnotations([]);
-        setPlaces([]);
       } catch (err) {
         console.error('Failed to load project data:', err);
       }
     };
 
     loadProjectData();
-  }, [currentProject, setAnnotations, setPlaces, setArtifacts, setSources]);
+  }, [
+    currentProject,
+    setAnnotations,
+    setPlaces,
+    setArtifacts,
+    setSources,
+    setPeople,
+    setEvents,
+    setTheories,
+  ]);
 
   if (loading) {
     return (
