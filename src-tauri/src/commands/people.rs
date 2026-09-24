@@ -217,7 +217,14 @@ pub fn update_person(
 
     drop(db);
 
-    get_person(person_id, state)?
+    // Broadcast update notification to WebSocket clients
+    let update_msg = serde_json::json!({
+        "entity_id": person_id,
+        "entity_type": "person"
+    }).to_string();
+    let _ = state.broadcast_tx.send(update_msg); // Ignore if no listeners
+
+    get_person(person_id.clone(), state)?
         .ok_or_else(|| super::CommandError {
             message: "Person not found after update".to_string(),
         })

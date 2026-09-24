@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useStore from '../store/useStore';
 import { uploadPDF } from '../lib/upload';
+import { invoke } from '@tauri-apps/api/core';
 import './EntityExplorer.css';
 
 /**
@@ -19,16 +20,29 @@ export default function EntityExplorer() {
   const places = useStore((state) => state.places);
   const artifacts = useStore((state) => state.artifacts);
   const tabs = useStore((state) => state.tabs);
+  const activeTabId = useStore((state) => state.activeTabId);
   const addTab = useStore((state) => state.addTab);
   const setActiveTab = useStore((state) => state.setActiveTab);
   const addSource = useStore((state) => state.addSource);
   const currentProject = useStore((state) => state.currentProject);
+  const updatePerson = useStore((state) => state.updatePerson);
+  const updateEvent = useStore((state) => state.updateEvent);
+  const updateTheory = useStore((state) => state.updateTheory);
+  const updatePlace = useStore((state) => state.updatePlace);
+  const updateArtifact = useStore((state) => state.updateArtifact);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [canvases, setCanvases] = useState([]);
+  const [editingCanvasId, setEditingCanvasId] = useState(null);
+  const [editingCanvasName, setEditingCanvasName] = useState('');
+  const [editingEntityId, setEditingEntityId] = useState(null);
+  const [editingEntityName, setEditingEntityName] = useState('');
+  const [editingEntityType, setEditingEntityType] = useState(null);
   const [expandedSections, setExpandedSections] = useState({
     entities: true,
     sources: true,
+    canvases: true,
     visualizations: true,
   });
   const [expandedEntityTypes, setExpandedEntityTypes] = useState({
@@ -51,6 +65,153 @@ export default function EntityExplorer() {
       ...prev,
       [type]: !prev[type],
     }));
+  };
+
+  // Load canvases for current project
+  useEffect(() => {
+    if (!currentProject) return;
+
+    const loadCanvases = async () => {
+      try {
+        const projectCanvases = await invoke('list_canvases', {
+          projectId: currentProject.id,
+        });
+        setCanvases(projectCanvases);
+      } catch (error) {
+        console.error('Failed to load canvases:', error);
+      }
+    };
+
+    loadCanvases();
+  }, [currentProject]);
+
+  // Handle canvas click - opens canvas in tab or switches to existing tab
+  const handleCanvasClick = (canvas) => {
+    const existingTab = tabs.find(
+      (tab) => tab.type === 'canvas' && tab.data?.canvasId === canvas.id
+    );
+
+    if (existingTab) {
+      setActiveTab(existingTab.id);
+    } else {
+      addTab({
+        type: 'canvas',
+        title: canvas.name,
+        canvasId: canvas.id,
+        data: {
+          canvasId: canvas.id,
+          canvasName: canvas.name,
+        },
+      });
+    }
+  };
+
+  // Handle create new canvas
+  const handleCreateCanvas = async () => {
+    if (!currentProject) return;
+
+    try {
+      const newCanvas = await invoke('create_canvas', {
+        input: {
+          project_id: currentProject.id,
+          name: `Canvas ${canvases.length + 1}`,
+          is_dashboard: false,
+        },
+      });
+
+      setCanvases([...canvases, newCanvas]);
+      handleCanvasClick(newCanvas);
+    } catch (error) {
+      console.error('Failed to create canvas:', error);
+    }
+  };
+
+  // Handle canvas double-click to rename
+  const handleCanvasDoubleClick = (canvas, e) => {
+    e.stopPropagation();
+    setEditingCanvasId(canvas.id);
+    setEditingCanvasName(canvas.name);
+  };
+
+  // Handle canvas rename
+  const handleCanvasRename = async (canvasId) => {
+    if (!editingCanvasName.trim()) {
+      setEditingCanvasId(null);
+      return;
+    }
+
+    try {
+      await invoke('update_canvas', {
+        canvasId,
+        input: {
+          name: editingCanvasName.trim(),
+        },
+      });
+
+      // Update local state
+      setCanvases(
+        canvases.map((c) => (c.id === canvasId ? { ...c, name: editingCanvasName.trim() } : c))
+      );
+      setEditingCanvasId(null);
+    } catch (error) {
+      console.error('Failed to rename canvas:', error);
+    }
+  };
+
+  // Handle entity double-click to rename
+  const handleEntityDoubleClick = (entity, entityType, e) => {
+    e.stopPropagation();
+    setEditingEntityId(entity.id);
+    setEditingEntityName(entity.name);
+    setEditingEntityType(entityType);
+  };
+
+  // Handle entity rename
+  const handleEntityRename = async (entityId, entityType) => {
+    if (!editingEntityName.trim()) {
+      setEditingEntityId(null);
+      return;
+    }
+
+    try {
+      const commandMap = {
+        person: 'update_person',
+        event: 'update_event',
+        theory: 'update_theory',
+        place: 'update_place',
+        artifact: 'update_artifact',
+      };
+
+      const idParamMap = {
+        person: 'personId',
+        event: 'eventId',
+        theory: 'theoryId',
+        place: 'placeId',
+        artifact: 'artifactId',
+      };
+
+      const updateFnMap = {
+        person: updatePerson,
+        event: updateEvent,
+        theory: updateTheory,
+        place: updatePlace,
+        artifact: updateArtifact,
+      };
+
+      await invoke(commandMap[entityType], {
+        [idParamMap[entityType]]: entityId,
+        input: {
+          name: editingEntityName.trim(),
+        },
+      });
+
+      // Update the store
+      updateFnMap[entityType](entityId, { name: editingEntityName.trim() });
+
+      setEditingEntityId(null);
+    } catch (error) {
+      console.error('Failed to rename entity:', error);
+    }
   };
 
   // Filter entities based on search query
@@ -98,6 +259,21 @@ export default function EntityExplorer() {
         },
       });
     }
+  };
+
+  // Handle double-click - adds entity to canvas if canvas tab is active
+
+  // Handle entity drag start - for dragging to canvas
+  const handleEntityDragStart = (e, entity, entityType) => {
+    console.log('🔵 DRAG START:', { name: entity.name, type: entityType });
+    e.dataTransfer.effectAllowed = 'copy';
+    const data = {
+      entityId: entity.id,
+      entityType,
+      entityName: entity.name,
+    };
+    e.dataTransfer.setData('application/json', JSON.stringify(data));
+    console.log('🔵 Data set:', data);
   };
 
   // Handle create new entity
@@ -194,10 +370,27 @@ export default function EntityExplorer() {
                     key={person.id}
                     className="entity-result"
                     onClick={() => handleEntityClick(person, 'person')}
-                    title={`Open ${person.name}`}
+                    onDoubleClick={(e) => handleEntityDoubleClick(person, 'person', e)}
+                    title="Click: open | Double-click: rename"
                   >
                     <span className="entity-result-icon">👤</span>
-                    <span className="entity-result-name">{person.name}</span>
+                    {editingEntityId === person.id && editingEntityType === 'person' ? (
+                      <input
+                        type="text"
+                        className="rename-input"
+                        value={editingEntityName}
+                        onChange={(e) => setEditingEntityName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleEntityRename(person.id, 'person');
+                          if (e.key === 'Escape') setEditingEntityId(null);
+                        }}
+                        onBlur={() => handleEntityRename(person.id, 'person')}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      />
+                    ) : (
+                      <span className="entity-result-name">{person.name}</span>
+                    )}
                   </div>
                 ))}
                 {!searchQuery && (
@@ -230,10 +423,27 @@ export default function EntityExplorer() {
                     key={event.id}
                     className="entity-result"
                     onClick={() => handleEntityClick(event, 'event')}
-                    title={`Open ${event.name}`}
+                    onDoubleClick={(e) => handleEntityDoubleClick(event, 'event', e)}
+                    title="Click: open | Double-click: rename"
                   >
                     <span className="entity-result-icon">📅</span>
-                    <span className="entity-result-name">{event.name}</span>
+                    {editingEntityId === event.id && editingEntityType === 'event' ? (
+                      <input
+                        type="text"
+                        className="rename-input"
+                        value={editingEntityName}
+                        onChange={(e) => setEditingEntityName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleEntityRename(event.id, 'event');
+                          if (e.key === 'Escape') setEditingEntityId(null);
+                        }}
+                        onBlur={() => handleEntityRename(event.id, 'event')}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      />
+                    ) : (
+                      <span className="entity-result-name">{event.name}</span>
+                    )}
                   </div>
                 ))}
                 {!searchQuery && (
@@ -263,10 +473,27 @@ export default function EntityExplorer() {
                     key={theory.id}
                     className="entity-result"
                     onClick={() => handleEntityClick(theory, 'theory')}
-                    title={`Open ${theory.name}`}
+                    onDoubleClick={(e) => handleEntityDoubleClick(theory, 'theory', e)}
+                    title="Click: open | Double-click: rename"
                   >
                     <span className="entity-result-icon">💡</span>
-                    <span className="entity-result-name">{theory.name}</span>
+                    {editingEntityId === theory.id && editingEntityType === 'theory' ? (
+                      <input
+                        type="text"
+                        className="rename-input"
+                        value={editingEntityName}
+                        onChange={(e) => setEditingEntityName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleEntityRename(theory.id, 'theory');
+                          if (e.key === 'Escape') setEditingEntityId(null);
+                        }}
+                        onBlur={() => handleEntityRename(theory.id, 'theory')}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      />
+                    ) : (
+                      <span className="entity-result-name">{theory.name}</span>
+                    )}
                   </div>
                 ))}
                 {!searchQuery && (
@@ -299,10 +526,27 @@ export default function EntityExplorer() {
                     key={place.id}
                     className="entity-result"
                     onClick={() => handleEntityClick(place, 'place')}
-                    title={`Open ${place.name}`}
+                    onDoubleClick={(e) => handleEntityDoubleClick(place, 'place', e)}
+                    title="Click: open | Double-click: rename"
                   >
                     <span className="entity-result-icon">📍</span>
-                    <span className="entity-result-name">{place.name}</span>
+                    {editingEntityId === place.id && editingEntityType === 'place' ? (
+                      <input
+                        type="text"
+                        className="rename-input"
+                        value={editingEntityName}
+                        onChange={(e) => setEditingEntityName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleEntityRename(place.id, 'place');
+                          if (e.key === 'Escape') setEditingEntityId(null);
+                        }}
+                        onBlur={() => handleEntityRename(place.id, 'place')}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      />
+                    ) : (
+                      <span className="entity-result-name">{place.name}</span>
+                    )}
                   </div>
                 ))}
                 {!searchQuery && (
@@ -333,10 +577,27 @@ export default function EntityExplorer() {
                       key={artifact.id}
                       className="entity-result"
                       onClick={() => handleEntityClick(artifact, 'artifact')}
-                      title={`Open ${artifact.name}`}
+                      onDoubleClick={(e) => handleEntityDoubleClick(artifact, 'artifact', e)}
+                      title="Click: open | Double-click: rename"
                     >
                       <span className="entity-result-icon">🏺</span>
-                      <span className="entity-result-name">{artifact.name}</span>
+                      {editingEntityId === artifact.id && editingEntityType === 'artifact' ? (
+                        <input
+                          type="text"
+                          className="rename-input"
+                          value={editingEntityName}
+                          onChange={(e) => setEditingEntityName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleEntityRename(artifact.id, 'artifact');
+                            if (e.key === 'Escape') setEditingEntityId(null);
+                          }}
+                          onBlur={() => handleEntityRename(artifact.id, 'artifact')}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                      ) : (
+                        <span className="entity-result-name">{artifact.name}</span>
+                      )}
                     </div>
                   )
                 )}
@@ -370,6 +631,49 @@ export default function EntityExplorer() {
         )}
       </div>
 
+      {/* Canvases Section */}
+      <div className="explorer-section">
+        <div className="section-header" onClick={() => toggleSection('canvases')}>
+          <span className="section-icon">{expandedSections.canvases ? '▼' : '▶'}</span>
+          <span className="section-title">🎨 Canvases</span>
+        </div>
+        {expandedSections.canvases && (
+          <div className="section-content">
+            {canvases.map((canvas) => (
+              <div
+                key={canvas.id}
+                className="entity-result"
+                onClick={() => handleCanvasClick(canvas)}
+                onDoubleClick={(e) => handleCanvasDoubleClick(canvas, e)}
+                title="Click: open | Double-click: rename"
+              >
+                <span className="entity-result-icon">{canvas.is_dashboard ? '⭐' : '📋'}</span>
+                {editingCanvasId === canvas.id ? (
+                  <input
+                    type="text"
+                    className="rename-input"
+                    value={editingCanvasName}
+                    onChange={(e) => setEditingCanvasName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCanvasRename(canvas.id);
+                      if (e.key === 'Escape') setEditingCanvasId(null);
+                    }}
+                    onBlur={() => handleCanvasRename(canvas.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    autoFocus
+                  />
+                ) : (
+                  <span className="entity-result-name">{canvas.name}</span>
+                )}
+              </div>
+            ))}
+            <button className="create-entity-btn" onClick={handleCreateCanvas}>
+              + New Canvas
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Visualizations Section */}
       <div className="explorer-section">
         <div className="section-header" onClick={() => toggleSection('visualizations')}>
@@ -378,15 +682,16 @@ export default function EntityExplorer() {
         </div>
         {expandedSections.visualizations && (
           <div className="section-content">
-            <div className="viz-item">
-              <span className="viz-icon">🕐</span>
-              <span className="viz-label">Timeline</span>
-            </div>
-            <div className="viz-item">
-              <span className="viz-icon">🔗</span>
-              <span className="viz-label">Evidence Chain</span>
-            </div>
-            <div className="viz-item">
+            <div
+              className="viz-item"
+              onClick={() =>
+                addTab({
+                  type: 'graph',
+                  title: 'Network Graph',
+                  data: null,
+                })
+              }
+            >
               <span className="viz-icon">🕸️</span>
               <span className="viz-label">Network Graph</span>
             </div>

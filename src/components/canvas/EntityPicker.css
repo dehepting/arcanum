@@ -1,0 +1,122 @@
+.entity-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.entity-picker {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  width: 500px;
+  max-width: 90vw;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.entity-picker-header {
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.entity-picker-search {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.entity-picker-search:focus {
+  outline: none;
+  border-color: var(--accent-2);
+}
+
+.entity-picker-close {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.entity-picker-close:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-2);
+  color: var(--text);
+}
+
+.entity-picker-results {
+  overflow-y: auto;
+  padding: 8px;
+  flex: 1;
+}
+
+.entity-picker-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.entity-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.entity-picker-item:hover {
+  background: var(--bg-hover);
+}
+
+.entity-picker-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.entity-picker-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.entity-picker-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-picker-type {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}

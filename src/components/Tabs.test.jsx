@@ -156,4 +156,40 @@ describe('Tabs', () => {
     render(<Tabs />);
     expect(screen.getByText('•')).toBeInTheDocument();
   });
+
+  it('close button should be a span, not a button (to prevent nesting)', () => {
+    useStore.mockImplementation((selector) => {
+      const state = {
+        tabs: [
+          { id: 'map-1', type: 'map', title: 'Map', data: null, isDirty: false },
+          { id: 'canvas-1', type: 'canvas', title: 'Research Canvas', data: null, isDirty: false },
+        ],
+        activeTabId: 'canvas-1',
+        sources: [],
+        currentProject: { id: 'project-1', name: 'Test Project' },
+        addTab: mockAddTab,
+        removeTab: mockRemoveTab,
+        setActiveTab: mockSetActiveTab,
+        addSource: mockAddSource,
+        removeSource: mockRemoveSource,
+      };
+      return selector ? selector(state) : state;
+    });
+
+    const { container } = render(<Tabs />);
+
+    // Get the canvas tab button
+    const canvasTab = screen.getByText(/Research Canvas/).closest('button');
+
+    // Verify no nested buttons exist
+    const nestedButtons = canvasTab.querySelectorAll('button');
+    expect(nestedButtons.length).toBe(0);
+
+    // Verify close button is a span with proper attributes
+    const closeButton = canvasTab.querySelector('.tab-close');
+    expect(closeButton).toBeInTheDocument();
+    expect(closeButton.tagName).toBe('SPAN');
+    expect(closeButton.getAttribute('role')).toBe('button');
+    expect(closeButton.getAttribute('tabindex')).toBe('0');
+  });
 });

@@ -180,6 +180,26 @@ fn create_tables(conn: &Connection) -> Result<()> {
         [],
     )?;
 
+    // Canvases table
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS canvases (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            is_dashboard INTEGER DEFAULT 0,
+            canvas_data TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_canvases_project ON canvases(project_id)",
+        [],
+    )?;
+
     // Entity links table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS entity_links (
