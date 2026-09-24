@@ -7,6 +7,9 @@ export default function ProjectPicker() {
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const setCurrentProject = useStore((state) => state.setCurrentProject);
 
   const loadProjects = async () => {
@@ -44,6 +47,39 @@ export default function ProjectPicker() {
   const openProject = (project) => {
     setCurrentProject(project);
     localStorage.setItem('arcanum_last_project_id', project.id);
+  };
+
+  const handleDeleteClick = (project, e) => {
+    e.stopPropagation();
+    setProjectToDelete(project);
+    setShowDeleteConfirm(true);
+    setDeleteConfirmText('');
+  };
+
+  const confirmDelete = async () => {
+    if (!projectToDelete || deleteConfirmText !== projectToDelete.name) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await tauri.deleteProject(projectToDelete.id);
+      await loadProjects();
+      setShowDeleteConfirm(false);
+      setProjectToDelete(null);
+      setDeleteConfirmText('');
+    } catch (err) {
+      console.error('Error deleting project:', err);
+      alert('Error deleting project: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setProjectToDelete(null);
+    setDeleteConfirmText('');
   };
 
   // Load projects on mount
@@ -103,6 +139,9 @@ export default function ProjectPicker() {
                         cursor: 'pointer',
                         background: 'var(--panel-2)',
                         transition: 'all 0.15s',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = 'var(--accent-2)';
@@ -111,10 +150,37 @@ export default function ProjectPicker() {
                         e.currentTarget.style.borderColor = 'var(--line)';
                       }}
                     >
-                      <div style={{ fontSize: '14px', fontWeight: 500 }}>{project.name}</div>
-                      <div className="text-muted" style={{ fontSize: '11px', marginTop: '4px' }}>
-                        Updated {new Date(project.updated_at).toLocaleDateString()}
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: 500 }}>{project.name}</div>
+                        <div className="text-muted" style={{ fontSize: '11px', marginTop: '4px' }}>
+                          Updated {new Date(project.updated_at).toLocaleDateString()}
+                        </div>
                       </div>
+                      <button
+                        onClick={(e) => handleDeleteClick(project, e)}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'transparent',
+                          border: '1px solid var(--line)',
+                          borderRadius: '4px',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'var(--red-9)';
+                          e.currentTarget.style.borderColor = 'var(--red-7)';
+                          e.currentTarget.style.color = 'white';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.borderColor = 'var(--line)';
+                          e.currentTarget.style.color = 'var(--text-muted)';
+                        }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -160,6 +226,99 @@ export default function ProjectPicker() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && projectToDelete && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={cancelDelete}
+        >
+          <div
+            style={{
+              background: 'var(--panel-2)',
+              border: '1px solid var(--red-7)',
+              borderRadius: '8px',
+              padding: '24px',
+              maxWidth: '500px',
+              width: '90%',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--red-9)', fontSize: '18px' }}>
+              ⚠️ Delete Project
+            </h3>
+            <p style={{ margin: '0 0 16px 0', lineHeight: 1.5 }}>
+              This will permanently delete <strong>{projectToDelete.name}</strong> and all its data:
+            </p>
+            <ul style={{ margin: '0 0 16px 0', paddingLeft: '20px', lineHeight: 1.5 }}>
+              <li>All entities (people, places, events, theories, artifacts)</li>
+              <li>All entity pages and content</li>
+              <li>All sources and annotations</li>
+              <li>This action cannot be undone</li>
+            </ul>
+            <p style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 500 }}>
+              Type{' '}
+              <code style={{ background: 'var(--panel)', padding: '2px 6px', borderRadius: '3px' }}>
+                {projectToDelete.name}
+              </code>{' '}
+              to confirm:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder={`Type "${projectToDelete.name}" to confirm`}
+              style={{
+                width: '100%',
+                padding: '10px',
+                background: 'var(--bg)',
+                border: '1px solid var(--line)',
+                borderRadius: '4px',
+                color: 'var(--text)',
+                fontSize: '14px',
+                marginBottom: '16px',
+              }}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && deleteConfirmText === projectToDelete.name) {
+                  confirmDelete();
+                }
+                if (e.key === 'Escape') cancelDelete();
+              }}
+            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn" onClick={cancelDelete} style={{ flex: 1 }}>
+                Cancel
+              </button>
+              <button
+                className="btn"
+                onClick={confirmDelete}
+                disabled={deleteConfirmText !== projectToDelete.name || loading}
+                style={{
+                  flex: 1,
+                  background:
+                    deleteConfirmText === projectToDelete.name ? 'var(--red-9)' : 'var(--panel)',
+                  color: deleteConfirmText === projectToDelete.name ? 'white' : 'var(--text-muted)',
+                  cursor: deleteConfirmText === projectToDelete.name ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {loading ? 'Deleting...' : 'Delete Project'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

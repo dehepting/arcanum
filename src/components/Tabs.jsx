@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
 import useStore from '../store/useStore';
-import { uploadPDF, deleteSource } from '../lib/upload';
+import { deleteSource } from '../lib/upload';
 
 const TAB_ICONS = {
   map: '🗺️',
@@ -11,91 +10,15 @@ const TAB_ICONS = {
   place: '📍',
   artifact: '🏺',
   graph: '🕸️',
+  canvas: '🎨',
 };
 
 export default function Tabs() {
-  const [uploading, setUploading] = useState(false);
-  const [showAddMenu, setShowAddMenu] = useState(false);
-  const addMenuRef = useRef(null);
-
   const tabs = useStore((state) => state.tabs);
   const activeTabId = useStore((state) => state.activeTabId);
-  const currentProject = useStore((state) => state.currentProject);
-  const addTab = useStore((state) => state.addTab);
   const removeTab = useStore((state) => state.removeTab);
   const setActiveTab = useStore((state) => state.setActiveTab);
-
-  // Legacy support for sources (convert to tabs)
-  const sources = useStore((state) => state.sources);
-  const addSource = useStore((state) => state.addSource);
   const removeSource = useStore((state) => state.removeSource);
-
-  // Close add menu when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (addMenuRef.current && !addMenuRef.current.contains(event.target)) {
-        setShowAddMenu(false);
-      }
-    }
-
-    if (showAddMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [showAddMenu]);
-
-  const handleAddPDF = () => {
-    console.log('handleAddPDF called');
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/pdf';
-    input.onchange = async (e) => {
-      const file = e.target.files[0];
-      console.log('File selected:', file);
-      if (!file) return;
-
-      setUploading(true);
-      setShowAddMenu(false);
-      try {
-        console.log('Starting upload for project:', currentProject.id);
-        const source = await uploadPDF(file, currentProject.id);
-        console.log('Upload successful:', source);
-        addSource(source); // Still add to sources for backward compatibility
-        addTab({
-          type: 'pdf',
-          title: source.title,
-          data: { source },
-        });
-      } catch (err) {
-        console.error('Upload error:', err);
-        alert(`Failed to upload PDF: ${err.message}`);
-      } finally {
-        setUploading(false);
-      }
-    };
-    input.click();
-    console.log('File input clicked');
-  };
-
-  const handleAddEntityPage = (entityType) => {
-    const titles = {
-      person: 'New Person',
-      event: 'New Event',
-      theory: 'New Theory',
-      place: 'New Place',
-      artifact: 'New Artifact',
-    };
-
-    addTab({
-      type: entityType,
-      title: titles[entityType] || 'New Entity',
-      data: {
-        entityId: null, // Will be created on first save
-        entityType,
-      },
-    });
-    setShowAddMenu(false);
-  };
 
   const handleCloseTab = async (tab, e) => {
     e.stopPropagation();
@@ -137,75 +60,18 @@ export default function Tabs() {
             {tab.isDirty && <span className="dirty-indicator">•</span>}
           </span>
           {tab.type !== 'map' && (
-            <button className="tab-close" onClick={(e) => handleCloseTab(tab, e)} title="Close tab">
+            <span
+              className="tab-close"
+              onClick={(e) => handleCloseTab(tab, e)}
+              title="Close tab"
+              role="button"
+              tabIndex={0}
+            >
               ×
-            </button>
+            </span>
           )}
         </button>
       ))}
-
-      <div className="add-tab-container" ref={addMenuRef}>
-        <button
-          className="add-tab"
-          onClick={() => setShowAddMenu(!showAddMenu)}
-          disabled={uploading}
-        >
-          {uploading ? '⏳' : '+'}
-        </button>
-
-        {showAddMenu && (
-          <div className="add-tab-menu">
-            <div className="add-tab-menu-section">
-              <div className="add-tab-menu-label">Documents</div>
-              <button onClick={handleAddPDF}>
-                <span className="menu-icon">📄</span>
-                Upload PDF
-              </button>
-            </div>
-
-            <div className="add-tab-menu-section">
-              <div className="add-tab-menu-label">Entity Pages</div>
-              <button onClick={() => handleAddEntityPage('person')}>
-                <span className="menu-icon">👤</span>
-                Person
-              </button>
-              <button onClick={() => handleAddEntityPage('event')}>
-                <span className="menu-icon">📅</span>
-                Event
-              </button>
-              <button onClick={() => handleAddEntityPage('theory')}>
-                <span className="menu-icon">💡</span>
-                Theory
-              </button>
-              <button onClick={() => handleAddEntityPage('place')}>
-                <span className="menu-icon">📍</span>
-                Place
-              </button>
-              <button onClick={() => handleAddEntityPage('artifact')}>
-                <span className="menu-icon">🏺</span>
-                Artifact
-              </button>
-            </div>
-
-            <div className="add-tab-menu-section">
-              <div className="add-tab-menu-label">Visualizations</div>
-              <button
-                onClick={() => {
-                  addTab({
-                    type: 'graph',
-                    title: 'Network Graph',
-                    data: null,
-                  });
-                  setShowAddMenu(false);
-                }}
-              >
-                <span className="menu-icon">🕸️</span>
-                Network Graph
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

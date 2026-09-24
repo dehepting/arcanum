@@ -235,3 +235,21 @@
 .entity-explorer {
   overflow-y: auto;
 }
+
+/* Rename Input */
+.rename-input {
+  flex: 1;
+  padding: 2px 6px;
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+}
+
+.rename-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.15);
+}

@@ -179,7 +179,14 @@ pub fn update_theory(
 
     drop(db);
 
-    get_theory(theory_id, state)?
+    // Broadcast update notification to WebSocket clients
+    let update_msg = serde_json::json!({
+        "entity_id": theory_id,
+        "entity_type": "theory"
+    }).to_string();
+    let _ = state.broadcast_tx.send(update_msg);
+
+    get_theory(theory_id.clone(), state)?
         .ok_or_else(|| super::CommandError {
             message: "Theory not found after update".to_string(),
         })

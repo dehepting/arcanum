@@ -48,7 +48,7 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
   const currentProject = useStore((state) => state.currentProject);
   const places = useStore((state) => state.places);
   const addArtifact = useStore((state) => state.addArtifact);
-  const updateArtifactInStore = useStore((state) => state.updateArtifactInStore);
+  const updateArtifactStore = useStore((state) => state.updateArtifact);
 
   useEffect(() => {
     if (artifact) {
@@ -138,7 +138,7 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
       if (artifact) {
         // Update existing
         const updated = await updateArtifact(artifact.id, artifactData);
-        updateArtifactInStore(artifact.id, updated);
+        updateArtifactStore(artifact.id, updated);
       } else {
         // Create new
         const created = await createArtifact(artifactData);

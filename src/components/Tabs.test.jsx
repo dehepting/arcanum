@@ -60,12 +60,6 @@ describe('Tabs', () => {
     expect(screen.getByText(/Map/)).toBeInTheDocument();
   });
 
-  it('renders add tab button', () => {
-    render(<Tabs />);
-    const addButton = screen.getByRole('button', { name: /\+/ });
-    expect(addButton).toBeInTheDocument();
-  });
-
   it('shows map tab as active', () => {
     render(<Tabs />);
     const mapTab = screen.getByText(/Map/).closest('button');
@@ -95,14 +89,6 @@ describe('Tabs', () => {
     const pdfTab = screen.getByText(/Test\.pdf/).closest('button');
     fireEvent.click(pdfTab);
     expect(mockSetActiveTab).toHaveBeenCalledWith('pdf-1');
-  });
-
-  it('shows dropdown menu when add button is clicked', () => {
-    render(<Tabs />);
-    const addButton = screen.getByRole('button', { name: /\+/ });
-    fireEvent.click(addButton);
-    expect(screen.getByText(/Upload PDF/)).toBeInTheDocument();
-    expect(screen.getByText(/Person/)).toBeInTheDocument();
   });
 
   it('renders close button on non-default tabs', () => {
@@ -155,5 +141,41 @@ describe('Tabs', () => {
 
     render(<Tabs />);
     expect(screen.getByText('•')).toBeInTheDocument();
+  });
+
+  it('close button should be a span, not a button (to prevent nesting)', () => {
+    useStore.mockImplementation((selector) => {
+      const state = {
+        tabs: [
+          { id: 'map-1', type: 'map', title: 'Map', data: null, isDirty: false },
+          { id: 'canvas-1', type: 'canvas', title: 'Research Canvas', data: null, isDirty: false },
+        ],
+        activeTabId: 'canvas-1',
+        sources: [],
+        currentProject: { id: 'project-1', name: 'Test Project' },
+        addTab: mockAddTab,
+        removeTab: mockRemoveTab,
+        setActiveTab: mockSetActiveTab,
+        addSource: mockAddSource,
+        removeSource: mockRemoveSource,
+      };
+      return selector ? selector(state) : state;
+    });
+
+    const { container } = render(<Tabs />);
+
+    // Get the canvas tab button
+    const canvasTab = screen.getByText(/Research Canvas/).closest('button');
+
+    // Verify no nested buttons exist
+    const nestedButtons = canvasTab.querySelectorAll('button');
+    expect(nestedButtons.length).toBe(0);
+
+    // Verify close button is a span with proper attributes
+    const closeButton = canvasTab.querySelector('.tab-close');
+    expect(closeButton).toBeInTheDocument();
+    expect(closeButton.tagName).toBe('SPAN');
+    expect(closeButton.getAttribute('role')).toBe('button');
+    expect(closeButton.getAttribute('tabindex')).toBe('0');
   });
 });

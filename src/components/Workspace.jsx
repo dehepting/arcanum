@@ -5,6 +5,7 @@ import EntityPage from './EntityPage';
 import IDEWorkspace from './IDEWorkspace';
 import EntityExplorer from './EntityExplorer';
 import Tabs from './Tabs';
+import ResearchCanvas from './ResearchCanvas';
 
 export default function Workspace() {
   const tabs = useStore((state) => state.tabs);
@@ -50,6 +51,9 @@ export default function Workspace() {
             <p>Network Graph visualization coming soon...</p>
           </div>
         );
+
+      case 'canvas':
+        return <ResearchCanvas tab={activeTab} />;
 
       default:
         return <div className="tab-empty">Unknown tab type</div>;

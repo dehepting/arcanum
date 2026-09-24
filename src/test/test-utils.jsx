@@ -96,7 +96,7 @@ export function createMockStore(initialState = {}) {
     cancelPinPlacement: vi.fn(),
     setArtifacts: vi.fn(),
     addArtifact: vi.fn(),
-    updateArtifactInStore: vi.fn(),
+    updateArtifact: vi.fn(),
     removeArtifact: vi.fn(),
     setSelectedArtifact: vi.fn(),
     setMapOverlays: vi.fn(),

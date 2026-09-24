@@ -211,7 +211,14 @@ pub fn update_place(
 
     drop(db);
 
-    get_place(place_id, state)?
+    // Broadcast update notification to WebSocket clients
+    let update_msg = serde_json::json!({
+        "entity_id": place_id,
+        "entity_type": "place"
+    }).to_string();
+    let _ = state.broadcast_tx.send(update_msg);
+
+    get_place(place_id.clone(), state)?
         .ok_or_else(|| super::CommandError {
             message: "Place not found after update".to_string(),
         })

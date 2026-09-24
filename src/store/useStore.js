@@ -150,7 +150,7 @@ const useStore = create((set, get) => ({
     set((state) => ({
       artifacts: [...state.artifacts, artifact],
     })),
-  updateArtifactInStore: (artifactId, updates) =>
+  updateArtifact: (artifactId, updates) =>
     set((state) => ({
       artifacts: state.artifacts.map((a) => (a.id === artifactId ? { ...a, ...updates } : a)),
     })),

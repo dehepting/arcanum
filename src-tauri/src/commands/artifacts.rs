@@ -299,7 +299,14 @@ pub fn update_artifact(
 
     drop(db);
 
-    get_artifact(artifact_id, state)?
+    // Broadcast update notification to WebSocket clients
+    let update_msg = serde_json::json!({
+        "entity_id": artifact_id,
+        "entity_type": "artifact"
+    }).to_string();
+    let _ = state.broadcast_tx.send(update_msg);
+
+    get_artifact(artifact_id.clone(), state)?
         .ok_or_else(|| super::CommandError {
             message: "Artifact not found after update".to_string(),
         })

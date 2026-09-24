@@ -1,6 +1,7 @@
 use serde::Serialize;
 use rusqlite::Connection;
 use std::sync::Mutex;
+use tokio::sync::broadcast;
 
 // Re-export all command modules
 pub mod artifacts;
@@ -16,11 +17,13 @@ pub mod migration;
 pub mod annotations;
 pub mod overlays;
 pub mod provenance;
+pub mod canvases;
 
 // App state that holds the database connection and storage
 pub struct AppState {
     pub db: Mutex<Connection>,
     pub storage: crate::storage::AppStorage,
+    pub broadcast_tx: broadcast::Sender<String>,
 }
 
 // Common error type for commands

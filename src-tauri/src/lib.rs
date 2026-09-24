@@ -1,6 +1,7 @@
 mod db;
 mod storage;
 mod commands;
+mod http_server;
 
 use std::sync::Mutex;
 use tauri::Manager;
@@ -30,14 +31,30 @@ pub fn run() {
       let conn = db::init_db(app_data_dir.clone())
         .expect("Failed to initialize database");
 
+      // Get DB path before moving app_data_dir
+      let db_path = app_data_dir.join("arcanum.db");
+
       // Initialize storage
       let storage = storage::AppStorage::new(app_data_dir)
         .expect("Failed to initialize storage");
+
+      // Create broadcast channel for WebSocket updates
+      let (broadcast_tx, _) = tokio::sync::broadcast::channel::<String>(100);
+      let http_broadcast_tx = broadcast_tx.clone();
 
       // Store database connection and storage in app state
       app.manage(AppState {
         db: Mutex::new(conn),
         storage,
+        broadcast_tx,
+      });
+
+      // Start HTTP server in a separate thread (not async runtime)
+      std::thread::spawn(move || {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+          http_server::start_server(db_path, http_broadcast_tx).await;
+        });
       });
 
       Ok(())
@@ -142,6 +159,13 @@ pub fn run() {
       commands::migration::import_people,
       commands::migration::import_all_data,
       commands::migration::import_files,
+
+      // Canvas commands
+      commands::canvases::create_canvas,
+      commands::canvases::get_canvas,
+      commands::canvases::list_canvases,
+      commands::canvases::update_canvas,
+      commands::canvases::delete_canvas,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

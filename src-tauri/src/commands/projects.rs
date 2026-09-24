@@ -160,6 +160,27 @@ pub fn delete_project(
     state: State<AppState>,
 ) -> CommandResult<()> {
     let db = state.db.lock().unwrap();
+
+    // Delete all related data in a transaction
+    db.execute("BEGIN TRANSACTION", [])?;
+
+    // Delete entity pages
+    db.execute("DELETE FROM entity_pages WHERE project_id = ?1", [&project_id])?;
+
+    // Delete entities
+    db.execute("DELETE FROM artifacts WHERE project_id = ?1", [&project_id])?;
+    db.execute("DELETE FROM people WHERE project_id = ?1", [&project_id])?;
+    db.execute("DELETE FROM places WHERE project_id = ?1", [&project_id])?;
+    db.execute("DELETE FROM events WHERE project_id = ?1", [&project_id])?;
+    db.execute("DELETE FROM theories WHERE project_id = ?1", [&project_id])?;
+
+    // Delete sources and annotations
+    db.execute("DELETE FROM annotations WHERE project_id = ?1", [&project_id])?;
+    db.execute("DELETE FROM sources WHERE project_id = ?1", [&project_id])?;
+
+    // Delete project
     db.execute("DELETE FROM projects WHERE id = ?1", [&project_id])?;
+
+    db.execute("COMMIT", [])?;
     Ok(())
 }

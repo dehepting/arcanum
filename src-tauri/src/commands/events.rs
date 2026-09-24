@@ -192,7 +192,14 @@ pub fn update_event(
 
     drop(db);
 
-    get_event(event_id, state)?
+    // Broadcast update notification to WebSocket clients
+    let update_msg = serde_json::json!({
+        "entity_id": event_id,
+        "entity_type": "event"
+    }).to_string();
+    let _ = state.broadcast_tx.send(update_msg);
+
+    get_event(event_id.clone(), state)?
         .ok_or_else(|| super::CommandError {
             message: "Event not found after update".to_string(),
         })
