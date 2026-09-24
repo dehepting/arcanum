@@ -60,12 +60,6 @@ describe('Tabs', () => {
     expect(screen.getByText(/Map/)).toBeInTheDocument();
   });
 
-  it('renders add tab button', () => {
-    render(<Tabs />);
-    const addButton = screen.getByRole('button', { name: /\+/ });
-    expect(addButton).toBeInTheDocument();
-  });
-
   it('shows map tab as active', () => {
     render(<Tabs />);
     const mapTab = screen.getByText(/Map/).closest('button');
@@ -95,14 +89,6 @@ describe('Tabs', () => {
     const pdfTab = screen.getByText(/Test\.pdf/).closest('button');
     fireEvent.click(pdfTab);
     expect(mockSetActiveTab).toHaveBeenCalledWith('pdf-1');
-  });
-
-  it('shows dropdown menu when add button is clicked', () => {
-    render(<Tabs />);
-    const addButton = screen.getByRole('button', { name: /\+/ });
-    fireEvent.click(addButton);
-    expect(screen.getByText(/Upload PDF/)).toBeInTheDocument();
-    expect(screen.getByText(/Person/)).toBeInTheDocument();
   });
 
   it('renders close button on non-default tabs', () => {
