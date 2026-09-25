@@ -4,14 +4,12 @@ import Topbar from './components/Topbar';
 import Workspace from './components/Workspace';
 import ProjectPicker from './components/ProjectPicker';
 import { loadSources } from './lib/upload';
-import { loadAnnotations } from './lib/annotations';
 import { loadArtifacts } from './lib/artifacts';
 import { invoke } from '@tauri-apps/api/core';
 import './styles/index.css';
 
 function App() {
   const currentProject = useStore((state) => state.currentProject);
-  const setCurrentProject = useStore((state) => state.setCurrentProject);
   const setAnnotations = useStore((state) => state.setAnnotations);
   const setPlaces = useStore((state) => state.setPlaces);
   const setArtifacts = useStore((state) => state.setArtifacts);

@@ -16,7 +16,6 @@ export default function AdvancedSearch({ isOpen, onClose }) {
   const [isSearching, setIsSearching] = useState(false);
   const currentProject = useStore((state) => state.currentProject);
   const addTab = useStore((state) => state.addTab);
-  const setActiveTab = useStore((state) => state.setActiveTab);
 
   // Debounced search
   useEffect(() => {
