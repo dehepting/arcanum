@@ -17,19 +17,19 @@ export default function ProvenanceTimeline({ artifactId, onEdit }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const loadProvenance = async () => {
+      try {
+        const data = await getProvenance(artifactId);
+        setProvenance(data);
+      } catch (err) {
+        console.error('Failed to load provenance:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadProvenance();
   }, [artifactId]);
-
-  const loadProvenance = async () => {
-    try {
-      const data = await getProvenance(artifactId);
-      setProvenance(data);
-    } catch (err) {
-      console.error('Failed to load provenance:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDelete = async (entryId) => {
     if (!confirm('Delete this provenance entry?')) return;

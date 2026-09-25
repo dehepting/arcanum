@@ -14,22 +14,21 @@ export default function ClaimsList({ artifactId }) {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingClaim, setEditingClaim] = useState(null);
 
   useEffect(() => {
+    const loadClaims = async () => {
+      try {
+        const data = await getClaims(artifactId);
+        setClaims(data);
+      } catch (err) {
+        console.error('Failed to load claims:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadClaims();
   }, [artifactId]);
-
-  const loadClaims = async () => {
-    try {
-      const data = await getClaims(artifactId);
-      setClaims(data);
-    } catch (err) {
-      console.error('Failed to load claims:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDelete = async (claimId) => {
     if (!confirm('Delete this claim?')) return;

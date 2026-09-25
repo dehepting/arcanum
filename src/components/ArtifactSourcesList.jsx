@@ -13,23 +13,23 @@ export default function ArtifactSourcesList({ artifactId }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const loadSources = async () => {
+      setLoading(true);
+      setError(null);
+
+      const result = await getSourcesForArtifact(artifactId);
+
+      if (result.success) {
+        setSources(result.data);
+      } else {
+        setError(result.error);
+      }
+
+      setLoading(false);
+    };
+
     loadSources();
   }, [artifactId]);
-
-  const loadSources = async () => {
-    setLoading(true);
-    setError(null);
-
-    const result = await getSourcesForArtifact(artifactId);
-
-    if (result.success) {
-      setSources(result.data);
-    } else {
-      setError(result.error);
-    }
-
-    setLoading(false);
-  };
 
   const handleUnlink = async (linkId, annotationId) => {
     if (!confirm('Remove this source reference?')) return;
