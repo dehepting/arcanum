@@ -38,6 +38,18 @@ pub fn search_entities(
         return Ok(all_results);
     }
 
+    // Validate entity types against whitelist to prevent SQL injection
+    const VALID_ENTITY_TYPES: &[&str] = &["people", "events", "theories", "places", "artifacts"];
+    let validated_types: Vec<&String> = input
+        .entity_types
+        .iter()
+        .filter(|t| VALID_ENTITY_TYPES.contains(&t.as_str()))
+        .collect();
+
+    if validated_types.is_empty() {
+        return Ok(all_results);
+    }
+
     // Transform query for prefix matching: add * to each word for autocomplete behavior
     // This allows typing "f" to match "Foucault", "fouc" to match "Foucault", etc.
     let fts_query = input
@@ -55,10 +67,10 @@ pub fn search_entities(
         .join(" ");
 
     // Calculate per-type limit to distribute results evenly
-    let per_type_limit = (total_limit / input.entity_types.len()).max(1);
+    let per_type_limit = (total_limit / validated_types.len()).max(1);
 
     // Search each requested entity type
-    for entity_type in &input.entity_types {
+    for entity_type in validated_types {
         let table_name = entity_type.as_str();
         let fts_table = format!("{}_fts", table_name);
 
