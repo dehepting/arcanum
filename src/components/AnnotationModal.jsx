@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import useStore from '../store/useStore';
 import ArtifactLinkModal from './ArtifactLinkModal';
 import { getArtifactsForAnnotation } from '../lib/artifact-sources';
@@ -17,6 +17,13 @@ export default function AnnotationModal() {
   const activeSourceId = useStore((state) => state.activeSourceId);
   const startPinPlacement = useStore((state) => state.startPinPlacement);
 
+  const loadLinkedArtifacts = useCallback(async (annotationId) => {
+    const result = await getArtifactsForAnnotation(annotationId);
+    if (result.success) {
+      setLinkedArtifacts(result.data);
+    }
+  }, []);
+
   useEffect(() => {
     if (modalOpen && pendingAnnotation) {
       console.log('Opening modal with annotation:', pendingAnnotation);
@@ -33,14 +40,7 @@ export default function AnnotationModal() {
       setNoteText('');
       setLinkedArtifacts([]);
     }
-  }, [modalOpen, pendingAnnotation]);
-
-  const loadLinkedArtifacts = async (annotationId) => {
-    const result = await getArtifactsForAnnotation(annotationId);
-    if (result.success) {
-      setLinkedArtifacts(result.data);
-    }
-  };
+  }, [modalOpen, pendingAnnotation, loadLinkedArtifacts]);
 
   const handleSave = async () => {
     if (!pendingAnnotation) return;

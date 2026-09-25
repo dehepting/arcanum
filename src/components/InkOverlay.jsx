@@ -1,16 +1,42 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import * as fabric from 'fabric';
 import useStore from '../store/useStore';
 
 export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
   const fabricCanvasRef = useRef(null);
   const containerRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
 
   const currentPage = useStore((state) => state.currentPage);
   const activeSourceId = useStore((state) => state.activeSourceId);
   const annotations = useStore((state) => state.annotations);
   const addAnnotation = useStore((state) => state.addAnnotation);
+
+  // Load ink annotations - defined with useCallback to avoid recreating on every render
+  const loadInkAnnotations = useCallback(
+    (canvas) => {
+      // Clear existing objects
+      canvas.clear();
+
+      // Get ink annotations for current page
+      const inkAnnotations = annotations.filter(
+        (ann) =>
+          ann.source_id === activeSourceId && ann.page_number === currentPage && ann.type === 'ink'
+      );
+
+      // Render each ink annotation
+      inkAnnotations.forEach((ann) => {
+        if (ann.ink_data) {
+          fabric.Path.fromObject(ann.ink_data, (path) => {
+            path.selectable = false;
+            path.evented = true;
+            path.annotationId = ann.id; // Store ID for deletion
+            canvas.add(path);
+          });
+        }
+      });
+    },
+    [annotations, activeSourceId, currentPage]
+  );
 
   // Initialize Fabric.js canvas
   useEffect(() => {
@@ -87,37 +113,22 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
       canvas.dispose();
       fabricCanvasRef.current = null;
     };
-  }, [canvasWidth, canvasHeight, active]);
+  }, [
+    canvasWidth,
+    canvasHeight,
+    active,
+    loadInkAnnotations,
+    addAnnotation,
+    currentPage,
+    activeSourceId,
+  ]);
 
   // Load ink annotations when page changes
   useEffect(() => {
     if (fabricCanvasRef.current && active) {
       loadInkAnnotations(fabricCanvasRef.current);
     }
-  }, [currentPage, annotations, active]);
-
-  const loadInkAnnotations = (canvas) => {
-    // Clear existing objects
-    canvas.clear();
-
-    // Get ink annotations for current page
-    const inkAnnotations = annotations.filter(
-      (ann) =>
-        ann.source_id === activeSourceId && ann.page_number === currentPage && ann.type === 'ink'
-    );
-
-    // Render each ink annotation
-    inkAnnotations.forEach((ann) => {
-      if (ann.ink_data) {
-        fabric.Path.fromObject(ann.ink_data, (path) => {
-          path.selectable = false;
-          path.evented = true;
-          path.annotationId = ann.id; // Store ID for deletion
-          canvas.add(path);
-        });
-      }
-    });
-  };
+  }, [currentPage, annotations, active, loadInkAnnotations]);
 
   // Handle right-click to delete
   useEffect(() => {
