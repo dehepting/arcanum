@@ -36,6 +36,10 @@ vi.mock('./IDEWorkspace', () => ({
   ),
 }));
 
+vi.mock('./AdvancedSearch', () => ({
+  default: () => <div data-testid="advanced-search">AdvancedSearch</div>,
+}));
+
 describe('Workspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,6 +51,8 @@ describe('Workspace', () => {
         tabs: [{ id: 'map-1', type: 'map', title: 'Map', data: null, isDirty: false }],
         activeTabId: 'map-1',
         currentProject: { id: 'project-1', name: 'Test Project' },
+        advancedSearchModalOpen: false,
+        closeAdvancedSearch: vi.fn(),
       };
       return selector ? selector(state) : state;
     });
@@ -71,6 +77,8 @@ describe('Workspace', () => {
         ],
         activeTabId: 'pdf-1',
         currentProject: { id: 'project-1', name: 'Test Project' },
+        advancedSearchModalOpen: false,
+        closeAdvancedSearch: vi.fn(),
       };
       return selector ? selector(state) : state;
     });
@@ -95,6 +103,8 @@ describe('Workspace', () => {
         ],
         activeTabId: 'person-1',
         currentProject: { id: 'project-1', name: 'Test Project' },
+        advancedSearchModalOpen: false,
+        closeAdvancedSearch: vi.fn(),
       };
       return selector ? selector(state) : state;
     });
@@ -111,6 +121,8 @@ describe('Workspace', () => {
         tabs: [{ id: 'map-1', type: 'map', title: 'Map', data: null, isDirty: false }],
         activeTabId: 'map-1',
         currentProject: { id: 'project-1', name: 'Test Project' },
+        advancedSearchModalOpen: false,
+        closeAdvancedSearch: vi.fn(),
       };
       return selector ? selector(state) : state;
     });
@@ -127,6 +139,8 @@ describe('Workspace', () => {
         tabs: [{ id: 'map-1', type: 'map', title: 'Map', data: null, isDirty: false }],
         activeTabId: 'map-1',
         currentProject: { id: 'project-1', name: 'Test Project' },
+        advancedSearchModalOpen: false,
+        closeAdvancedSearch: vi.fn(),
       };
       return selector ? selector(state) : state;
     });

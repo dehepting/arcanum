@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import useStore from '../store/useStore';
 import './IDEWorkspace.css';
 
 /**
@@ -74,7 +75,9 @@ export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel = null
     };
   }, [resizing]);
 
-  // Keyboard shortcuts (Cmd+B for left panel)
+  // Keyboard shortcuts
+  const openAdvancedSearch = useStore((state) => state.openAdvancedSearch);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Cmd+B or Ctrl+B - toggle left panel
@@ -87,11 +90,16 @@ export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel = null
         e.preventDefault();
         setRightCollapsed((prev) => !prev);
       }
+      // Cmd+K or Ctrl+K - open advanced search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openAdvancedSearch();
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [rightPanel]);
+  }, [rightPanel, openAdvancedSearch]);
 
   return (
     <div className="ide-workspace" ref={containerRef}>

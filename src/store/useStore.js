@@ -128,6 +128,11 @@ const useStore = create((set, get) => ({
       pendingAnnotation: null,
     }),
 
+  // Advanced search modal
+  advancedSearchModalOpen: false,
+  openAdvancedSearch: () => set({ advancedSearchModalOpen: true }),
+  closeAdvancedSearch: () => set({ advancedSearchModalOpen: false }),
+
   // Pin placement mode (for linking annotations to map)
   pinPlacementMode: false,
   pendingPinAnnotationId: null,

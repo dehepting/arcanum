@@ -3,6 +3,7 @@ import useStore from '../store/useStore';
 export default function Topbar() {
   const currentProject = useStore((state) => state.currentProject);
   const setCurrentProject = useStore((state) => state.setCurrentProject);
+  const openAdvancedSearch = useStore((state) => state.openAdvancedSearch);
 
   const handleHomeClick = () => {
     setCurrentProject(null);
@@ -18,6 +19,10 @@ export default function Topbar() {
       <div className="topbar-spacer" />
       {currentProject && (
         <>
+          <button onClick={openAdvancedSearch} className="topbar-link" title="Search (Cmd+K)">
+            <span className="topbar-icon">🔍</span>
+            Search
+          </button>
           <button
             onClick={handleHomeClick}
             className="topbar-link"
