@@ -6,11 +6,14 @@ import IDEWorkspace from './IDEWorkspace';
 import EntityExplorer from './EntityExplorer';
 import Tabs from './Tabs';
 import ResearchCanvas from './ResearchCanvas';
+import AdvancedSearch from './AdvancedSearch';
 
 export default function Workspace() {
   const tabs = useStore((state) => state.tabs);
   const activeTabId = useStore((state) => state.activeTabId);
   const currentProject = useStore((state) => state.currentProject);
+  const advancedSearchModalOpen = useStore((state) => state.advancedSearchModalOpen);
+  const closeAdvancedSearch = useStore((state) => state.closeAdvancedSearch);
 
   // Find the active tab
   const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
@@ -71,6 +74,7 @@ export default function Workspace() {
   return (
     <div className="workspace">
       <IDEWorkspace leftPanel={<EntityExplorer />} centerPanel={centerPanel} />
+      <AdvancedSearch isOpen={advancedSearchModalOpen} onClose={closeAdvancedSearch} />
     </div>
   );
 }

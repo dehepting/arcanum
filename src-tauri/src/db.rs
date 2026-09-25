@@ -405,5 +405,235 @@ fn create_tables(conn: &Connection) -> Result<()> {
         [],
     )?;
 
+    // FTS5 virtual tables for full-text search
+
+    // People FTS
+    conn.execute(
+        "CREATE VIRTUAL TABLE IF NOT EXISTS people_fts USING fts5(
+            id UNINDEXED,
+            name,
+            description,
+            occupation,
+            content=people,
+            content_rowid=rowid
+        )",
+        [],
+    )?;
+
+    // People FTS triggers
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS people_fts_insert
+        AFTER INSERT ON people BEGIN
+            INSERT INTO people_fts(rowid, id, name, description, occupation)
+            VALUES (new.rowid, new.id, new.name, COALESCE(new.description, ''), COALESCE(new.occupation, ''));
+        END",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS people_fts_update
+        AFTER UPDATE ON people BEGIN
+            UPDATE people_fts SET
+                id = new.id,
+                name = new.name,
+                description = COALESCE(new.description, ''),
+                occupation = COALESCE(new.occupation, '')
+            WHERE rowid = old.rowid;
+        END",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS people_fts_delete
+        AFTER DELETE ON people BEGIN
+            DELETE FROM people_fts WHERE rowid = old.rowid;
+        END",
+        [],
+    )?;
+
+    // Events FTS
+    conn.execute(
+        "CREATE VIRTUAL TABLE IF NOT EXISTS events_fts USING fts5(
+            id UNINDEXED,
+            name,
+            description,
+            location,
+            content=events,
+            content_rowid=rowid
+        )",
+        [],
+    )?;
+
+    // Events FTS triggers
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS events_fts_insert
+        AFTER INSERT ON events BEGIN
+            INSERT INTO events_fts(rowid, id, name, description, location)
+            VALUES (new.rowid, new.id, new.name, COALESCE(new.description, ''), COALESCE(new.location, ''));
+        END",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS events_fts_update
+        AFTER UPDATE ON events BEGIN
+            UPDATE events_fts SET
+                id = new.id,
+                name = new.name,
+                description = COALESCE(new.description, ''),
+                location = COALESCE(new.location, '')
+            WHERE rowid = old.rowid;
+        END",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS events_fts_delete
+        AFTER DELETE ON events BEGIN
+            DELETE FROM events_fts WHERE rowid = old.rowid;
+        END",
+        [],
+    )?;
+
+    // Theories FTS
+    conn.execute(
+        "CREATE VIRTUAL TABLE IF NOT EXISTS theories_fts USING fts5(
+            id UNINDEXED,
+            name,
+            description,
+            content=theories,
+            content_rowid=rowid
+        )",
+        [],
+    )?;
+
+    // Theories FTS triggers
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS theories_fts_insert
+        AFTER INSERT ON theories BEGIN
+            INSERT INTO theories_fts(rowid, id, name, description)
+            VALUES (new.rowid, new.id, new.name, COALESCE(new.description, ''));
+        END",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS theories_fts_update
+        AFTER UPDATE ON theories BEGIN
+            UPDATE theories_fts SET
+                id = new.id,
+                name = new.name,
+                description = COALESCE(new.description, '')
+            WHERE rowid = old.rowid;
+        END",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS theories_fts_delete
+        AFTER DELETE ON theories BEGIN
+            DELETE FROM theories_fts WHERE rowid = old.rowid;
+        END",
+        [],
+    )?;
+
+    // Places FTS
+    conn.execute(
+        "CREATE VIRTUAL TABLE IF NOT EXISTS places_fts USING fts5(
+            id UNINDEXED,
+            name,
+            description,
+            place_type,
+            content=places,
+            content_rowid=rowid
+        )",
+        [],
+    )?;
+
+    // Places FTS triggers
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS places_fts_insert
+        AFTER INSERT ON places BEGIN
+            INSERT INTO places_fts(rowid, id, name, description, place_type)
+            VALUES (new.rowid, new.id, new.name, COALESCE(new.description, ''), COALESCE(new.place_type, ''));
+        END",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS places_fts_update
+        AFTER UPDATE ON places BEGIN
+            UPDATE places_fts SET
+                id = new.id,
+                name = new.name,
+                description = COALESCE(new.description, ''),
+                place_type = COALESCE(new.place_type, '')
+            WHERE rowid = old.rowid;
+        END",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS places_fts_delete
+        AFTER DELETE ON places BEGIN
+            DELETE FROM places_fts WHERE rowid = old.rowid;
+        END",
+        [],
+    )?;
+
+    // Artifacts FTS
+    conn.execute(
+        "CREATE VIRTUAL TABLE IF NOT EXISTS artifacts_fts USING fts5(
+            id UNINDEXED,
+            name,
+            description,
+            category,
+            owner_name,
+            content=artifacts,
+            content_rowid=rowid
+        )",
+        [],
+    )?;
+
+    // Artifacts FTS triggers
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS artifacts_fts_insert
+        AFTER INSERT ON artifacts BEGIN
+            INSERT INTO artifacts_fts(rowid, id, name, description, category, owner_name)
+            VALUES (new.rowid, new.id, new.name, COALESCE(new.description, ''), COALESCE(new.category, ''), COALESCE(new.owner_name, ''));
+        END",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS artifacts_fts_update
+        AFTER UPDATE ON artifacts BEGIN
+            UPDATE artifacts_fts SET
+                id = new.id,
+                name = new.name,
+                description = COALESCE(new.description, ''),
+                category = COALESCE(new.category, ''),
+                owner_name = COALESCE(new.owner_name, '')
+            WHERE rowid = old.rowid;
+        END",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS artifacts_fts_delete
+        AFTER DELETE ON artifacts BEGIN
+            DELETE FROM artifacts_fts WHERE rowid = old.rowid;
+        END",
+        [],
+    )?;
+
+    // Populate FTS5 tables with existing data
+    // These 'rebuild' commands tell FTS5 to sync from the content tables
+    conn.execute("INSERT INTO people_fts(people_fts) VALUES('rebuild')", [])?;
+    conn.execute("INSERT INTO events_fts(events_fts) VALUES('rebuild')", [])?;
+    conn.execute("INSERT INTO theories_fts(theories_fts) VALUES('rebuild')", [])?;
+    conn.execute("INSERT INTO places_fts(places_fts) VALUES('rebuild')", [])?;
+    conn.execute("INSERT INTO artifacts_fts(artifacts_fts) VALUES('rebuild')", [])?;
+
     Ok(())
 }
