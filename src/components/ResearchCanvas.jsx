@@ -22,8 +22,13 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
   const setActiveTab = useStore((state) => state.setActiveTab);
   const tabs = useStore((state) => state.tabs);
   const currentProject = useStore((state) => state.currentProject);
-  const canvasIdRef = useRef(canvasId || null);
   const saveTimeoutRef = useRef(null);
+  const hasLoadedRef = useRef(false);
+
+  // Log for debugging
+  useEffect(() => {
+    console.log('CanvasInner mounted with canvasId:', canvasId);
+  }, [canvasId]);
 
   // Add keyboard shortcut (Cmd/Ctrl + E) to open entity picker
   useEffect(() => {
@@ -112,16 +117,27 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
 
   // Load canvas data when component mounts
   useEffect(() => {
-    if (!editor || !currentProject || !canvasId) return;
+    if (!editor || !currentProject || !canvasId) {
+      console.log('Load effect skipped:', {
+        editor: !!editor,
+        currentProject: !!currentProject,
+        canvasId,
+      });
+      return;
+    }
 
     const loadCanvas = async () => {
       try {
+        console.log('Loading canvas data for:', canvasId);
         const canvas = await invoke('get_canvas', { canvasId });
         if (canvas && canvas.canvas_data) {
           const snapshot = JSON.parse(canvas.canvas_data);
           editor.store.loadSnapshot(snapshot);
+          console.log('Canvas data loaded successfully');
+        } else {
+          console.log('No canvas data found, starting fresh');
         }
-        canvasIdRef.current = canvasId;
+        hasLoadedRef.current = true;
       } catch (error) {
         console.error('Failed to load canvas:', error);
       }
@@ -132,18 +148,30 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
 
   // Auto-save canvas data when it changes (debounced)
   useEffect(() => {
-    if (!editor || !canvasIdRef.current) return;
+    if (!editor || !canvasId) {
+      console.log('Auto-save effect skipped:', { editor: !!editor, canvasId });
+      return;
+    }
+
+    console.log('Setting up auto-save for canvas:', canvasId);
 
     const saveCanvas = async () => {
+      // Only save if we've loaded the canvas first
+      if (!hasLoadedRef.current) {
+        console.log('Skipping save - canvas not loaded yet');
+        return;
+      }
+
       try {
         const snapshot = editor.store.getSnapshot();
         const canvas_data = JSON.stringify(snapshot);
 
+        console.log('Saving canvas data...');
         await invoke('update_canvas', {
-          canvasId: canvasIdRef.current,
+          canvasId: canvasId,
           input: { canvas_data },
         });
-        console.log('Canvas auto-saved');
+        console.log('Canvas auto-saved successfully');
       } catch (error) {
         console.error('Failed to save canvas:', error);
       }
@@ -163,6 +191,7 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
     const unsubscribe = editor.store.listen(handleChange);
 
     return () => {
+      console.log('Cleaning up auto-save, saving immediately...');
       unsubscribe();
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -170,7 +199,7 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
       // Save immediately on unmount to preserve changes
       saveCanvas();
     };
-  }, [editor]);
+  }, [editor, canvasId]);
 
   return null;
 }
