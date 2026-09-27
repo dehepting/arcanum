@@ -205,27 +205,55 @@ export default function MapView() {
         cursor: pointer;
       `;
 
+      // Create popup with place info and button to view full page
+      const popupHTML = `
+        <div style="min-width: 200px;">
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">${place.name}</div>
+          ${place.note ? `<div style="margin-bottom: 8px; color: #8b8f99; font-size: 13px;">${place.note}</div>` : ''}
+          <button
+            id="view-place-${place.id}"
+            style="
+              width: 100%;
+              padding: 6px 12px;
+              background: var(--accent-primary, #0969da);
+              color: white;
+              border: none;
+              border-radius: 4px;
+              font-size: 13px;
+              font-weight: 500;
+              cursor: pointer;
+              margin-top: 4px;
+            "
+          >
+            View Full Page →
+          </button>
+        </div>
+      `;
+
+      const popup = new Popup({ offset: 12 }).setHTML(popupHTML);
+
       const marker = new Marker({ element: el })
         .setLngLat([place.lng, place.lat])
-        .setPopup(
-          new Popup({ offset: 12 }).setHTML(
-            `<strong>${place.name}</strong>${place.note ? `<div style="margin-top:4px;color:#8b8f99">${place.note}</div>` : ''}`
-          )
-        )
+        .setPopup(popup)
         .addTo(map.current);
 
-      // Click marker to open place entity page
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const addTab = useStore.getState().addTab;
-        addTab({
-          type: 'place',
-          title: place.name,
-          data: {
-            entityId: place.id,
-            entityType: 'place',
-          },
-        });
+      // Add click handler for the button after popup opens
+      popup.on('open', () => {
+        const button = document.getElementById(`view-place-${place.id}`);
+        if (button) {
+          button.addEventListener('click', () => {
+            const addTab = useStore.getState().addTab;
+            addTab({
+              type: 'place',
+              title: place.name,
+              data: {
+                entityId: place.id,
+                entityType: 'place',
+              },
+            });
+            popup.remove(); // Close popup after opening page
+          });
+        }
       });
 
       markersRef.current.push(marker);
