@@ -1,37 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { shallow } from 'zustand/shallow';
 import useStore from '../store/useStore';
 import { uploadPDF } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
 import './EntityExplorer.css';
-
-/**
- * Custom hook to consolidate store subscriptions for better performance
- * Uses a single subscription instead of 16 separate ones
- */
-const useEntityExplorerStore = () => {
-  return useStore(
-    (state) => ({
-      people: state.people,
-      events: state.events,
-      theories: state.theories,
-      places: state.places,
-      artifacts: state.artifacts,
-      tabs: state.tabs,
-      activeTabId: state.activeTabId,
-      addTab: state.addTab,
-      setActiveTab: state.setActiveTab,
-      addSource: state.addSource,
-      currentProject: state.currentProject,
-      updatePerson: state.updatePerson,
-      updateEvent: state.updateEvent,
-      updateTheory: state.updateTheory,
-      updatePlace: state.updatePlace,
-      updateArtifact: state.updateArtifact,
-    }),
-    shallow
-  );
-};
 
 /**
  * EntityExplorer - Left panel showing all entities in the knowledge graph
@@ -43,24 +14,23 @@ const useEntityExplorerStore = () => {
  * - Upload and manage PDF sources
  */
 export default function EntityExplorer() {
-  const {
-    people,
-    events,
-    theories,
-    places,
-    artifacts,
-    tabs,
-    activeTabId,
-    addTab,
-    setActiveTab,
-    addSource,
-    currentProject,
-    updatePerson,
-    updateEvent,
-    updateTheory,
-    updatePlace,
-    updateArtifact,
-  } = useEntityExplorerStore();
+  // Individual selectors for better performance and stability
+  const people = useStore((state) => state.people);
+  const events = useStore((state) => state.events);
+  const theories = useStore((state) => state.theories);
+  const places = useStore((state) => state.places);
+  const artifacts = useStore((state) => state.artifacts);
+  const tabs = useStore((state) => state.tabs);
+  const activeTabId = useStore((state) => state.activeTabId);
+  const addTab = useStore((state) => state.addTab);
+  const setActiveTab = useStore((state) => state.setActiveTab);
+  const addSource = useStore((state) => state.addSource);
+  const currentProject = useStore((state) => state.currentProject);
+  const updatePerson = useStore((state) => state.updatePerson);
+  const updateEvent = useStore((state) => state.updateEvent);
+  const updateTheory = useStore((state) => state.updateTheory);
+  const updatePlace = useStore((state) => state.updatePlace);
+  const updateArtifact = useStore((state) => state.updateArtifact);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [uploading, setUploading] = useState(false);
