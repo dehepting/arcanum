@@ -154,6 +154,27 @@
   opacity: 1;
 }
 
+/* Load More Button */
+.load-more-btn {
+  margin: var(--space-1) 0 var(--space-1) 28px;
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  font-weight: var(--font-weight-medium);
+  width: calc(100% - 28px);
+}
+
+.load-more-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
 /* Create Entity Button */
 .create-entity-btn {
   margin: var(--space-1) 0 var(--space-2) 28px;

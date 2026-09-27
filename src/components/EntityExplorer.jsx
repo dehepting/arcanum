@@ -1,8 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useStore from '../store/useStore';
 import { uploadPDF } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
 import './EntityExplorer.css';
+
+/**
+ * Custom hook to consolidate store subscriptions for better performance
+ * Uses a single subscription instead of 16 separate ones
+ */
+const useEntityExplorerStore = () => {
+  return useStore((state) => ({
+    people: state.people,
+    events: state.events,
+    theories: state.theories,
+    places: state.places,
+    artifacts: state.artifacts,
+    tabs: state.tabs,
+    activeTabId: state.activeTabId,
+    addTab: state.addTab,
+    setActiveTab: state.setActiveTab,
+    addSource: state.addSource,
+    currentProject: state.currentProject,
+    updatePerson: state.updatePerson,
+    updateEvent: state.updateEvent,
+    updateTheory: state.updateTheory,
+    updatePlace: state.updatePlace,
+    updateArtifact: state.updateArtifact,
+  }));
+};
 
 /**
  * EntityExplorer - Left panel showing all entities in the knowledge graph
@@ -14,22 +39,24 @@ import './EntityExplorer.css';
  * - Upload and manage PDF sources
  */
 export default function EntityExplorer() {
-  const people = useStore((state) => state.people);
-  const events = useStore((state) => state.events);
-  const theories = useStore((state) => state.theories);
-  const places = useStore((state) => state.places);
-  const artifacts = useStore((state) => state.artifacts);
-  const tabs = useStore((state) => state.tabs);
-  const activeTabId = useStore((state) => state.activeTabId);
-  const addTab = useStore((state) => state.addTab);
-  const setActiveTab = useStore((state) => state.setActiveTab);
-  const addSource = useStore((state) => state.addSource);
-  const currentProject = useStore((state) => state.currentProject);
-  const updatePerson = useStore((state) => state.updatePerson);
-  const updateEvent = useStore((state) => state.updateEvent);
-  const updateTheory = useStore((state) => state.updateTheory);
-  const updatePlace = useStore((state) => state.updatePlace);
-  const updateArtifact = useStore((state) => state.updateArtifact);
+  const {
+    people,
+    events,
+    theories,
+    places,
+    artifacts,
+    tabs,
+    activeTabId,
+    addTab,
+    setActiveTab,
+    addSource,
+    currentProject,
+    updatePerson,
+    updateEvent,
+    updateTheory,
+    updatePlace,
+    updateArtifact,
+  } = useEntityExplorerStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -52,6 +79,13 @@ export default function EntityExplorer() {
     places: false,
     artifacts: false,
   });
+  const [entityDisplayLimits, setEntityDisplayLimits] = useState({
+    people: 50,
+    events: 50,
+    theories: 50,
+    places: 50,
+    artifacts: 50,
+  });
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
@@ -64,6 +98,13 @@ export default function EntityExplorer() {
     setExpandedEntityTypes((prev) => ({
       ...prev,
       [type]: !prev[type],
+    }));
+  };
+
+  const loadMoreEntities = (type) => {
+    setEntityDisplayLimits((prev) => ({
+      ...prev,
+      [type]: prev[type] + 50,
     }));
   };
 
@@ -214,29 +255,41 @@ export default function EntityExplorer() {
     }
   };
 
-  // Filter entities based on search query
-  const filteredPeople = people.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const filteredEvents = events.filter((e) =>
-    e.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const filteredTheories = theories.filter((t) =>
-    t.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const filteredPlaces = places.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const filteredArtifacts = artifacts.filter((a) =>
-    a.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter entities based on search query (memoized for performance)
+  const filteredPeople = useMemo(
+    () => people.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [people, searchQuery]
   );
 
-  const totalResults =
-    filteredPeople.length +
-    filteredEvents.length +
-    filteredTheories.length +
-    filteredPlaces.length +
-    filteredArtifacts.length;
+  const filteredEvents = useMemo(
+    () => events.filter((e) => e.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [events, searchQuery]
+  );
+
+  const filteredTheories = useMemo(
+    () => theories.filter((t) => t.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [theories, searchQuery]
+  );
+
+  const filteredPlaces = useMemo(
+    () => places.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [places, searchQuery]
+  );
+
+  const filteredArtifacts = useMemo(
+    () => artifacts.filter((a) => a.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [artifacts, searchQuery]
+  );
+
+  const totalResults = useMemo(
+    () =>
+      filteredPeople.length +
+      filteredEvents.length +
+      filteredTheories.length +
+      filteredPlaces.length +
+      filteredArtifacts.length,
+    [filteredPeople, filteredEvents, filteredTheories, filteredPlaces, filteredArtifacts]
+  );
 
   // Handle entity click - opens entity in tab or switches to existing tab
   const handleEntityClick = (entity, entityType) => {
@@ -365,7 +418,10 @@ export default function EntityExplorer() {
             </div>
             {(searchQuery || expandedEntityTypes.people) && (
               <>
-                {(searchQuery ? filteredPeople.slice(0, 10) : filteredPeople).map((person) => (
+                {(searchQuery
+                  ? filteredPeople.slice(0, 10)
+                  : filteredPeople.slice(0, entityDisplayLimits.people)
+                ).map((person) => (
                   <div
                     key={person.id}
                     className="entity-result"
@@ -393,6 +449,17 @@ export default function EntityExplorer() {
                     )}
                   </div>
                 ))}
+                {!searchQuery && filteredPeople.length > entityDisplayLimits.people && (
+                  <button
+                    className="load-more-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      loadMoreEntities('people');
+                    }}
+                  >
+                    Load more ({filteredPeople.length - entityDisplayLimits.people} remaining)
+                  </button>
+                )}
                 {!searchQuery && (
                   <button
                     className="create-entity-btn"
@@ -418,7 +485,10 @@ export default function EntityExplorer() {
             </div>
             {(searchQuery || expandedEntityTypes.events) && (
               <>
-                {(searchQuery ? filteredEvents.slice(0, 10) : filteredEvents).map((event) => (
+                {(searchQuery
+                  ? filteredEvents.slice(0, 10)
+                  : filteredEvents.slice(0, entityDisplayLimits.events)
+                ).map((event) => (
                   <div
                     key={event.id}
                     className="entity-result"
@@ -446,6 +516,17 @@ export default function EntityExplorer() {
                     )}
                   </div>
                 ))}
+                {!searchQuery && filteredEvents.length > entityDisplayLimits.events && (
+                  <button
+                    className="load-more-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      loadMoreEntities('events');
+                    }}
+                  >
+                    Load more ({filteredEvents.length - entityDisplayLimits.events} remaining)
+                  </button>
+                )}
                 {!searchQuery && (
                   <button className="create-entity-btn" onClick={() => handleCreateEntity('event')}>
                     + Create Event
@@ -468,7 +549,10 @@ export default function EntityExplorer() {
             </div>
             {(searchQuery || expandedEntityTypes.theories) && (
               <>
-                {(searchQuery ? filteredTheories.slice(0, 10) : filteredTheories).map((theory) => (
+                {(searchQuery
+                  ? filteredTheories.slice(0, 10)
+                  : filteredTheories.slice(0, entityDisplayLimits.theories)
+                ).map((theory) => (
                   <div
                     key={theory.id}
                     className="entity-result"
@@ -496,6 +580,17 @@ export default function EntityExplorer() {
                     )}
                   </div>
                 ))}
+                {!searchQuery && filteredTheories.length > entityDisplayLimits.theories && (
+                  <button
+                    className="load-more-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      loadMoreEntities('theories');
+                    }}
+                  >
+                    Load more ({filteredTheories.length - entityDisplayLimits.theories} remaining)
+                  </button>
+                )}
                 {!searchQuery && (
                   <button
                     className="create-entity-btn"
@@ -521,7 +616,10 @@ export default function EntityExplorer() {
             </div>
             {(searchQuery || expandedEntityTypes.places) && (
               <>
-                {(searchQuery ? filteredPlaces.slice(0, 10) : filteredPlaces).map((place) => (
+                {(searchQuery
+                  ? filteredPlaces.slice(0, 10)
+                  : filteredPlaces.slice(0, entityDisplayLimits.places)
+                ).map((place) => (
                   <div
                     key={place.id}
                     className="entity-result"
@@ -549,6 +647,17 @@ export default function EntityExplorer() {
                     )}
                   </div>
                 ))}
+                {!searchQuery && filteredPlaces.length > entityDisplayLimits.places && (
+                  <button
+                    className="load-more-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      loadMoreEntities('places');
+                    }}
+                  >
+                    Load more ({filteredPlaces.length - entityDisplayLimits.places} remaining)
+                  </button>
+                )}
                 {!searchQuery && (
                   <button className="create-entity-btn" onClick={() => handleCreateEntity('place')}>
                     + Create Place
@@ -571,35 +680,47 @@ export default function EntityExplorer() {
             </div>
             {(searchQuery || expandedEntityTypes.artifacts) && (
               <>
-                {(searchQuery ? filteredArtifacts.slice(0, 10) : filteredArtifacts).map(
-                  (artifact) => (
-                    <div
-                      key={artifact.id}
-                      className="entity-result"
-                      onClick={() => handleEntityClick(artifact, 'artifact')}
-                      onDoubleClick={(e) => handleEntityDoubleClick(artifact, 'artifact', e)}
-                      title="Click: open | Double-click: rename"
-                    >
-                      <span className="entity-result-icon">🏺</span>
-                      {editingEntityId === artifact.id && editingEntityType === 'artifact' ? (
-                        <input
-                          type="text"
-                          className="rename-input"
-                          value={editingEntityName}
-                          onChange={(e) => setEditingEntityName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleEntityRename(artifact.id, 'artifact');
-                            if (e.key === 'Escape') setEditingEntityId(null);
-                          }}
-                          onBlur={() => handleEntityRename(artifact.id, 'artifact')}
-                          onClick={(e) => e.stopPropagation()}
-                          autoFocus
-                        />
-                      ) : (
-                        <span className="entity-result-name">{artifact.name}</span>
-                      )}
-                    </div>
-                  )
+                {(searchQuery
+                  ? filteredArtifacts.slice(0, 10)
+                  : filteredArtifacts.slice(0, entityDisplayLimits.artifacts)
+                ).map((artifact) => (
+                  <div
+                    key={artifact.id}
+                    className="entity-result"
+                    onClick={() => handleEntityClick(artifact, 'artifact')}
+                    onDoubleClick={(e) => handleEntityDoubleClick(artifact, 'artifact', e)}
+                    title="Click: open | Double-click: rename"
+                  >
+                    <span className="entity-result-icon">🏺</span>
+                    {editingEntityId === artifact.id && editingEntityType === 'artifact' ? (
+                      <input
+                        type="text"
+                        className="rename-input"
+                        value={editingEntityName}
+                        onChange={(e) => setEditingEntityName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleEntityRename(artifact.id, 'artifact');
+                          if (e.key === 'Escape') setEditingEntityId(null);
+                        }}
+                        onBlur={() => handleEntityRename(artifact.id, 'artifact')}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      />
+                    ) : (
+                      <span className="entity-result-name">{artifact.name}</span>
+                    )}
+                  </div>
+                ))}
+                {!searchQuery && filteredArtifacts.length > entityDisplayLimits.artifacts && (
+                  <button
+                    className="load-more-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      loadMoreEntities('artifacts');
+                    }}
+                  >
+                    Load more ({filteredArtifacts.length - entityDisplayLimits.artifacts} remaining)
+                  </button>
                 )}
                 {!searchQuery && (
                   <button
