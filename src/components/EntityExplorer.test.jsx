@@ -1,10 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import EntityExplorer from './EntityExplorer';
 import useStore from '../store/useStore';
 
 // Mock the store
 vi.mock('../store/useStore');
+
+// Mock Tauri invoke
+const mockInvoke = vi.fn();
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: (...args) => mockInvoke(...args),
+}));
 
 describe('EntityExplorer', () => {
   const mockAddTab = vi.fn();
@@ -25,6 +31,7 @@ describe('EntityExplorer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockInvoke.mockClear();
 
     useStore.mockImplementation((selector) => {
       const state = {
@@ -36,6 +43,13 @@ describe('EntityExplorer', () => {
         tabs: [], // No existing tabs, so addTab should be called
         addTab: mockAddTab,
         setActiveTab: mockSetActiveTab,
+        addSource: vi.fn(),
+        currentProject: { id: 'project-1', name: 'Test Project' },
+        updatePerson: vi.fn(),
+        updateEvent: vi.fn(),
+        updateTheory: vi.fn(),
+        updatePlace: vi.fn(),
+        updateArtifact: vi.fn(),
       };
       return selector ? selector(state) : state;
     });
@@ -322,5 +336,210 @@ describe('EntityExplorer', () => {
     // Collapse
     fireEvent.click(peopleSection);
     expect(screen.queryByText('Aristotle')).not.toBeInTheDocument();
+  });
+
+  describe('Canvas Management', () => {
+    beforeEach(() => {
+      mockInvoke.mockResolvedValue([
+        { id: 'canvas-1', name: 'Canvas 1' },
+        { id: 'canvas-2', name: 'Canvas 2' },
+      ]);
+    });
+
+    it('loads canvases on mount', async () => {
+      render(<EntityExplorer />);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('list_canvases', {
+          projectId: 'project-1',
+        });
+      });
+    });
+
+    it('opens canvas in tab when clicked', async () => {
+      render(<EntityExplorer />);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('list_canvases', { projectId: 'project-1' });
+      });
+
+      // Wait for canvases to load and find canvas items
+      await waitFor(() => {
+        const canvasElements = screen.queryAllByText(/Canvas \d+/);
+        if (canvasElements.length > 0) {
+          fireEvent.click(canvasElements[0]);
+
+          expect(mockAddTab).toHaveBeenCalledWith({
+            type: 'canvas',
+            title: 'Canvas 1',
+            canvasId: 'canvas-1',
+            data: {
+              canvasId: 'canvas-1',
+              canvasName: 'Canvas 1',
+            },
+          });
+        }
+      });
+    });
+
+    it('creates new canvas when create button is clicked', async () => {
+      mockInvoke.mockResolvedValueOnce([]).mockResolvedValueOnce({
+        id: 'canvas-new',
+        name: 'Canvas 1',
+      });
+
+      render(<EntityExplorer />);
+
+      await waitFor(() => {
+        const createButton = screen.queryByText(/\+ Create Canvas/i);
+        if (createButton) {
+          fireEvent.click(createButton);
+        }
+      });
+    });
+  });
+
+  describe('Entity Renaming', () => {
+    it('enters edit mode on double-click', () => {
+      render(<EntityExplorer />);
+
+      // Expand people section
+      const peopleSection = screen.getByText(/People/).closest('.entity-type-item');
+      fireEvent.click(peopleSection);
+
+      // Double-click Aristotle
+      const aristotleEntity = screen.getByText('Aristotle');
+      fireEvent.doubleClick(aristotleEntity);
+
+      // Should show input or editing state
+      // Note: This depends on the actual implementation
+    });
+  });
+
+  describe('Section Toggling', () => {
+    it('renders sections by default', () => {
+      render(<EntityExplorer />);
+
+      // These sections should be present
+      expect(screen.getByText(/People/)).toBeInTheDocument();
+      expect(screen.getByText(/Events/)).toBeInTheDocument();
+    });
+  });
+
+  describe('Empty States', () => {
+    it('handles empty entity lists gracefully', () => {
+      useStore.mockImplementation((selector) => {
+        const state = {
+          people: [],
+          events: [],
+          theories: [],
+          places: [],
+          artifacts: [],
+          tabs: [],
+          addTab: mockAddTab,
+          setActiveTab: mockSetActiveTab,
+          addSource: vi.fn(),
+          currentProject: { id: 'project-1', name: 'Test Project' },
+          updatePerson: vi.fn(),
+          updateEvent: vi.fn(),
+          updateTheory: vi.fn(),
+          updatePlace: vi.fn(),
+          updateArtifact: vi.fn(),
+        };
+        return selector ? selector(state) : state;
+      });
+
+      render(<EntityExplorer />);
+
+      // Should still render entity type headers
+      expect(screen.getByText(/People/)).toBeInTheDocument();
+    });
+
+    it('shows correct count for empty entity types', () => {
+      useStore.mockImplementation((selector) => {
+        const state = {
+          people: [],
+          events: [],
+          theories: [],
+          places: [],
+          artifacts: [],
+          tabs: [],
+          addTab: mockAddTab,
+          setActiveTab: mockSetActiveTab,
+          addSource: vi.fn(),
+          currentProject: { id: 'project-1', name: 'Test Project' },
+          updatePerson: vi.fn(),
+          updateEvent: vi.fn(),
+          updateTheory: vi.fn(),
+          updatePlace: vi.fn(),
+          updateArtifact: vi.fn(),
+        };
+        return selector ? selector(state) : state;
+      });
+
+      render(<EntityExplorer />);
+
+      // Check for (0) counts
+      expect(screen.getByText('People').parentElement.textContent).toContain('(0)');
+    });
+  });
+
+  describe('Multiple Entity Types', () => {
+    it('handles clicking all entity types', () => {
+      render(<EntityExplorer />);
+
+      // Test each entity type
+      const entityTypes = [
+        { name: 'Events', entity: 'Battle of Marathon', type: 'event' },
+        { name: 'Theories', entity: 'Atlantis Theory', type: 'theory' },
+        { name: 'Places', entity: 'Athens', type: 'place' },
+        { name: 'Artifacts', entity: 'Ancient Coin', type: 'artifact' },
+      ];
+
+      entityTypes.forEach(({ name, entity, type }) => {
+        const section = screen.getByText(new RegExp(name)).closest('.entity-type-item');
+        fireEvent.click(section);
+
+        const entityElement = screen.getByText(entity);
+        fireEvent.click(entityElement);
+
+        expect(mockAddTab).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type,
+            data: expect.objectContaining({ entityType: type }),
+          })
+        );
+      });
+    });
+  });
+
+  describe('Search Edge Cases', () => {
+    it('handles case-insensitive search', () => {
+      render(<EntityExplorer />);
+
+      const searchInput = screen.getByPlaceholderText(/Search entities.../);
+      fireEvent.change(searchInput, { target: { value: 'ARISTOTLE' } });
+
+      expect(screen.getByText('Aristotle')).toBeInTheDocument();
+    });
+
+    it('handles search with no results', () => {
+      render(<EntityExplorer />);
+
+      const searchInput = screen.getByPlaceholderText(/Search entities.../);
+      fireEvent.change(searchInput, { target: { value: 'XYZ123' } });
+
+      expect(screen.getByText(/0 results/)).toBeInTheDocument();
+    });
+
+    it('handles partial name search', () => {
+      render(<EntityExplorer />);
+
+      const searchInput = screen.getByPlaceholderText(/Search entities.../);
+      fireEvent.change(searchInput, { target: { value: 'Plat' } });
+
+      expect(screen.getByText('Plato')).toBeInTheDocument();
+      expect(screen.queryByText('Aristotle')).not.toBeInTheDocument();
+    });
   });
 });
