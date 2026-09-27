@@ -132,7 +132,7 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
         const canvas = await invoke('get_canvas', { canvasId });
         if (canvas && canvas.canvas_data) {
           const snapshot = JSON.parse(canvas.canvas_data);
-          editor.store.loadSnapshot(snapshot);
+          editor.loadSnapshot(snapshot);
           console.log('Canvas data loaded successfully');
         } else {
           console.log('No canvas data found, starting fresh');
@@ -163,7 +163,7 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
       }
 
       try {
-        const snapshot = editor.store.getSnapshot();
+        const snapshot = editor.getSnapshot();
         const canvas_data = JSON.stringify(snapshot);
 
         console.log('Saving canvas data...');
