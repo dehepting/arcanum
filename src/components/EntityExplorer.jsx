@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { shallow } from 'zustand/shallow';
 import useStore from '../store/useStore';
 import { uploadPDF } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
@@ -9,24 +10,27 @@ import './EntityExplorer.css';
  * Uses a single subscription instead of 16 separate ones
  */
 const useEntityExplorerStore = () => {
-  return useStore((state) => ({
-    people: state.people,
-    events: state.events,
-    theories: state.theories,
-    places: state.places,
-    artifacts: state.artifacts,
-    tabs: state.tabs,
-    activeTabId: state.activeTabId,
-    addTab: state.addTab,
-    setActiveTab: state.setActiveTab,
-    addSource: state.addSource,
-    currentProject: state.currentProject,
-    updatePerson: state.updatePerson,
-    updateEvent: state.updateEvent,
-    updateTheory: state.updateTheory,
-    updatePlace: state.updatePlace,
-    updateArtifact: state.updateArtifact,
-  }));
+  return useStore(
+    (state) => ({
+      people: state.people,
+      events: state.events,
+      theories: state.theories,
+      places: state.places,
+      artifacts: state.artifacts,
+      tabs: state.tabs,
+      activeTabId: state.activeTabId,
+      addTab: state.addTab,
+      setActiveTab: state.setActiveTab,
+      addSource: state.addSource,
+      currentProject: state.currentProject,
+      updatePerson: state.updatePerson,
+      updateEvent: state.updateEvent,
+      updateTheory: state.updateTheory,
+      updatePlace: state.updatePlace,
+      updateArtifact: state.updateArtifact,
+    }),
+    shallow
+  );
 };
 
 /**
