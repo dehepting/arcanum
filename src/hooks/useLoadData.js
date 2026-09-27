@@ -42,7 +42,7 @@ export function useLoadData(loadFn, deps = [], options = {}) {
 
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [...deps, options.skip]);
 
   const reload = async () => {
     setLoading(true);
