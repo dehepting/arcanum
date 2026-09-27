@@ -65,7 +65,8 @@ describe('EntityPicker', () => {
   it('displays entity types', () => {
     render(<EntityPicker onSelect={mockOnSelect} onClose={mockOnClose} />);
 
-    expect(screen.getByText('person')).toBeInTheDocument();
+    // Use getAllByText since there are multiple people
+    expect(screen.getAllByText('person').length).toBeGreaterThan(0);
     expect(screen.getByText('event')).toBeInTheDocument();
     expect(screen.getByText('theory')).toBeInTheDocument();
     expect(screen.getByText('place')).toBeInTheDocument();
