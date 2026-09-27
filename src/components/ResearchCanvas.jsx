@@ -134,27 +134,29 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
   useEffect(() => {
     if (!editor || !canvasIdRef.current) return;
 
+    const saveCanvas = async () => {
+      try {
+        const snapshot = editor.store.getSnapshot();
+        const canvas_data = JSON.stringify(snapshot);
+
+        await invoke('update_canvas', {
+          canvasId: canvasIdRef.current,
+          input: { canvas_data },
+        });
+        console.log('Canvas auto-saved');
+      } catch (error) {
+        console.error('Failed to save canvas:', error);
+      }
+    };
+
     const handleChange = () => {
       // Clear existing timeout
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
 
-      // Set new timeout to save after 5 seconds of inactivity
-      saveTimeoutRef.current = setTimeout(async () => {
-        try {
-          const snapshot = editor.store.getSnapshot();
-          const canvas_data = JSON.stringify(snapshot);
-
-          await invoke('update_canvas', {
-            canvasId: canvasIdRef.current,
-            input: { canvas_data },
-          });
-          console.log('Canvas auto-saved');
-        } catch (error) {
-          console.error('Failed to save canvas:', error);
-        }
-      }, 5000);
+      // Set new timeout to save after 1 second of inactivity
+      saveTimeoutRef.current = setTimeout(saveCanvas, 1000);
     };
 
     // Listen to store changes
@@ -165,6 +167,8 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
+      // Save immediately on unmount to preserve changes
+      saveCanvas();
     };
   }, [editor]);
 
