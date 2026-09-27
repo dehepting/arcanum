@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import Workspace from './Workspace';
 import useStore from '../store/useStore';
 
@@ -45,7 +45,7 @@ describe('Workspace', () => {
     vi.clearAllMocks();
   });
 
-  it('renders MapView when active tab is map', () => {
+  it('renders MapView when active tab is map', async () => {
     useStore.mockImplementation((selector) => {
       const state = {
         tabs: [{ id: 'map-1', type: 'map', title: 'Map', data: null, isDirty: false }],
@@ -57,13 +57,14 @@ describe('Workspace', () => {
       return selector ? selector(state) : state;
     });
 
-    const { getByTestId } = render(<Workspace />);
+    const { getByTestId, findByTestId } = render(<Workspace />);
 
     expect(getByTestId('entity-explorer')).toBeInTheDocument();
-    expect(getByTestId('map-view')).toBeInTheDocument();
+    // Wait for lazy-loaded component
+    expect(await findByTestId('map-view')).toBeInTheDocument();
   });
 
-  it('renders PDFView when active tab is pdf', () => {
+  it('renders PDFView when active tab is pdf', async () => {
     useStore.mockImplementation((selector) => {
       const state = {
         tabs: [
@@ -83,10 +84,11 @@ describe('Workspace', () => {
       return selector ? selector(state) : state;
     });
 
-    const { getByTestId } = render(<Workspace />);
+    const { getByTestId, findByTestId } = render(<Workspace />);
 
     expect(getByTestId('entity-explorer')).toBeInTheDocument();
-    expect(getByTestId('pdf-view')).toBeInTheDocument();
+    // Wait for lazy-loaded component
+    expect(await findByTestId('pdf-view')).toBeInTheDocument();
   });
 
   it('renders EntityPage when active tab is entity type', () => {

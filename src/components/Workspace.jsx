@@ -1,12 +1,33 @@
+import { lazy, Suspense } from 'react';
 import useStore from '../store/useStore';
-import MapView from './MapView';
-import PDFView from './PDFView';
 import EntityPage from './EntityPage';
 import IDEWorkspace from './IDEWorkspace';
 import EntityExplorer from './EntityExplorer';
 import Tabs from './Tabs';
-import ResearchCanvas from './ResearchCanvas';
 import AdvancedSearch from './AdvancedSearch';
+
+// Lazy load heavy components to reduce initial bundle size
+const MapView = lazy(() => import('./MapView'));
+const PDFView = lazy(() => import('./PDFView'));
+const ResearchCanvas = lazy(() => import('./ResearchCanvas'));
+
+// Loading component for lazy-loaded content
+const LoadingFallback = ({ message = 'Loading...' }) => (
+  <div
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      color: 'var(--text-muted)',
+    }}
+  >
+    <div style={{ textAlign: 'center' }}>
+      <div className="loading-spinner" style={{ margin: '0 auto 12px' }}></div>
+      <p>{message}</p>
+    </div>
+  </div>
+);
 
 export default function Workspace() {
   const tabs = useStore((state) => state.tabs);
@@ -24,11 +45,17 @@ export default function Workspace() {
 
     switch (activeTab.type) {
       case 'map':
-        return <MapView />;
+        return (
+          <Suspense fallback={<LoadingFallback message="Loading map..." />}>
+            <MapView />
+          </Suspense>
+        );
 
       case 'pdf':
         return activeTab.data?.source ? (
-          <PDFView source={activeTab.data.source} />
+          <Suspense fallback={<LoadingFallback message="Loading PDF viewer..." />}>
+            <PDFView source={activeTab.data.source} />
+          </Suspense>
         ) : (
           <div className="tab-empty">No PDF loaded</div>
         );
@@ -56,7 +83,11 @@ export default function Workspace() {
         );
 
       case 'canvas':
-        return <ResearchCanvas tab={activeTab} />;
+        return (
+          <Suspense fallback={<LoadingFallback message="Loading canvas..." />}>
+            <ResearchCanvas tab={activeTab} />
+          </Suspense>
+        );
 
       default:
         return <div className="tab-empty">Unknown tab type</div>;
