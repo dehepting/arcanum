@@ -306,7 +306,7 @@ export default function ResearchCanvas({ tab }) {
         +
       </button>
 
-      <Tldraw autoFocus>
+      <Tldraw key={canvasId} autoFocus>
         <CanvasInner
           tab={tab}
           canvasId={canvasId}
