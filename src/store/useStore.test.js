@@ -4,25 +4,35 @@ import useStore from './useStore';
 
 describe('useStore', () => {
   beforeEach(() => {
-    // Reset store state before each test
-    const { result } = renderHook(() => useStore());
-    act(() => {
-      result.current.setCurrentProject(null);
-      result.current.setSources([]);
-      result.current.setActiveSource(null);
-      result.current.setAnnotations([]);
-      result.current.setPlaces([]);
-      result.current.setArtifacts([]);
-      result.current.setPeople([]);
-      result.current.setEvents([]);
-      result.current.setTheories([]);
-      result.current.setEntityPages([]);
-      result.current.setEntityLinks([]);
-      // Reset tabs to initial state
-      while (result.current.tabs.length > 1) {
-        result.current.removeTab(result.current.tabs[result.current.tabs.length - 1].id);
+    // Reset store to initial state by calling setters directly
+    const state = useStore.getState();
+    state.setCurrentProject(null);
+    state.setSources([]);
+    state.setActiveSource(null);
+    state.setAnnotations([]);
+    state.setPlaces([]);
+    state.setArtifacts([]);
+    state.setPeople([]);
+    state.setEvents([]);
+    state.setTheories([]);
+    state.setEntityPages([]);
+    state.setEntityLinks([]);
+    state.setMapOverlays([]);
+    state.setSelectedArtifact(null);
+    state.setSelectedAnnotation(null);
+    state.closeAnnotationModal();
+    state.closeAdvancedSearch();
+    state.cancelPinPlacement();
+    state.closeOverlayMode();
+
+    // Reset tabs to initial state (remove all except default map tab)
+    const tabs = state.tabs.slice();
+    tabs.forEach((tab) => {
+      if (tab.id !== 'default-map') {
+        state.removeTab(tab.id);
       }
     });
+    state.setActiveTab('default-map');
   });
 
   describe('Project Management', () => {
