@@ -207,23 +207,31 @@ export default function MapView() {
 
       // Create popup with place info and button to view full page
       const popupHTML = `
-        <div style="min-width: 200px;">
-          <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">${place.name}</div>
-          ${place.note ? `<div style="margin-bottom: 8px; color: #8b8f99; font-size: 13px;">${place.note}</div>` : ''}
+        <div style="min-width: 200px; max-width: 300px; color: #24292f;">
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #1f2328;">${place.name}</div>
+          ${place.place_type ? `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">📍 ${place.place_type}</div>` : ''}
+          ${place.description ? `<div style="margin-bottom: 8px; color: #59636e; font-size: 13px; line-height: 1.5;">${place.description}</div>` : ''}
+          ${place.metadata ? `<div style="margin-bottom: 8px; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; font-size: 12px; color: #59636e;">${place.metadata}</div>` : ''}
+          <div style="display: flex; gap: 4px; font-size: 11px; color: #8b949e; margin-bottom: 8px;">
+            <span>📍 ${place.lat.toFixed(4)}, ${place.lng.toFixed(4)}</span>
+          </div>
           <button
             id="view-place-${place.id}"
             style="
               width: 100%;
               padding: 6px 12px;
-              background: var(--accent-primary, #0969da);
+              background: #0969da;
               color: white;
               border: none;
-              border-radius: 4px;
+              border-radius: 6px;
               font-size: 13px;
               font-weight: 500;
               cursor: pointer;
               margin-top: 4px;
+              transition: background 0.2s;
             "
+            onmouseover="this.style.background='#0860ca'"
+            onmouseout="this.style.background='#0969da'"
           >
             View Full Page →
           </button>
