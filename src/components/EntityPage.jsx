@@ -83,7 +83,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
     }
 
     loadContent();
-  }, [entityId, title]);
+  }, [entityId, entityType, title]);
 
   // Auto-save handler (debounced)
   const handleContentChange = useCallback(

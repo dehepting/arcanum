@@ -1,8 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useStore from '../store/useStore';
 import { uploadPDF } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
 import './EntityExplorer.css';
+
+/**
+ * Custom hook to consolidate store subscriptions for better performance
+ * Uses a single subscription instead of 16 separate ones
+ */
+const useEntityExplorerStore = () => {
+  return useStore((state) => ({
+    people: state.people,
+    events: state.events,
+    theories: state.theories,
+    places: state.places,
+    artifacts: state.artifacts,
+    tabs: state.tabs,
+    activeTabId: state.activeTabId,
+    addTab: state.addTab,
+    setActiveTab: state.setActiveTab,
+    addSource: state.addSource,
+    currentProject: state.currentProject,
+    updatePerson: state.updatePerson,
+    updateEvent: state.updateEvent,
+    updateTheory: state.updateTheory,
+    updatePlace: state.updatePlace,
+    updateArtifact: state.updateArtifact,
+  }));
+};
 
 /**
  * EntityExplorer - Left panel showing all entities in the knowledge graph
@@ -14,22 +39,24 @@ import './EntityExplorer.css';
  * - Upload and manage PDF sources
  */
 export default function EntityExplorer() {
-  const people = useStore((state) => state.people);
-  const events = useStore((state) => state.events);
-  const theories = useStore((state) => state.theories);
-  const places = useStore((state) => state.places);
-  const artifacts = useStore((state) => state.artifacts);
-  const tabs = useStore((state) => state.tabs);
-  const activeTabId = useStore((state) => state.activeTabId);
-  const addTab = useStore((state) => state.addTab);
-  const setActiveTab = useStore((state) => state.setActiveTab);
-  const addSource = useStore((state) => state.addSource);
-  const currentProject = useStore((state) => state.currentProject);
-  const updatePerson = useStore((state) => state.updatePerson);
-  const updateEvent = useStore((state) => state.updateEvent);
-  const updateTheory = useStore((state) => state.updateTheory);
-  const updatePlace = useStore((state) => state.updatePlace);
-  const updateArtifact = useStore((state) => state.updateArtifact);
+  const {
+    people,
+    events,
+    theories,
+    places,
+    artifacts,
+    tabs,
+    activeTabId,
+    addTab,
+    setActiveTab,
+    addSource,
+    currentProject,
+    updatePerson,
+    updateEvent,
+    updateTheory,
+    updatePlace,
+    updateArtifact,
+  } = useEntityExplorerStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -214,29 +241,41 @@ export default function EntityExplorer() {
     }
   };
 
-  // Filter entities based on search query
-  const filteredPeople = people.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const filteredEvents = events.filter((e) =>
-    e.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const filteredTheories = theories.filter((t) =>
-    t.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const filteredPlaces = places.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const filteredArtifacts = artifacts.filter((a) =>
-    a.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter entities based on search query (memoized for performance)
+  const filteredPeople = useMemo(
+    () => people.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [people, searchQuery]
   );
 
-  const totalResults =
-    filteredPeople.length +
-    filteredEvents.length +
-    filteredTheories.length +
-    filteredPlaces.length +
-    filteredArtifacts.length;
+  const filteredEvents = useMemo(
+    () => events.filter((e) => e.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [events, searchQuery]
+  );
+
+  const filteredTheories = useMemo(
+    () => theories.filter((t) => t.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [theories, searchQuery]
+  );
+
+  const filteredPlaces = useMemo(
+    () => places.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [places, searchQuery]
+  );
+
+  const filteredArtifacts = useMemo(
+    () => artifacts.filter((a) => a.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [artifacts, searchQuery]
+  );
+
+  const totalResults = useMemo(
+    () =>
+      filteredPeople.length +
+      filteredEvents.length +
+      filteredTheories.length +
+      filteredPlaces.length +
+      filteredArtifacts.length,
+    [filteredPeople, filteredEvents, filteredTheories, filteredPlaces, filteredArtifacts]
+  );
 
   // Handle entity click - opens entity in tab or switches to existing tab
   const handleEntityClick = (entity, entityType) => {

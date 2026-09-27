@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import useStore from '../../store/useStore';
 import './EntityPicker.css';
 
@@ -12,19 +12,26 @@ export default function EntityPicker({ onSelect, onClose }) {
   const places = useStore((state) => state.places);
   const artifacts = useStore((state) => state.artifacts);
 
-  // All entities combined with their type
-  const allEntities = [
-    ...people.map((e) => ({ ...e, entityType: 'person', icon: '👤', color: 'blue' })),
-    ...events.map((e) => ({ ...e, entityType: 'event', icon: '📅', color: 'red' })),
-    ...theories.map((e) => ({ ...e, entityType: 'theory', icon: '💡', color: 'yellow' })),
-    ...places.map((e) => ({ ...e, entityType: 'place', icon: '📍', color: 'green' })),
-    ...artifacts.map((e) => ({ ...e, entityType: 'artifact', icon: '🏺', color: 'violet' })),
-  ];
+  // All entities combined with their type (memoized for performance)
+  const allEntities = useMemo(
+    () => [
+      ...people.map((e) => ({ ...e, entityType: 'person', icon: '👤', color: 'blue' })),
+      ...events.map((e) => ({ ...e, entityType: 'event', icon: '📅', color: 'red' })),
+      ...theories.map((e) => ({ ...e, entityType: 'theory', icon: '💡', color: 'yellow' })),
+      ...places.map((e) => ({ ...e, entityType: 'place', icon: '📍', color: 'green' })),
+      ...artifacts.map((e) => ({ ...e, entityType: 'artifact', icon: '🏺', color: 'violet' })),
+    ],
+    [people, events, theories, places, artifacts]
+  );
 
-  // Filter entities based on search
-  const filteredEntities = searchQuery
-    ? allEntities.filter((e) => e.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : allEntities;
+  // Filter entities based on search (memoized for performance)
+  const filteredEntities = useMemo(
+    () =>
+      searchQuery
+        ? allEntities.filter((e) => e.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        : allEntities,
+    [allEntities, searchQuery]
+  );
 
   // Auto-focus search input
   useEffect(() => {
