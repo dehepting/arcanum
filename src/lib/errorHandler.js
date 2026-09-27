@@ -54,6 +54,11 @@ export async function withErrorHandling(commandFn, options = {}) {
  * @returns {string} User-friendly error message
  */
 export function getErrorMessage(error, operation = 'complete operation') {
+  // Handle null/undefined
+  if (error === null || error === undefined) {
+    return `Failed to ${operation}. Please try again.`;
+  }
+
   // Handle string errors
   if (typeof error === 'string') {
     return error;
@@ -96,7 +101,9 @@ export function validateRequired(data, requiredFields) {
   const errors = [];
 
   for (const field of requiredFields) {
-    if (!data[field] || (typeof data[field] === 'string' && !data[field].trim())) {
+    const value = data[field];
+    // Check for null/undefined or empty strings
+    if (value === null || value === undefined || (typeof value === 'string' && !value.trim())) {
       errors.push(`${field} is required`);
     }
   }
