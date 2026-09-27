@@ -205,27 +205,63 @@ export default function MapView() {
         cursor: pointer;
       `;
 
+      // Create popup with place info and button to view full page
+      const popupHTML = `
+        <div style="min-width: 200px; max-width: 300px; color: #24292f;">
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #1f2328;">${place.name}</div>
+          ${place.place_type ? `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">📍 ${place.place_type}</div>` : ''}
+          ${place.description ? `<div style="margin-bottom: 8px; color: #59636e; font-size: 13px; line-height: 1.5;">${place.description}</div>` : ''}
+          ${place.metadata ? `<div style="margin-bottom: 8px; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; font-size: 12px; color: #59636e;">${place.metadata}</div>` : ''}
+          <div style="display: flex; gap: 4px; font-size: 11px; color: #8b949e; margin-bottom: 8px;">
+            <span>📍 ${place.lat.toFixed(4)}, ${place.lng.toFixed(4)}</span>
+          </div>
+          <button
+            id="view-place-${place.id}"
+            style="
+              width: 100%;
+              padding: 6px 12px;
+              background: #0969da;
+              color: white;
+              border: none;
+              border-radius: 6px;
+              font-size: 13px;
+              font-weight: 500;
+              cursor: pointer;
+              margin-top: 4px;
+              transition: background 0.2s;
+            "
+            onmouseover="this.style.background='#0860ca'"
+            onmouseout="this.style.background='#0969da'"
+          >
+            View Full Page →
+          </button>
+        </div>
+      `;
+
+      const popup = new Popup({ offset: 12 }).setHTML(popupHTML);
+
       const marker = new Marker({ element: el })
         .setLngLat([place.lng, place.lat])
-        .setPopup(
-          new Popup({ offset: 12 }).setHTML(
-            `<strong>${place.name}</strong>${place.note ? `<div style="margin-top:4px;color:#8b8f99">${place.note}</div>` : ''}`
-          )
-        )
+        .setPopup(popup)
         .addTo(map.current);
 
-      // Click marker to open place entity page
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const addTab = useStore.getState().addTab;
-        addTab({
-          type: 'place',
-          title: place.name,
-          data: {
-            entityId: place.id,
-            entityType: 'place',
-          },
-        });
+      // Add click handler for the button after popup opens
+      popup.on('open', () => {
+        const button = document.getElementById(`view-place-${place.id}`);
+        if (button) {
+          button.addEventListener('click', () => {
+            const addTab = useStore.getState().addTab;
+            addTab({
+              type: 'place',
+              title: place.name,
+              data: {
+                entityId: place.id,
+                entityType: 'place',
+              },
+            });
+            popup.remove(); // Close popup after opening page
+          });
+        }
       });
 
       markersRef.current.push(marker);
