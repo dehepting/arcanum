@@ -14,6 +14,8 @@ pub struct Event {
     pub event_date: Option<String>,
     pub location: Option<String>,
     pub metadata: Option<String>,
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -26,6 +28,8 @@ pub struct CreateEventInput {
     pub event_date: Option<String>,
     pub location: Option<String>,
     pub metadata: Option<String>,
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -35,6 +39,8 @@ pub struct UpdateEventInput {
     pub event_date: Option<String>,
     pub location: Option<String>,
     pub metadata: Option<String>,
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
 }
 
 #[tauri::command]
@@ -49,9 +55,9 @@ pub fn create_event(
     db.execute(
         "INSERT INTO events (
             id, project_id, name, description, event_date, location,
-            metadata, created_at, updated_at
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-        [
+            metadata, lng, lat, created_at, updated_at
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        rusqlite::params![
             &id,
             &input.project_id,
             &input.name,
@@ -59,6 +65,8 @@ pub fn create_event(
             &input.event_date.clone().unwrap_or_default(),
             &input.location.clone().unwrap_or_default(),
             &input.metadata.clone().unwrap_or_default(),
+            &input.lng,
+            &input.lat,
             &now,
             &now,
         ],
@@ -72,6 +80,8 @@ pub fn create_event(
         event_date: input.event_date,
         location: input.location,
         metadata: input.metadata,
+        lng: input.lng,
+        lat: input.lat,
         created_at: now.clone(),
         updated_at: now,
     })
@@ -86,7 +96,7 @@ pub fn get_event(
 
     let mut stmt = db.prepare(
         "SELECT id, project_id, name, description, event_date, location,
-        metadata, created_at, updated_at
+        metadata, lng, lat, created_at, updated_at
         FROM events WHERE id = ?1"
     )?;
 
@@ -99,8 +109,10 @@ pub fn get_event(
             event_date: row.get(4)?,
             location: row.get(5)?,
             metadata: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
+            lng: row.get(7)?,
+            lat: row.get(8)?,
+            created_at: row.get(9)?,
+            updated_at: row.get(10)?,
         })
     });
 
@@ -120,7 +132,7 @@ pub fn list_events(
 
     let mut stmt = db.prepare(
         "SELECT id, project_id, name, description, event_date, location,
-        metadata, created_at, updated_at
+        metadata, lng, lat, created_at, updated_at
         FROM events
         WHERE project_id = ?1
         ORDER BY created_at DESC"
@@ -136,8 +148,10 @@ pub fn list_events(
                 event_date: row.get(4)?,
                 location: row.get(5)?,
                 metadata: row.get(6)?,
-                created_at: row.get(7)?,
-                updated_at: row.get(8)?,
+                lng: row.get(7)?,
+                lat: row.get(8)?,
+                created_at: row.get(9)?,
+                updated_at: row.get(10)?,
             })
         })?
         .collect::<Result<Vec<_>, _>>()?;
@@ -176,6 +190,14 @@ pub fn update_event(
     if let Some(metadata) = input.metadata {
         updates.push("metadata = ?");
         params.push(metadata);
+    }
+    if let Some(lng) = input.lng {
+        updates.push("lng = ?");
+        params.push(lng.to_string());
+    }
+    if let Some(lat) = input.lat {
+        updates.push("lat = ?");
+        params.push(lat.to_string());
     }
 
     updates.push("updated_at = ?");

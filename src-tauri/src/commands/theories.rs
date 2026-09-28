@@ -12,6 +12,8 @@ pub struct Theory {
     pub name: String,
     pub description: Option<String>,
     pub metadata: Option<String>,
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -23,6 +25,8 @@ pub struct CreateTheoryInput {
     pub description: Option<String>,
     pub metadata: Option<String>,
     pub annotation_id: Option<String>,
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -30,6 +34,8 @@ pub struct UpdateTheoryInput {
     pub name: Option<String>,
     pub description: Option<String>,
     pub metadata: Option<String>,
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
 }
 
 #[tauri::command]
@@ -43,14 +49,16 @@ pub fn create_theory(
 
     db.execute(
         "INSERT INTO theories (
-            id, project_id, name, description, metadata, created_at, updated_at
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-        [
+            id, project_id, name, description, metadata, lng, lat, created_at, updated_at
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        rusqlite::params![
             &id,
             &input.project_id,
             &input.name,
             &input.description.clone().unwrap_or_default(),
             &input.metadata.clone().unwrap_or_default(),
+            &input.lng,
+            &input.lat,
             &now,
             &now,
         ],
@@ -73,6 +81,8 @@ pub fn create_theory(
         name: input.name,
         description: input.description,
         metadata: input.metadata,
+        lng: input.lng,
+        lat: input.lat,
         created_at: now.clone(),
         updated_at: now,
     })
@@ -86,7 +96,7 @@ pub fn get_theory(
     let db = state.db.lock().unwrap();
 
     let mut stmt = db.prepare(
-        "SELECT id, project_id, name, description, metadata, created_at, updated_at
+        "SELECT id, project_id, name, description, metadata, lng, lat, created_at, updated_at
         FROM theories WHERE id = ?1"
     )?;
 
@@ -97,8 +107,10 @@ pub fn get_theory(
             name: row.get(2)?,
             description: row.get(3)?,
             metadata: row.get(4)?,
-            created_at: row.get(5)?,
-            updated_at: row.get(6)?,
+            lng: row.get(5)?,
+            lat: row.get(6)?,
+            created_at: row.get(7)?,
+            updated_at: row.get(8)?,
         })
     });
 
@@ -117,7 +129,7 @@ pub fn list_theories(
     let db = state.db.lock().unwrap();
 
     let mut stmt = db.prepare(
-        "SELECT id, project_id, name, description, metadata, created_at, updated_at
+        "SELECT id, project_id, name, description, metadata, lng, lat, created_at, updated_at
         FROM theories
         WHERE project_id = ?1
         ORDER BY created_at DESC"
@@ -131,8 +143,10 @@ pub fn list_theories(
                 name: row.get(2)?,
                 description: row.get(3)?,
                 metadata: row.get(4)?,
-                created_at: row.get(5)?,
-                updated_at: row.get(6)?,
+                lng: row.get(5)?,
+                lat: row.get(6)?,
+                created_at: row.get(7)?,
+                updated_at: row.get(8)?,
             })
         })?
         .collect::<Result<Vec<_>, _>>()?;
@@ -163,6 +177,14 @@ pub fn update_theory(
     if let Some(metadata) = input.metadata {
         updates.push("metadata = ?");
         params.push(metadata);
+    }
+    if let Some(lng) = input.lng {
+        updates.push("lng = ?");
+        params.push(lng.to_string());
+    }
+    if let Some(lat) = input.lat {
+        updates.push("lat = ?");
+        params.push(lat.to_string());
     }
 
     updates.push("updated_at = ?");

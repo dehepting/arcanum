@@ -26,6 +26,8 @@ pub struct Artifact {
     pub findspot_place_id: Option<String>,
     pub images: Option<String>, // JSON array of image paths
     pub metadata: Option<String>, // JSON object
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
     pub created_at: String,
     pub updated_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -44,6 +46,8 @@ pub struct CreateArtifactInput {
     pub findspot_place_id: Option<String>,
     pub images: Option<String>,
     pub metadata: Option<String>,
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -57,6 +61,8 @@ pub struct UpdateArtifactInput {
     pub findspot_place_id: Option<String>,
     pub images: Option<String>,
     pub metadata: Option<String>,
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -89,9 +95,9 @@ pub fn create_artifact(
         "INSERT INTO artifacts (
             id, project_id, name, description, category, date_range,
             owner_type, owner_name, findspot_place_id, images, metadata,
-            created_at, updated_at
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
-        [
+            lng, lat, created_at, updated_at
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+        rusqlite::params![
             &id,
             &input.project_id,
             &input.name,
@@ -103,6 +109,8 @@ pub fn create_artifact(
             &findspot_place_id_str,
             &images_str,
             &metadata_str,
+            &input.lng,
+            &input.lat,
             &now,
             &now,
         ],
@@ -120,6 +128,8 @@ pub fn create_artifact(
         findspot_place_id: input.findspot_place_id,
         images: input.images,
         metadata: input.metadata,
+        lng: input.lng,
+        lat: input.lat,
         created_at: now.clone(),
         updated_at: now,
         findspot: None,
@@ -137,7 +147,7 @@ pub fn get_artifact(
         "SELECT
             a.id, a.project_id, a.name, a.description, a.category, a.date_range,
             a.owner_type, a.owner_name, a.findspot_place_id, a.images, a.metadata,
-            a.created_at, a.updated_at,
+            a.lng, a.lat, a.created_at, a.updated_at,
             p.id as place_id, p.name as place_name, p.lng, p.lat
         FROM artifacts a
         LEFT JOIN places p ON a.findspot_place_id = p.id
@@ -145,12 +155,12 @@ pub fn get_artifact(
     )?;
 
     let result = stmt.query_row([&artifact_id], |row| {
-        let findspot = if row.get::<_, Option<String>>(13)?.is_some() {
+        let findspot = if row.get::<_, Option<String>>(15)?.is_some() {
             Some(Place {
-                id: row.get(13)?,
-                name: row.get(14)?,
-                lng: row.get(15)?,
-                lat: row.get(16)?,
+                id: row.get(15)?,
+                name: row.get(16)?,
+                lng: row.get(17)?,
+                lat: row.get(18)?,
             })
         } else {
             None
@@ -168,8 +178,10 @@ pub fn get_artifact(
             findspot_place_id: row.get(8)?,
             images: row.get(9)?,
             metadata: row.get(10)?,
-            created_at: row.get(11)?,
-            updated_at: row.get(12)?,
+            lng: row.get(11)?,
+            lat: row.get(12)?,
+            created_at: row.get(13)?,
+            updated_at: row.get(14)?,
             findspot,
         })
     });
@@ -192,7 +204,7 @@ pub fn list_artifacts(
         "SELECT
             a.id, a.project_id, a.name, a.description, a.category, a.date_range,
             a.owner_type, a.owner_name, a.findspot_place_id, a.images, a.metadata,
-            a.created_at, a.updated_at,
+            a.lng, a.lat, a.created_at, a.updated_at,
             p.id as place_id, p.name as place_name, p.lng, p.lat
         FROM artifacts a
         LEFT JOIN places p ON a.findspot_place_id = p.id
@@ -202,12 +214,12 @@ pub fn list_artifacts(
 
     let artifacts = stmt
         .query_map([&project_id], |row| {
-            let findspot = if row.get::<_, Option<String>>(13)?.is_some() {
+            let findspot = if row.get::<_, Option<String>>(15)?.is_some() {
                 Some(Place {
-                    id: row.get(13)?,
-                    name: row.get(14)?,
-                    lng: row.get(15)?,
-                    lat: row.get(16)?,
+                    id: row.get(15)?,
+                    name: row.get(16)?,
+                    lng: row.get(17)?,
+                    lat: row.get(18)?,
                 })
             } else {
                 None
@@ -225,8 +237,10 @@ pub fn list_artifacts(
                 findspot_place_id: row.get(8)?,
                 images: row.get(9)?,
                 metadata: row.get(10)?,
-                created_at: row.get(11)?,
-                updated_at: row.get(12)?,
+                lng: row.get(11)?,
+                lat: row.get(12)?,
+                created_at: row.get(13)?,
+                updated_at: row.get(14)?,
                 findspot,
             })
         })?
@@ -284,6 +298,14 @@ pub fn update_artifact(
         updates.push("metadata = ?");
         params.push(metadata);
     }
+    if let Some(lng) = input.lng {
+        updates.push("lng = ?");
+        params.push(lng.to_string());
+    }
+    if let Some(lat) = input.lat {
+        updates.push("lat = ?");
+        params.push(lat.to_string());
+    }
 
     updates.push("updated_at = ?");
     params.push(now);
@@ -333,7 +355,7 @@ pub fn get_artifacts_by_findspot(
         "SELECT
             id, project_id, name, description, category, date_range,
             owner_type, owner_name, findspot_place_id, images, metadata,
-            created_at, updated_at
+            lng, lat, created_at, updated_at
         FROM artifacts
         WHERE findspot_place_id = ?1
         ORDER BY created_at DESC",
@@ -353,8 +375,10 @@ pub fn get_artifacts_by_findspot(
                 findspot_place_id: row.get(8)?,
                 images: row.get(9)?,
                 metadata: row.get(10)?,
-                created_at: row.get(11)?,
-                updated_at: row.get(12)?,
+                lng: row.get(11)?,
+                lat: row.get(12)?,
+                created_at: row.get(13)?,
+                updated_at: row.get(14)?,
                 findspot: None,
             })
         })?
@@ -395,7 +419,7 @@ pub fn search_artifacts(
         "SELECT
             id, project_id, name, description, category, date_range,
             owner_type, owner_name, findspot_place_id, images, metadata,
-            created_at, updated_at
+            lng, lat, created_at, updated_at
         FROM artifacts
         WHERE {}
         ORDER BY created_at DESC",
@@ -419,8 +443,10 @@ pub fn search_artifacts(
                 findspot_place_id: row.get(8)?,
                 images: row.get(9)?,
                 metadata: row.get(10)?,
-                created_at: row.get(11)?,
-                updated_at: row.get(12)?,
+                lng: row.get(11)?,
+                lat: row.get(12)?,
+                created_at: row.get(13)?,
+                updated_at: row.get(14)?,
                 findspot: None,
             })
         })?
