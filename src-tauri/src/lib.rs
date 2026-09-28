@@ -124,6 +124,12 @@ pub fn run() {
       commands::annotations::update_annotation,
       commands::annotations::delete_annotation,
 
+      // Unified annotation-entity linking commands
+      commands::annotations::link_annotation_to_entity,
+      commands::annotations::unlink_annotation_from_entity,
+      commands::annotations::get_entities_for_annotation,
+      commands::annotations::get_annotations_for_entity,
+
       // Overlay commands
       commands::overlays::create_overlay,
       commands::overlays::load_overlays,

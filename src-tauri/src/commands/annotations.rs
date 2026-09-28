@@ -201,3 +201,145 @@ pub fn delete_annotation(
 
     Ok(())
 }
+
+// ============================================================================
+// Unified Annotation-Entity Linking Commands
+// ============================================================================
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AnnotationEntityLink {
+    pub id: String,
+    pub annotation_id: String,
+    pub entity_id: String,
+    pub entity_type: String,
+    pub relationship_type: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LinkedEntity {
+    pub entity_id: String,
+    pub entity_type: String,
+    pub relationship_type: String,
+    pub created_at: String,
+}
+
+/// Links an annotation to any entity (person, event, theory, place, artifact)
+#[tauri::command]
+pub fn link_annotation_to_entity(
+    annotation_id: String,
+    entity_id: String,
+    entity_type: String,
+    relationship_type: Option<String>,
+    state: State<AppState>,
+) -> CommandResult<AnnotationEntityLink> {
+    let db = state.db.lock().unwrap();
+    let id = Uuid::new_v4().to_string();
+    let now = Utc::now().to_rfc3339();
+    let rel_type = relationship_type.unwrap_or_else(|| "mentions".to_string());
+
+    // Validate entity_type
+    let valid_types = vec!["person", "event", "theory", "place", "artifact"];
+    if !valid_types.contains(&entity_type.as_str()) {
+        return Err(super::CommandError {
+            message: format!("Invalid entity_type '{}'. Must be one of: person, event, theory, place, artifact", entity_type),
+        });
+    }
+
+    db.execute(
+        "INSERT INTO annotation_entity_links (id, annotation_id, entity_id, entity_type, relationship_type, created_at)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+        ON CONFLICT(annotation_id, entity_id) DO UPDATE SET
+            entity_type = excluded.entity_type,
+            relationship_type = excluded.relationship_type",
+        [&id, &annotation_id, &entity_id, &entity_type, &rel_type, &now],
+    )?;
+
+    Ok(AnnotationEntityLink {
+        id,
+        annotation_id,
+        entity_id,
+        entity_type,
+        relationship_type: rel_type,
+        created_at: now,
+    })
+}
+
+/// Unlinks an annotation from an entity
+#[tauri::command]
+pub fn unlink_annotation_from_entity(
+    annotation_id: String,
+    entity_id: String,
+    state: State<AppState>,
+) -> CommandResult<()> {
+    let db = state.db.lock().unwrap();
+
+    db.execute(
+        "DELETE FROM annotation_entity_links WHERE annotation_id = ?1 AND entity_id = ?2",
+        [&annotation_id, &entity_id],
+    )?;
+
+    Ok(())
+}
+
+/// Gets all entities linked to a specific annotation
+#[tauri::command]
+pub fn get_entities_for_annotation(
+    annotation_id: String,
+    state: State<AppState>,
+) -> CommandResult<Vec<LinkedEntity>> {
+    let db = state.db.lock().unwrap();
+
+    let mut stmt = db.prepare(
+        "SELECT entity_id, entity_type, relationship_type, created_at
+        FROM annotation_entity_links
+        WHERE annotation_id = ?1
+        AND id != 'migration_marker'
+        ORDER BY created_at ASC"
+    )?;
+
+    let rows = stmt.query_map([&annotation_id], |row| {
+        Ok(LinkedEntity {
+            entity_id: row.get(0)?,
+            entity_type: row.get(1)?,
+            relationship_type: row.get(2)?,
+            created_at: row.get(3)?,
+        })
+    })?;
+
+    let mut entities = Vec::new();
+    for row in rows {
+        entities.push(row?);
+    }
+
+    Ok(entities)
+}
+
+/// Gets all annotations linked to a specific entity (reverse lookup)
+#[tauri::command]
+pub fn get_annotations_for_entity(
+    entity_id: String,
+    entity_type: String,
+    state: State<AppState>,
+) -> CommandResult<Vec<String>> {
+    let db = state.db.lock().unwrap();
+
+    let mut stmt = db.prepare(
+        "SELECT annotation_id
+        FROM annotation_entity_links
+        WHERE entity_id = ?1 AND entity_type = ?2
+        AND id != 'migration_marker'
+        ORDER BY created_at ASC"
+    )?;
+
+    let rows = stmt.query_map([&entity_id, &entity_type], |row| {
+        row.get::<_, String>(0)
+    })?;
+
+    let mut annotation_ids = Vec::new();
+    for row in rows {
+        annotation_ids.push(row?);
+    }
+
+    Ok(annotation_ids)
+}

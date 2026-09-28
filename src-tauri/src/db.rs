@@ -11,7 +11,97 @@ pub fn init_db(app_data_dir: PathBuf) -> Result<Connection> {
     // Create all tables
     create_tables(&conn)?;
 
+    // Run migration if needed
+    migrate_annotation_links(&conn)?;
+
     Ok(conn)
+}
+
+/// Checks if the annotation links migration has been completed
+pub fn is_migration_completed(conn: &Connection) -> bool {
+    let result: Result<i32, _> = conn.query_row(
+        "SELECT COUNT(*) FROM annotation_entity_links WHERE id = 'migration_marker'",
+        [],
+        |row| row.get(0)
+    );
+    result.is_ok() && result.unwrap() > 0
+}
+
+/// Migrates data from old annotation link tables to the new unified table.
+/// This function is idempotent - it can be run multiple times safely.
+pub fn migrate_annotation_links(conn: &Connection) -> Result<()> {
+    // Check if migration has already been run by looking for a migration marker
+    if is_migration_completed(conn) {
+        // Migration already completed
+        log::info!("Annotation links migration already completed, skipping");
+        return Ok(());
+    }
+
+    log::info!("Starting annotation links migration...");
+
+    // Migrate from annotation_people_links
+    let people_count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM annotation_people_links",
+        [],
+        |row| row.get(0)
+    ).unwrap_or(0);
+
+    if people_count > 0 {
+        log::info!("Migrating {} people links...", people_count);
+        conn.execute(
+            "INSERT OR IGNORE INTO annotation_entity_links (id, annotation_id, entity_id, entity_type, relationship_type, created_at)
+            SELECT id, annotation_id, person_id, 'person', relationship_type, created_at
+            FROM annotation_people_links",
+            [],
+        )?;
+    }
+
+    // Migrate from annotation_theories_links
+    let theories_count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM annotation_theories_links",
+        [],
+        |row| row.get(0)
+    ).unwrap_or(0);
+
+    if theories_count > 0 {
+        log::info!("Migrating {} theory links...", theories_count);
+        conn.execute(
+            "INSERT OR IGNORE INTO annotation_entity_links (id, annotation_id, entity_id, entity_type, relationship_type, created_at)
+            SELECT id, annotation_id, theory_id, 'theory', 'mentions', created_at
+            FROM annotation_theories_links",
+            [],
+        )?;
+    }
+
+    // Migrate from annotation_place_links
+    let places_count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM annotation_place_links",
+        [],
+        |row| row.get(0)
+    ).unwrap_or(0);
+
+    if places_count > 0 {
+        log::info!("Migrating {} place links...", places_count);
+        conn.execute(
+            "INSERT OR IGNORE INTO annotation_entity_links (id, annotation_id, entity_id, entity_type, relationship_type, created_at)
+            SELECT id, annotation_id, place_id, 'place', 'mentions', created_at
+            FROM annotation_place_links",
+            [],
+        )?;
+    }
+
+    // Add migration marker to prevent re-running
+    let now = chrono::Utc::now().to_rfc3339();
+    conn.execute(
+        "INSERT OR IGNORE INTO annotation_entity_links (id, annotation_id, entity_id, entity_type, relationship_type, created_at)
+        VALUES ('migration_marker', 'migration_marker', 'migration_marker', 'person', 'migration', ?1)",
+        [&now],
+    )?;
+
+    log::info!("Annotation links migration completed: {} people, {} theories, {} places",
+        people_count, theories_count, places_count);
+
+    Ok(())
 }
 
 fn create_tables(conn: &Connection) -> Result<()> {
@@ -634,6 +724,34 @@ fn create_tables(conn: &Connection) -> Result<()> {
     conn.execute("INSERT INTO theories_fts(theories_fts) VALUES('rebuild')", [])?;
     conn.execute("INSERT INTO places_fts(places_fts) VALUES('rebuild')", [])?;
     conn.execute("INSERT INTO artifacts_fts(artifacts_fts) VALUES('rebuild')", [])?;
+
+    // Unified annotation-entity links table
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS annotation_entity_links (
+            id TEXT PRIMARY KEY,
+            annotation_id TEXT NOT NULL,
+            entity_id TEXT NOT NULL,
+            entity_type TEXT NOT NULL CHECK (entity_type IN ('person', 'event', 'theory', 'place', 'artifact')),
+            relationship_type TEXT DEFAULT 'mentions',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (annotation_id) REFERENCES annotations(id) ON DELETE CASCADE,
+            UNIQUE(annotation_id, entity_id)
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_annotation_entity_annotation ON annotation_entity_links(annotation_id)",
+        [],
+    )?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_annotation_entity_entity ON annotation_entity_links(entity_id, entity_type)",
+        [],
+    )?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_annotation_entity_type ON annotation_entity_links(entity_type)",
+        [],
+    )?;
 
     Ok(())
 }
