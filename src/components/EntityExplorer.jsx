@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useStore from '../store/useStore';
 import { uploadPDF } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
-import './EntityExplorer.css';
+import '../styles/entity.css';
 
 /**
  * EntityExplorer - Left panel showing all entities in the knowledge graph

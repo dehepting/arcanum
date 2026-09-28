@@ -2,7 +2,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useEffect } from 'react';
 import EditorToolbar from './EditorToolbar';
-import './RichTextEditor.css';
+import '../styles/editor.css';
 
 /**
  * RichTextEditor - Tiptap-based WYSIWYG markdown editor

@@ -3,7 +3,7 @@ import RichTextEditor from './RichTextEditor';
 import { getEntityPage, updateEntityPage } from '../lib/entityPages';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
-import './EntityPage.css';
+import '../styles/entity.css';
 
 /**
  * EntityPage - Display and edit entity page content

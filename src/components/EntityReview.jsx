@@ -4,7 +4,7 @@ import { createEvent } from '../lib/events';
 import { createTheory } from '../lib/theories';
 import { createPlace } from '../lib/places';
 import useStore from '../store/useStore';
-import './EntityReview.css';
+import '../styles/entity.css';
 
 /**
  * EntityReview - Review and approve entities before adding to knowledge graph
