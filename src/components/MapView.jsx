@@ -106,7 +106,10 @@ export default function MapView() {
 
       // Click handler for adding pins and georeferencing overlays
       map.current.on('click', async (e) => {
+        console.log('Map clicked!', e.lngLat);
         const state = useStore.getState();
+        console.log('Location placement mode:', state.locationPlacementMode);
+        console.log('Pending location entity:', state.pendingLocationEntity);
 
         // Check if in overlay georeferencing mode
         if (state.overlayMode && state.onOverlayMapClick) {
@@ -116,6 +119,7 @@ export default function MapView() {
 
         // Check if in location placement mode
         if (state.locationPlacementMode && state.pendingLocationEntity) {
+          console.log('Location placement mode active, clicked at:', e.lngLat);
           const { entityId, entityType, entityName } = state.pendingLocationEntity;
 
           try {
