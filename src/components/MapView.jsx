@@ -18,11 +18,26 @@ export default function MapView() {
   const map = useRef(null);
   const markersRef = useRef([]);
   const [mapReady, setMapReady] = useState(false);
+  const [entityTypeFilters, setEntityTypeFilters] = useState({
+    place: true,
+    person: true,
+    event: true,
+    theory: true,
+    artifact: true,
+  });
 
   const currentProject = useStore((state) => state.currentProject);
   const places = useStore((state) => state.places);
   const setPlaces = useStore((state) => state.setPlaces);
   const addPlace = useStore((state) => state.addPlace);
+  const people = useStore((state) => state.people);
+  const setPeople = useStore((state) => state.setPeople);
+  const events = useStore((state) => state.events);
+  const setEvents = useStore((state) => state.setEvents);
+  const theories = useStore((state) => state.theories);
+  const setTheories = useStore((state) => state.setTheories);
+  const artifacts = useStore((state) => state.artifacts);
+  const setArtifacts = useStore((state) => state.setArtifacts);
   const pinPlacementMode = useStore((state) => state.pinPlacementMode);
   const pendingPinAnnotationId = useStore((state) => state.pendingPinAnnotationId);
   const cancelPinPlacement = useStore((state) => state.cancelPinPlacement);
@@ -210,25 +225,40 @@ export default function MapView() {
     };
   }, [mapReady]);
 
-  // Load places and overlays when project changes
+  // Load all entities and overlays when project changes
   useEffect(() => {
     if (!currentProject?.id) return;
 
     const fetchData = async () => {
       try {
-        const [loadedPlaces, loadedOverlays] = await Promise.all([
+        const [
+          loadedPlaces,
+          loadedOverlays,
+          loadedPeople,
+          loadedEvents,
+          loadedTheories,
+          loadedArtifacts,
+        ] = await Promise.all([
           loadPlaces(currentProject.id),
           loadOverlays(currentProject.id),
+          invoke('list_people', { projectId: currentProject.id }),
+          invoke('list_events', { projectId: currentProject.id }),
+          invoke('list_theories', { projectId: currentProject.id }),
+          invoke('list_artifacts', { projectId: currentProject.id }),
         ]);
         setPlaces(loadedPlaces);
         setMapOverlays(loadedOverlays);
+        setPeople(loadedPeople);
+        setEvents(loadedEvents);
+        setTheories(loadedTheories);
+        setArtifacts(loadedArtifacts);
       } catch (err) {
         console.error('Failed to load map data:', err);
       }
     };
 
     fetchData();
-  }, [currentProject, setPlaces, setMapOverlays]);
+  }, [currentProject, setPlaces, setMapOverlays, setPeople, setEvents, setTheories, setArtifacts]);
 
   // Handle flyTo when navigating from annotation
   useEffect(() => {
@@ -243,7 +273,7 @@ export default function MapView() {
     }
   }, [mapReady]);
 
-  // Update markers when places change
+  // Update markers when any entity changes
   useEffect(() => {
     if (!map.current || !mapReady) return;
 
@@ -251,35 +281,66 @@ export default function MapView() {
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
-    // Add markers for all places
-    places.forEach((place) => {
+    // Entity type colors and icons
+    const entityTypeConfig = {
+      place: { color: '#e8b86d', borderColor: '#c45c4a', icon: '📍', label: 'Place' },
+      person: { color: '#60a5fa', borderColor: '#3b82f6', icon: '👤', label: 'Person' },
+      event: { color: '#f87171', borderColor: '#dc2626', icon: '📅', label: 'Event' },
+      theory: { color: '#c084fc', borderColor: '#9333ea', icon: '💡', label: 'Theory' },
+      artifact: { color: '#34d399', borderColor: '#059669', icon: '🏺', label: 'Artifact' },
+    };
+
+    // Helper function to create marker for any entity
+    const createEntityMarker = (entity, entityType) => {
+      // Skip if entity doesn't have coordinates
+      if (!entity.lng || !entity.lat) return;
+
+      // Skip if this entity type is filtered out
+      if (!entityTypeFilters[entityType]) return;
+
+      const config = entityTypeConfig[entityType];
       const el = document.createElement('div');
       el.style.cssText = `
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background: #e8b86d;
+        background: ${config.color};
         border: 2px solid #0e0f12;
-        box-shadow: 0 0 0 1px #c45c4a;
+        box-shadow: 0 0 0 1px ${config.borderColor};
         cursor: pointer;
       `;
 
-      // Create popup with place info and button to view full page
+      // Build popup content based on entity type
+      let additionalInfo = '';
+      if (entityType === 'place' && entity.place_type) {
+        additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">📍 ${entity.place_type}</div>`;
+      } else if (entityType === 'person' && entity.occupation) {
+        additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">💼 ${entity.occupation}</div>`;
+      } else if (entityType === 'event' && entity.event_date) {
+        additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">📅 ${entity.event_date}</div>`;
+      } else if (entityType === 'artifact' && entity.category) {
+        additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">🏺 ${entity.category}</div>`;
+      }
+
       const popupHTML = `
         <div style="min-width: 200px; max-width: 300px; color: #24292f;">
-          <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #1f2328;">${place.name}</div>
-          ${place.place_type ? `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">📍 ${place.place_type}</div>` : ''}
-          ${place.description ? `<div style="margin-bottom: 8px; color: #59636e; font-size: 13px; line-height: 1.5;">${place.description}</div>` : ''}
-          ${place.metadata ? `<div style="margin-bottom: 8px; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; font-size: 12px; color: #59636e;">${place.metadata}</div>` : ''}
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+            <span style="font-size: 16px;">${config.icon}</span>
+            <div style="font-weight: 600; font-size: 14px; color: #1f2328;">${entity.name}</div>
+          </div>
+          <div style="margin-bottom: 6px; color: #59636e; font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">${config.label}</div>
+          ${additionalInfo}
+          ${entity.description ? `<div style="margin-bottom: 8px; color: #59636e; font-size: 13px; line-height: 1.5;">${entity.description}</div>` : ''}
+          ${entity.metadata ? `<div style="margin-bottom: 8px; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; font-size: 12px; color: #59636e;">${entity.metadata}</div>` : ''}
           <div style="display: flex; gap: 4px; font-size: 11px; color: #8b949e; margin-bottom: 8px;">
-            <span>📍 ${place.lat.toFixed(4)}, ${place.lng.toFixed(4)}</span>
+            <span>📍 ${entity.lat.toFixed(4)}, ${entity.lng.toFixed(4)}</span>
           </div>
           <button
-            id="view-place-${place.id}"
+            id="view-${entityType}-${entity.id}"
             style="
               width: 100%;
               padding: 6px 12px;
-              background: #0969da;
+              background: ${config.borderColor};
               color: white;
               border: none;
               border-radius: 6px;
@@ -289,8 +350,8 @@ export default function MapView() {
               margin-top: 4px;
               transition: background 0.2s;
             "
-            onmouseover="this.style.background='#0860ca'"
-            onmouseout="this.style.background='#0969da'"
+            onmouseover="this.style.opacity='0.9'"
+            onmouseout="this.style.opacity='1'"
           >
             View Full Page →
           </button>
@@ -300,22 +361,22 @@ export default function MapView() {
       const popup = new Popup({ offset: 12 }).setHTML(popupHTML);
 
       const marker = new Marker({ element: el })
-        .setLngLat([place.lng, place.lat])
+        .setLngLat([entity.lng, entity.lat])
         .setPopup(popup)
         .addTo(map.current);
 
       // Add click handler for the button after popup opens
       popup.on('open', () => {
-        const button = document.getElementById(`view-place-${place.id}`);
+        const button = document.getElementById(`view-${entityType}-${entity.id}`);
         if (button) {
           button.addEventListener('click', () => {
             const addTab = useStore.getState().addTab;
             addTab({
-              type: 'place',
-              title: place.name,
+              type: entityType,
+              title: entity.name,
               data: {
-                entityId: place.id,
-                entityType: 'place',
+                entityId: entity.id,
+                entityType: entityType,
               },
             });
             popup.remove(); // Close popup after opening page
@@ -324,8 +385,15 @@ export default function MapView() {
       });
 
       markersRef.current.push(marker);
-    });
-  }, [places, mapReady]);
+    };
+
+    // Add markers for all entity types
+    places.forEach((place) => createEntityMarker(place, 'place'));
+    people.forEach((person) => createEntityMarker(person, 'person'));
+    events.forEach((event) => createEntityMarker(event, 'event'));
+    theories.forEach((theory) => createEntityMarker(theory, 'theory'));
+    artifacts.forEach((artifact) => createEntityMarker(artifact, 'artifact'));
+  }, [places, people, events, theories, artifacts, mapReady, entityTypeFilters]);
 
   // Render map overlays
   useEffect(() => {
@@ -473,6 +541,80 @@ export default function MapView() {
           }}
         >
           🗺️ Georeferencing Mode: Click on the map to place corner markers
+        </div>
+      )}
+
+      {/* Entity type filters */}
+      {!pinPlacementMode && !overlayMode && !locationPlacementMode && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            zIndex: 1000,
+            background: 'var(--panel)',
+            border: '1px solid var(--line)',
+            padding: '12px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            minWidth: '180px',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '12px',
+              fontWeight: 600,
+              marginBottom: '8px',
+              color: 'var(--text)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}
+          >
+            Show on Map
+          </div>
+          {[
+            { type: 'place', icon: '📍', label: 'Places', color: '#e8b86d' },
+            { type: 'person', icon: '👤', label: 'People', color: '#60a5fa' },
+            { type: 'event', icon: '📅', label: 'Events', color: '#f87171' },
+            { type: 'theory', icon: '💡', label: 'Theories', color: '#c084fc' },
+            { type: 'artifact', icon: '🏺', label: 'Artifacts', color: '#34d399' },
+          ].map(({ type, icon, label, color }) => (
+            <label
+              key={type}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 4px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                color: 'var(--text)',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={entityTypeFilters[type]}
+                onChange={(e) =>
+                  setEntityTypeFilters((prev) => ({
+                    ...prev,
+                    [type]: e.target.checked,
+                  }))
+                }
+                style={{ cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '14px' }}>{icon}</span>
+              <span style={{ flex: 1 }}>{label}</span>
+              <div
+                style={{
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  background: color,
+                  border: '1px solid #0e0f12',
+                }}
+              />
+            </label>
+          ))}
         </div>
       )}
 
