@@ -73,16 +73,6 @@ function App() {
     setTheories,
   ]);
 
-  if (loading) {
-    return (
-      <div className="app">
-        <div className="empty-state">
-          <div className="empty-state-title">Loading Arcanum...</div>
-        </div>
-      </div>
-    );
-  }
-
   if (!currentProject) {
     return <ProjectPicker />;
   }
