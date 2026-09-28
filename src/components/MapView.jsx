@@ -106,10 +106,7 @@ export default function MapView() {
 
       // Click handler for adding pins and georeferencing overlays
       map.current.on('click', async (e) => {
-        console.log('Map clicked!', e.lngLat);
         const state = useStore.getState();
-        console.log('Location placement mode:', state.locationPlacementMode);
-        console.log('Pending location entity:', state.pendingLocationEntity);
 
         // Check if in overlay georeferencing mode
         if (state.overlayMode && state.onOverlayMapClick) {
@@ -119,17 +116,16 @@ export default function MapView() {
 
         // Check if in location placement mode
         if (state.locationPlacementMode && state.pendingLocationEntity) {
-          console.log('Location placement mode active, clicked at:', e.lngLat);
           const { entityId, entityType, entityName } = state.pendingLocationEntity;
 
           try {
             // Update entity coordinates based on type
             const updateCommandMap = {
-              person: { command: 'update_person', param: 'person_id' },
-              event: { command: 'update_event', param: 'event_id' },
-              theory: { command: 'update_theory', param: 'theory_id' },
-              place: { command: 'update_place', param: 'place_id' },
-              artifact: { command: 'update_artifact', param: 'artifact_id' },
+              person: { command: 'update_person', param: 'personId' },
+              event: { command: 'update_event', param: 'eventId' },
+              theory: { command: 'update_theory', param: 'theoryId' },
+              place: { command: 'update_place', param: 'placeId' },
+              artifact: { command: 'update_artifact', param: 'artifactId' },
             };
 
             const config = updateCommandMap[entityType];
@@ -164,11 +160,10 @@ export default function MapView() {
               // Fly to the new location
               map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
 
-              alert(`Location updated for ${entityName}`);
+              console.log(`✓ Location updated for ${entityName}`);
             }
           } catch (err) {
             console.error('Failed to update location:', err);
-            alert(`Failed to update location: ${err.message}`);
           }
           return;
         }
