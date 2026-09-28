@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import useStore from '../store/useStore';
 import ArtifactLinkModal from './ArtifactLinkModal';
 import { getArtifactsForAnnotation } from '../lib/artifact-sources';
+import { showError, showSuccess } from '../utils/errorHandling';
 
 export default function AnnotationModal() {
   const [noteText, setNoteText] = useState('');
@@ -97,10 +98,10 @@ export default function AnnotationModal() {
         addAnnotation(data);
       }
 
+      showSuccess('Annotation saved successfully!');
       handleClose();
     } catch (err) {
-      console.error('Failed to save annotation:', err);
-      alert(`Failed to save annotation: ${err.message}`);
+      showError(`Failed to save annotation: ${err.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
@@ -182,11 +183,11 @@ export default function AnnotationModal() {
       }
 
       // Now start pin placement with the annotation ID
+      showSuccess('Annotation saved! Click on the map to place a pin.');
       handleClose();
       startPinPlacement(annotationId);
     } catch (err) {
-      console.error('Failed to save annotation:', err);
-      alert(`Failed to save annotation: ${err.message}`);
+      showError(`Failed to save annotation: ${err.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }

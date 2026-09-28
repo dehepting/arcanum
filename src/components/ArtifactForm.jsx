@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
 import { createArtifact, updateArtifact, uploadArtifactImage } from '../lib/artifacts';
+import { showError, showSuccess } from '../utils/errorHandling';
 
 const CATEGORIES = [
   'Pottery & Ceramics',
@@ -114,8 +115,7 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
       const uploadedUrls = await Promise.all(uploadPromises);
       setImages([...images, ...uploadedUrls]);
     } catch (err) {
-      console.error('Failed to upload images:', err);
-      alert(`Failed to upload images: ${err.message}`);
+      showError(`Failed to upload images: ${err.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
@@ -148,10 +148,10 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
         addArtifact(created);
       }
 
+      showSuccess(artifact ? 'Artifact updated successfully!' : 'Artifact created successfully!');
       onClose();
     } catch (err) {
-      console.error('Failed to save artifact:', err);
-      alert(`Failed to save artifact: ${err.message}`);
+      showError(`Failed to save artifact: ${err.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }

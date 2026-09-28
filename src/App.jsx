@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 import useStore from './store/useStore';
 import Topbar from './components/Topbar';
 import Workspace from './components/Workspace';
@@ -88,6 +89,29 @@ function App() {
 
   return (
     <div className="app">
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'var(--surface)',
+            color: 'var(--text)',
+            border: '1px solid var(--line)',
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--accent-9)',
+              secondary: 'var(--surface)',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: 'var(--surface)',
+            },
+          },
+        }}
+      />
       <Topbar />
       <Workspace />
     </div>

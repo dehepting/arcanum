@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { getEntityPage, updateEntityPage } from '../lib/entityPages';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
+import { showError, showSuccess } from '../utils/errorHandling';
 
 // Lazy load heavy TipTap rich text editor
 const RichTextEditor = lazy(() => import('./RichTextEditor'));
@@ -52,7 +53,9 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
             const metadata = await invoke(config.command, { [config.param]: entityId });
             setEntityData(metadata);
           } catch (metadataError) {
-            console.error('Error loading entity metadata:', metadataError);
+            showError(
+              `Failed to load ${entityType} metadata: ${metadataError.message || 'Unknown error'}`
+            );
           }
         }
 
@@ -77,8 +80,9 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
           setContent(`<h1>${title}</h1><p>Start writing...</p>`);
         }
       } catch (err) {
-        console.error('Error loading entity page:', err);
-        setError(err.message || 'Failed to load entity page');
+        const errorMessage = err.message || 'Failed to load entity page';
+        setError(errorMessage);
+        showError(`Failed to load ${entityType}: ${errorMessage}`);
       } finally {
         setLoading(false);
       }
@@ -123,6 +127,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
                 ? saveError
                 : saveError.message || 'Failed to save changes';
             setError(errorMessage);
+            showError(`Failed to save ${entityType}: ${errorMessage}`);
             setSaving(false);
             return;
           }
@@ -131,9 +136,13 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
           if (tabId) {
             updateTab(tabId, { isDirty: false });
           }
+
+          // Show subtle success indicator (no toast to avoid interrupting writing flow)
+          setError(null);
         } catch (err) {
-          console.error('Error saving entity page:', err);
-          setError(err.message || 'Failed to save changes');
+          const errorMessage = err.message || 'Failed to save changes';
+          setError(errorMessage);
+          showError(`Failed to save ${entityType}: ${errorMessage}`);
         } finally {
           setSaving(false);
         }

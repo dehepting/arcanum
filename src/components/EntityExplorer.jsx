@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useStore from '../store/useStore';
 import { uploadPDF } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
+import { showError, showSuccess, showInfo } from '../utils/errorHandling';
 import './EntityExplorer.css';
 
 /**
@@ -92,7 +93,7 @@ export default function EntityExplorer() {
         });
         setCanvases(projectCanvases);
       } catch (error) {
-        console.error('Failed to load canvases:', error);
+        showError(`Failed to load canvases: ${error.message || 'Unknown error'}`);
       }
     };
 
@@ -135,8 +136,9 @@ export default function EntityExplorer() {
 
       setCanvases([...canvases, newCanvas]);
       handleCanvasClick(newCanvas);
+      showSuccess('Canvas created successfully!');
     } catch (error) {
-      console.error('Failed to create canvas:', error);
+      showError(`Failed to create canvas: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -167,8 +169,9 @@ export default function EntityExplorer() {
         canvases.map((c) => (c.id === canvasId ? { ...c, name: editingCanvasName.trim() } : c))
       );
       setEditingCanvasId(null);
+      showSuccess('Canvas renamed successfully!');
     } catch (error) {
-      console.error('Failed to rename canvas:', error);
+      showError(`Failed to rename canvas: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -223,8 +226,9 @@ export default function EntityExplorer() {
       updateFnMap[entityType](entityId, { name: editingEntityName.trim() });
 
       setEditingEntityId(null);
+      showSuccess('Entity renamed successfully!');
     } catch (error) {
-      console.error('Failed to rename entity:', error);
+      showError(`Failed to rename entity: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -331,9 +335,9 @@ export default function EntityExplorer() {
           title: source.title,
           data: { source },
         });
+        showSuccess('PDF uploaded successfully!');
       } catch (err) {
-        console.error('Upload error:', err);
-        alert(`Failed to upload PDF: ${err.message}`);
+        showError(`Failed to upload PDF: ${err.message || 'Unknown error'}`);
       } finally {
         setUploading(false);
       }
