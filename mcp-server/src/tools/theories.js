@@ -34,6 +34,8 @@ export const theoryTools = [
           maximum: 5,
           default: 3,
         },
+        lng: { type: 'number', description: 'Longitude coordinate' },
+        lat: { type: 'number', description: 'Latitude coordinate' },
         notes: { type: 'string', description: 'Additional notes' },
       },
       required: ['project_id', 'name'],
@@ -69,8 +71,8 @@ export const theoryHandlers = {
     });
 
     const stmt = db.prepare(`
-      INSERT INTO theories (id, project_id, name, description, metadata, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO theories (id, project_id, name, description, metadata, lng, lat, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     `);
 
@@ -80,6 +82,8 @@ export const theoryHandlers = {
       args.name,
       args.description || null,
       metadata,
+      args.lng || null,
+      args.lat || null,
       now,
       now
     );
