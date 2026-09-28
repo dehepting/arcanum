@@ -1,0 +1,64 @@
+.entity-form-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  align-items: flex-start;
+}
+
+.entity-form-item input[type='checkbox'] {
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.entity-form-fields {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.entity-form-fields input,
+.entity-form-fields select,
+.entity-form-fields textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.entity-form-fields input:focus,
+.entity-form-fields select:focus,
+.entity-form-fields textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.entity-form-fields textarea {
+  resize: vertical;
+  min-height: 60px;
+  grid-column: 1 / -1;
+}
+
+.entity-form-remove {
+  padding: 6px 12px;
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.entity-form-remove:hover {
+  background: var(--accent);
+  color: white;
+}

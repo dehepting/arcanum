@@ -146,8 +146,8 @@ describe('EntityPage', () => {
       />
     );
 
-    // Check for entity type badge
-    expect(screen.getByText('person')).toBeInTheDocument();
+    // Check for entity type badge (capitalized from config)
+    expect(screen.getByText('Person')).toBeInTheDocument();
 
     // Check for title
     expect(screen.getByText('Aristotle')).toBeInTheDocument();
@@ -411,7 +411,8 @@ describe('EntityPage', () => {
       await waitFor(() => {
         expect(screen.getByText(/Currency/)).toBeInTheDocument();
         expect(screen.getByText(/500-400 BC/)).toBeInTheDocument();
-        expect(screen.getByText(/Museum \(Institution\)/)).toBeInTheDocument();
+        expect(screen.getByText(/Museum/)).toBeInTheDocument();
+        expect(screen.getByText(/Institution/)).toBeInTheDocument();
       });
     });
 

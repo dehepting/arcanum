@@ -89,8 +89,8 @@ describe('EntityReview', () => {
         />
       );
 
-      expect(screen.getByText('People (1)')).toBeInTheDocument();
-      expect(screen.getByText('Events (0)')).toBeInTheDocument();
+      expect(screen.getByText(/People \(1\)/)).toBeInTheDocument();
+      expect(screen.getByText(/Events \(0\)/)).toBeInTheDocument();
     });
   });
 
@@ -101,7 +101,7 @@ describe('EntityReview', () => {
       const addButton = screen.getByText('+ Add Person');
       fireEvent.click(addButton);
 
-      const nameInputs = screen.getAllByPlaceholderText('Name');
+      const nameInputs = screen.getAllByPlaceholderText('Name *');
       expect(nameInputs.length).toBeGreaterThan(0);
     });
 
@@ -111,7 +111,7 @@ describe('EntityReview', () => {
       const addButton = screen.getByText('+ Add Event');
       fireEvent.click(addButton);
 
-      const nameInputs = screen.getAllByPlaceholderText('Event Name');
+      const nameInputs = screen.getAllByPlaceholderText('Event Name *');
       expect(nameInputs.length).toBeGreaterThan(0);
     });
 
@@ -121,7 +121,7 @@ describe('EntityReview', () => {
       const addButton = screen.getByText('+ Add Theory');
       fireEvent.click(addButton);
 
-      const nameInputs = screen.getAllByPlaceholderText('Theory Name');
+      const nameInputs = screen.getAllByPlaceholderText('Theory Name *');
       expect(nameInputs.length).toBeGreaterThan(0);
     });
 
@@ -131,7 +131,7 @@ describe('EntityReview', () => {
       const addButton = screen.getByText('+ Add Place');
       fireEvent.click(addButton);
 
-      const nameInputs = screen.getAllByPlaceholderText('Place Name');
+      const nameInputs = screen.getAllByPlaceholderText('Place Name *');
       expect(nameInputs.length).toBeGreaterThan(0);
     });
   });
