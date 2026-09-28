@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { getProvenance, deleteProvenanceEntry } from '../lib/provenance';
+import { useAsync } from '../hooks/useAsync';
+import { showError, showSuccess } from '../utils/errorHandling';
 
 const TRANSFER_METHODS = {
   excavation: '🔨 Excavation',
@@ -14,22 +16,15 @@ const TRANSFER_METHODS = {
 
 export default function ProvenanceTimeline({ artifactId, onEdit }) {
   const [provenance, setProvenance] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadProvenance = async () => {
-      try {
-        const data = await getProvenance(artifactId);
-        setProvenance(data);
-      } catch (err) {
-        console.error('Failed to load provenance:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProvenance();
+  // Load provenance using useAsync hook
+  const loadProvenance = useCallback(async () => {
+    const data = await getProvenance(artifactId);
+    setProvenance(data);
+    return data;
   }, [artifactId]);
+
+  const { loading } = useAsync(loadProvenance, true);
 
   const handleDelete = async (entryId) => {
     if (!confirm('Delete this provenance entry?')) return;
@@ -37,9 +32,9 @@ export default function ProvenanceTimeline({ artifactId, onEdit }) {
     try {
       await deleteProvenanceEntry(entryId);
       setProvenance(provenance.filter((p) => p.id !== entryId));
+      showSuccess('Provenance entry deleted');
     } catch (err) {
-      console.error('Failed to delete entry:', err);
-      alert('Failed to delete entry');
+      showError(`Failed to delete entry: ${err.message || 'Unknown error'}`);
     }
   };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
+import { useDebounce } from '../hooks/useDebounce';
 import './AdvancedSearch.css';
 
 export default function AdvancedSearch({ isOpen, onClose }) {
@@ -17,16 +18,17 @@ export default function AdvancedSearch({ isOpen, onClose }) {
   const currentProject = useStore((state) => state.currentProject);
   const addTab = useStore((state) => state.addTab);
 
-  // Debounced search with cleanup
-  // Setting state within async effect is intentional for search UX
-  // eslint-disable-next-line react/set-state-in-effect
+  // Debounce search query to avoid excessive API calls
+  const debouncedQuery = useDebounce(query, 300);
+
+  // Perform search when debounced query changes
   useEffect(() => {
-    if (!query.trim() || !currentProject) {
+    if (!debouncedQuery.trim() || !currentProject) {
       setResults([]);
       return;
     }
 
-    const timeoutId = setTimeout(async () => {
+    const performSearch = async () => {
       setIsSearching(true);
       try {
         const selectedTypes = Object.entries(entityTypes)
@@ -35,14 +37,13 @@ export default function AdvancedSearch({ isOpen, onClose }) {
 
         if (selectedTypes.length === 0) {
           setResults([]);
-          setIsSearching(false);
           return;
         }
 
         const searchResults = await invoke('search_entities', {
           input: {
             project_id: currentProject.id,
-            query: query.trim(),
+            query: debouncedQuery.trim(),
             entity_types: selectedTypes,
             limit: 50,
           },
@@ -55,10 +56,10 @@ export default function AdvancedSearch({ isOpen, onClose }) {
       } finally {
         setIsSearching(false);
       }
-    }, 300);
+    };
 
-    return () => clearTimeout(timeoutId);
-  }, [query, entityTypes, currentProject]);
+    performSearch();
+  }, [debouncedQuery, entityTypes, currentProject]);
 
   const handleOpenEntity = (result) => {
     // Map entity type to singular form for tab type

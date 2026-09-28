@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import useStore from '../store/useStore';
 import { getSourcesForArtifact, unlinkArtifactFromAnnotation } from '../lib/artifact-sources';
+import { useAsync } from '../hooks/useAsync';
+import { showError } from '../utils/errorHandling';
 
 /**
  * Displays list of source references (linked annotations) for an artifact
@@ -9,27 +11,20 @@ import { getSourcesForArtifact, unlinkArtifactFromAnnotation } from '../lib/arti
 export default function ArtifactSourcesList({ artifactId }) {
   const { setMapView, setActiveSource, setCurrentPage } = useStore();
   const [sources, setSources] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const loadSources = async () => {
-      setLoading(true);
-      setError(null);
+  // Load sources using useAsync hook - auto-execute on mount
+  const loadSources = useCallback(async () => {
+    const result = await getSourcesForArtifact(artifactId);
 
-      const result = await getSourcesForArtifact(artifactId);
-
-      if (result.success) {
-        setSources(result.data);
-      } else {
-        setError(result.error);
-      }
-
-      setLoading(false);
-    };
-
-    loadSources();
+    if (result.success) {
+      setSources(result.data);
+      return result.data;
+    } else {
+      throw new Error(result.error);
+    }
   }, [artifactId]);
+
+  const { loading, error } = useAsync(loadSources, true);
 
   const handleUnlink = async (linkId, annotationId) => {
     if (!confirm('Remove this source reference?')) return;
@@ -40,7 +35,7 @@ export default function ArtifactSourcesList({ artifactId }) {
       // Remove from local state
       setSources(sources.filter((s) => s.id !== linkId));
     } else {
-      alert('Failed to unlink source: ' + result.error);
+      showError(`Failed to unlink source: ${result.error}`);
     }
   };
 
