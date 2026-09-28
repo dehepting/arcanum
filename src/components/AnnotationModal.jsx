@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '../utils/logger';
 import useStore from '../store/useStore';
 import ArtifactLinkModal from './ArtifactLinkModal';
 import { getArtifactsForAnnotation } from '../lib/artifact-sources';
@@ -30,7 +31,7 @@ export default function AnnotationModal() {
   // eslint-disable-next-line react/set-state-in-effect
   useEffect(() => {
     if (modalOpen && pendingAnnotation) {
-      console.log('Opening modal with annotation:', pendingAnnotation);
+      logger.debug('Opening modal with annotation:', pendingAnnotation);
       // If editing existing annotation
       if (pendingAnnotation.id) {
         setNoteText(pendingAnnotation.text || '');

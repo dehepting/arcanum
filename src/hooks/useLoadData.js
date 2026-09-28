@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '../utils/logger';
 
 /**
  * Custom hook for loading data with loading/error states
@@ -33,7 +34,7 @@ export function useLoadData(loadFn, deps = [], options = {}) {
         const result = await loadFn();
         setData(result);
       } catch (err) {
-        console.error('Failed to load data:', err);
+        logger.error('Failed to load data:', err);
         setError(err);
       } finally {
         setLoading(false);
@@ -52,7 +53,7 @@ export function useLoadData(loadFn, deps = [], options = {}) {
       const result = await loadFn();
       setData(result);
     } catch (err) {
-      console.error('Failed to reload data:', err);
+      logger.error('Failed to reload data:', err);
       setError(err);
     } finally {
       setLoading(false);

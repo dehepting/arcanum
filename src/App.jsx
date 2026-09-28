@@ -7,6 +7,7 @@ import ProjectPicker from './components/ProjectPicker';
 import { loadSources } from './lib/upload';
 import { loadArtifacts } from './lib/artifacts';
 import { invoke } from '@tauri-apps/api/core';
+import { logger } from './utils/logger';
 import './styles/index.css';
 
 function App() {
@@ -57,7 +58,7 @@ function App() {
         // TODO: Load annotations
         setAnnotations([]);
       } catch (err) {
-        console.error('Failed to load project data:', err);
+        logger.error('Failed to load project data:', err);
       }
     };
 

@@ -1,4 +1,5 @@
 import useStore from '../store/useStore';
+import { logger } from '../utils/logger';
 import { deleteSource } from '../lib/upload';
 
 const TAB_ICONS = {
@@ -36,7 +37,7 @@ export default function Tabs() {
         await deleteSource(tab.data.source.id, tab.data.source.file_url);
         removeSource(tab.data.source.id);
       } catch (err) {
-        console.error('Delete error:', err);
+        logger.error('Delete error:', err);
         alert(`Failed to delete PDF: ${err.message}`);
         return;
       }

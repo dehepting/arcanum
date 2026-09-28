@@ -3,6 +3,7 @@ import useStore from '../store/useStore';
 import { uploadPDF } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
 import { showError, showSuccess, showInfo } from '../utils/errorHandling';
+import { logger } from '../utils/logger';
 import './EntityExplorer.css';
 
 /**
@@ -315,20 +316,20 @@ export default function EntityExplorer() {
 
   // Handle add source (PDF upload)
   const handleAddSource = () => {
-    console.log('handleAddSource called');
+    logger.debug('handleAddSource called');
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/pdf';
     input.onchange = async (e) => {
       const file = e.target.files[0];
-      console.log('File selected:', file);
+      logger.debug('File selected:', file);
       if (!file) return;
 
       setUploading(true);
       try {
-        console.log('Starting upload for project:', currentProject.id);
+        logger.debug('Starting upload for project:', currentProject.id);
         const source = await uploadPDF(file, currentProject.id);
-        console.log('Upload successful:', source);
+        logger.debug('Upload successful:', source);
         addSource(source);
         addTab({
           type: 'pdf',
@@ -343,7 +344,7 @@ export default function EntityExplorer() {
       }
     };
     input.click();
-    console.log('File input clicked');
+    logger.debug('File input clicked');
   };
 
   return (

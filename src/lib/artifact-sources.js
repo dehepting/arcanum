@@ -1,4 +1,5 @@
 // Artifact-source linking functionality
+import { logger } from '../utils/logger';
 // TODO: Implement artifact_source_links table and backend commands
 
 /**
@@ -10,7 +11,7 @@ export async function linkArtifactToAnnotation(
   _quote = '',
   _context = ''
 ) {
-  console.warn(
+  logger.warn(
     'linkArtifactToAnnotation not yet implemented - requires artifact_source_links table'
   );
   return { success: false, error: 'Not implemented' };
@@ -20,7 +21,7 @@ export async function linkArtifactToAnnotation(
  * Unlink an artifact from an annotation
  */
 export async function unlinkArtifactFromAnnotation(_artifactId, _annotationId) {
-  console.warn('unlinkArtifactFromAnnotation not yet implemented');
+  logger.warn('unlinkArtifactFromAnnotation not yet implemented');
   return { success: false, error: 'Not implemented' };
 }
 
@@ -28,7 +29,7 @@ export async function unlinkArtifactFromAnnotation(_artifactId, _annotationId) {
  * Get all source references for an artifact
  */
 export async function getSourcesForArtifact(_artifactId) {
-  console.warn('getSourcesForArtifact not yet implemented');
+  logger.warn('getSourcesForArtifact not yet implemented');
   return { success: true, data: [] };
 }
 
@@ -36,7 +37,7 @@ export async function getSourcesForArtifact(_artifactId) {
  * Get all artifacts linked to an annotation
  */
 export async function getArtifactsForAnnotation(_annotationId) {
-  console.warn('getArtifactsForAnnotation not yet implemented');
+  logger.warn('getArtifactsForAnnotation not yet implemented');
   return { success: true, data: [] };
 }
 
@@ -44,7 +45,7 @@ export async function getArtifactsForAnnotation(_annotationId) {
  * Get all artifacts mentioned in a PDF source
  */
 export async function getArtifactsForSource(_sourceId) {
-  console.warn('getArtifactsForSource not yet implemented');
+  logger.warn('getArtifactsForSource not yet implemented');
   return { success: true, data: [] };
 }
 
@@ -52,6 +53,6 @@ export async function getArtifactsForSource(_sourceId) {
  * Check if an artifact is linked to an annotation
  */
 export async function checkArtifactLink(_artifactId, _annotationId) {
-  console.warn('checkArtifactLink not yet implemented');
+  logger.warn('checkArtifactLink not yet implemented');
   return { success: true, linked: false };
 }

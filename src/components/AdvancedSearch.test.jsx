@@ -342,7 +342,9 @@ describe('AdvancedSearch', () => {
 
   it('handles search errors gracefully', async () => {
     const user = userEvent.setup({ delay: null });
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // Import logger dynamically
+    const { logger } = await import('../utils/logger');
+    const loggerErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
     const error = new Error('Search failed');
     mockInvoke.mockRejectedValue(error);
 
@@ -354,10 +356,10 @@ describe('AdvancedSearch', () => {
     await new Promise((resolve) => setTimeout(resolve, 350));
 
     await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Search failed:', error);
+      expect(loggerErrorSpy).toHaveBeenCalledWith('Search failed:', error);
     });
 
-    consoleErrorSpy.mockRestore();
+    loggerErrorSpy.mockRestore();
   });
 
   it('renders snippet with HTML highlighting', async () => {

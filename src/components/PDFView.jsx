@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { logger } from '../utils/logger';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import useStore from '../store/useStore';
@@ -40,7 +41,7 @@ export default function PDFView() {
         const anns = await loadAnnotations(activeSourceId);
         setAnnotations(anns);
       } catch (err) {
-        console.error('Failed to load annotations:', err);
+        logger.error('Failed to load annotations:', err);
       }
     };
 
@@ -49,23 +50,23 @@ export default function PDFView() {
 
   // Load PDF
   useEffect(() => {
-    console.log('Active source:', activeSource);
-    console.log('File URL:', activeSource?.file_url);
+    logger.debug('Active source:', activeSource);
+    logger.debug('File URL:', activeSource?.file_url);
 
     if (!activeSource?.file_url) {
-      console.warn('No file_url found in source');
+      logger.warn('No file_url found in source');
       return;
     }
 
     const loadPDF = async () => {
       try {
-        console.log('Loading PDF from:', activeSource.file_url);
+        logger.debug('Loading PDF from:', activeSource.file_url);
         const doc = await pdfjsLib.getDocument({ url: activeSource.file_url }).promise;
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setCurrentPage(1);
       } catch (err) {
-        console.error('Error loading PDF:', err);
+        logger.error('Error loading PDF:', err);
       }
     };
 

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { logger } from '../utils/logger';
 import useStore from '../store/useStore';
 import { createOverlay, uploadOverlay } from '../lib/overlays';
 
@@ -91,7 +92,7 @@ export default function OverlayGeoreference() {
       alert('Map overlay created successfully!');
       closeOverlayMode();
     } catch (err) {
-      console.error('Failed to create overlay:', err);
+      logger.error('Failed to create overlay:', err);
       alert(`Failed to create overlay: ${err.message}`);
     } finally {
       setUploading(false);

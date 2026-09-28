@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '../utils/logger';
 import useStore from '../store/useStore';
 import * as tauri from '../lib/tauri';
 
@@ -18,7 +19,7 @@ export default function ProjectPicker() {
       const data = await tauri.listProjects();
       setProjects(data || []);
     } catch (err) {
-      console.error('Error loading projects:', err);
+      logger.error('Error loading projects:', err);
       alert('Error loading projects: ' + err.message);
     } finally {
       setLoading(false);
@@ -37,7 +38,7 @@ export default function ProjectPicker() {
       setCurrentProject(data);
       localStorage.setItem('arcanum_last_project_id', data.id);
     } catch (err) {
-      console.error('Error creating project:', err);
+      logger.error('Error creating project:', err);
       alert('Error creating project: ' + err.message);
     } finally {
       setLoading(false);
@@ -69,7 +70,7 @@ export default function ProjectPicker() {
       setProjectToDelete(null);
       setDeleteConfirmText('');
     } catch (err) {
-      console.error('Error deleting project:', err);
+      logger.error('Error deleting project:', err);
       alert('Error deleting project: ' + err.message);
     } finally {
       setLoading(false);
@@ -90,7 +91,7 @@ export default function ProjectPicker() {
         const data = await tauri.listProjects();
         setProjects(data || []);
       } catch (err) {
-        console.error('Error loading projects:', err);
+        logger.error('Error loading projects:', err);
         alert('Error loading projects: ' + err.message);
       } finally {
         setLoading(false);

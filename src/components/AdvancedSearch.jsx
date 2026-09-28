@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
 import { useDebounce } from '../hooks/useDebounce';
+import { logger } from '../utils/logger';
 import './AdvancedSearch.css';
 
 export default function AdvancedSearch({ isOpen, onClose }) {
@@ -51,7 +52,7 @@ export default function AdvancedSearch({ isOpen, onClose }) {
 
         setResults(searchResults);
       } catch (error) {
-        console.error('Search failed:', error);
+        logger.error('Search failed:', error);
         setResults([]);
       } finally {
         setIsSearching(false);

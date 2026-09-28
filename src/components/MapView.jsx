@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { logger } from '../utils/logger';
 import { Map, NavigationControl, Marker, Popup, setWorkerUrl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
@@ -51,7 +52,7 @@ export default function MapView() {
     if (map.current) return; // Initialize only once
 
     if (!mapContainer.current) {
-      console.error('Map container ref is null!');
+      logger.error('Map container ref is null!');
       return;
     }
 
@@ -95,7 +96,7 @@ export default function MapView() {
       });
 
       map.current.on('error', (e) => {
-        console.error('Map error:', e);
+        logger.error('Map error:', e);
       });
 
       // Click handler for adding pins and georeferencing overlays
@@ -154,10 +155,10 @@ export default function MapView() {
               // Fly to the new location
               map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
 
-              console.log(`✓ Location updated for ${entityName}`);
+              logger.debug(`✓ Location updated for ${entityName}`);
             }
           } catch (err) {
-            console.error('Failed to update location:', err);
+            logger.error('Failed to update location:', err);
           }
           return;
         }
@@ -189,12 +190,12 @@ export default function MapView() {
           // Fly to the new pin
           map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
         } catch (err) {
-          console.error('Failed to create place:', err);
+          logger.error('Failed to create place:', err);
           alert(`Failed to create pin: ${err.message}`);
         }
       });
     } catch (error) {
-      console.error('Failed to initialize map:', error);
+      logger.error('Failed to initialize map:', error);
     }
 
     return () => {
@@ -246,7 +247,7 @@ export default function MapView() {
         setTheories(loadedTheories);
         setArtifacts(loadedArtifacts);
       } catch (err) {
-        console.error('Failed to load map data:', err);
+        logger.error('Failed to load map data:', err);
       }
     };
 
