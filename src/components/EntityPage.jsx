@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
-import RichTextEditor from './RichTextEditor';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { getEntityPage, updateEntityPage } from '../lib/entityPages';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
+
+// Lazy load heavy TipTap rich text editor
+const RichTextEditor = lazy(() => import('./RichTextEditor'));
 import './EntityPage.css';
 
 /**
@@ -484,12 +486,21 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
       )}
 
       <div className="entity-page-content">
-        <RichTextEditor
-          key={entityId || 'new'} // Stable key based on entity, not content
-          content={content}
-          onChange={handleContentChange}
-          placeholder={`Write about ${title}...`}
-        />
+        <Suspense
+          fallback={
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div className="loading-spinner" style={{ margin: '0 auto 12px' }}></div>
+              <p>Loading editor...</p>
+            </div>
+          }
+        >
+          <RichTextEditor
+            key={entityId || 'new'} // Stable key based on entity, not content
+            content={content}
+            onChange={handleContentChange}
+            placeholder={`Write about ${title}...`}
+          />
+        </Suspense>
       </div>
     </div>
   );
