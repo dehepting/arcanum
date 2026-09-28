@@ -46,7 +46,7 @@ export async function unlinkAnnotationFromPlace(annotationId, placeId) {
  * Get annotations linked to a place
  * Note: This requires implementing annotation commands in backend
  */
-export async function getAnnotationsForPlace(placeId) {
+export async function getAnnotationsForPlace(_placeId) {
   // TODO: Implement annotation queries in Phase 2 backend
   // For now, return empty array
   return [];

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import IDEWorkspace from './IDEWorkspace';
 import useStore from '../store/useStore';
@@ -286,9 +286,7 @@ describe('IDEWorkspace', () => {
   });
 
   it('does not respond to Cmd+Alt+B when right panel is not provided', () => {
-    const { container } = render(
-      <IDEWorkspace leftPanel={mockLeftPanel} centerPanel={mockCenterPanel} />
-    );
+    render(<IDEWorkspace leftPanel={mockLeftPanel} centerPanel={mockCenterPanel} />);
 
     // Simulate Cmd+Alt+B - should not throw error
     expect(() => {

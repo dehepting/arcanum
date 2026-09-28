@@ -28,8 +28,8 @@ export default function AdvancedSearch({ isOpen, onClose }) {
       setIsSearching(true);
       try {
         const selectedTypes = Object.entries(entityTypes)
-          .filter(([_, enabled]) => enabled)
-          .map(([type, _]) => type);
+          .filter(([, enabled]) => enabled)
+          .map(([type]) => type);
 
         if (selectedTypes.length === 0) {
           setResults([]);

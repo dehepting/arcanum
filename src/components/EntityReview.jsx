@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPerson } from '../lib/people';
 import { createEvent } from '../lib/events';
 import { createTheory } from '../lib/theories';
@@ -31,23 +31,63 @@ export default function EntityReview({
     places: initialEntities?.places || [],
   });
 
-  // Selection state
-  const [selectedPeople, setSelectedPeople] = useState(new Set());
-  const [selectedEvents, setSelectedEvents] = useState(new Set());
-  const [selectedTheories, setSelectedTheories] = useState(new Set());
-  const [selectedPlaces, setSelectedPlaces] = useState(new Set());
+  // Selection state - initialize with all entities selected
+  const [selectedPeople, setSelectedPeople] = useState(
+    () => new Set((initialEntities?.people || []).map((_, i) => i))
+  );
+  const [selectedEvents, setSelectedEvents] = useState(
+    () => new Set((initialEntities?.events || []).map((_, i) => i))
+  );
+  const [selectedTheories, setSelectedTheories] = useState(
+    () => new Set((initialEntities?.theories || []).map((_, i) => i))
+  );
+  const [selectedPlaces, setSelectedPlaces] = useState(
+    () => new Set((initialEntities?.places || []).map((_, i) => i))
+  );
 
-  // Editing state
-  const [editingEntity, setEditingEntity] = useState(null);
+  // Creation state
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState(null);
 
-  // Auto-select all entities on load
+  // Track if this is initial mount to avoid re-selecting on entity changes
+  const isInitialMount = useRef(true);
+
+  // Auto-select newly added entities
   useEffect(() => {
-    setSelectedPeople(new Set(entities.people.map((_, i) => i)));
-    setSelectedEvents(new Set(entities.events.map((_, i) => i)));
-    setSelectedTheories(new Set(entities.theories.map((_, i) => i)));
-    setSelectedPlaces(new Set(entities.places.map((_, i) => i)));
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // When entities change (new ones added), select them
+    setSelectedPeople((prev) => {
+      const newSet = new Set(prev);
+      entities.people.forEach((_, i) => {
+        if (!prev.has(i)) newSet.add(i);
+      });
+      return newSet;
+    });
+    setSelectedEvents((prev) => {
+      const newSet = new Set(prev);
+      entities.events.forEach((_, i) => {
+        if (!prev.has(i)) newSet.add(i);
+      });
+      return newSet;
+    });
+    setSelectedTheories((prev) => {
+      const newSet = new Set(prev);
+      entities.theories.forEach((_, i) => {
+        if (!prev.has(i)) newSet.add(i);
+      });
+      return newSet;
+    });
+    setSelectedPlaces((prev) => {
+      const newSet = new Set(prev);
+      entities.places.forEach((_, i) => {
+        if (!prev.has(i)) newSet.add(i);
+      });
+      return newSet;
+    });
   }, [entities]);
 
   const handleAddPerson = () => {

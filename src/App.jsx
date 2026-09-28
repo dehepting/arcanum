@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import useStore from './store/useStore';
 import Topbar from './components/Topbar';
 import Workspace from './components/Workspace';
@@ -17,15 +17,14 @@ function App() {
   const setPeople = useStore((state) => state.setPeople);
   const setEvents = useStore((state) => state.setEvents);
   const setTheories = useStore((state) => state.setTheories);
-  const [loading, setLoading] = useState(true);
 
-  // Load last project from localStorage on mount
+  // Load last project from localStorage on mount (when implemented)
   useEffect(() => {
     const lastProjectId = localStorage.getItem('arcanum_last_project_id');
     if (lastProjectId) {
       // TODO: Load project from Supabase by ID
+      // When implemented, set loading state appropriately
     }
-    setLoading(false);
   }, []);
 
   // Load project data when project changes

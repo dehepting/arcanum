@@ -6,7 +6,6 @@ import AnnotationOverlay from './AnnotationOverlay';
 import InkOverlay from './InkOverlay';
 import AnnotationModal from './AnnotationModal';
 import { loadAnnotations } from '../lib/annotations';
-import { invoke } from '@tauri-apps/api/core';
 
 // Set worker path from npm package (ensures version match)
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;

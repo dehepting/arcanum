@@ -43,7 +43,7 @@ export default function CanvasSelector({ currentCanvasId, onCanvasChange }) {
     };
 
     loadCanvases();
-  }, [currentProject]); // Remove currentCanvasId from deps to avoid infinite loop
+  }, [currentProject, currentCanvasId, onCanvasChange]);
 
   const createNewCanvas = async () => {
     if (!newCanvasName.trim() || !currentProject) return;

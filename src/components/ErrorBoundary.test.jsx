@@ -81,7 +81,7 @@ describe('ErrorBoundary', () => {
       return <div>No error</div>;
     };
 
-    const { rerender } = render(
+    render(
       <ErrorBoundary>
         <TestComponent />
       </ErrorBoundary>

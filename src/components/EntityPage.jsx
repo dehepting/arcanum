@@ -139,7 +139,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
 
       setSaveTimeout(timeout);
     },
-    [entityId, saveTimeout, tabId, updateTab]
+    [entityId, saveTimeout, tabId, updateTab, projectId, entityType, title]
   );
 
   // Handle location changes (lat/lng)

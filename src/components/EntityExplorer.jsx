@@ -21,7 +21,6 @@ export default function EntityExplorer() {
   const places = useStore((state) => state.places);
   const artifacts = useStore((state) => state.artifacts);
   const tabs = useStore((state) => state.tabs);
-  const activeTabId = useStore((state) => state.activeTabId);
   const addTab = useStore((state) => state.addTab);
   const setActiveTab = useStore((state) => state.setActiveTab);
   const addSource = useStore((state) => state.addSource);
@@ -289,19 +288,6 @@ export default function EntityExplorer() {
   };
 
   // Handle double-click - adds entity to canvas if canvas tab is active
-
-  // Handle entity drag start - for dragging to canvas
-  const handleEntityDragStart = (e, entity, entityType) => {
-    console.log('🔵 DRAG START:', { name: entity.name, type: entityType });
-    e.dataTransfer.effectAllowed = 'copy';
-    const data = {
-      entityId: entity.id,
-      entityType,
-      entityName: entity.name,
-    };
-    e.dataTransfer.setData('application/json', JSON.stringify(data));
-    console.log('🔵 Data set:', data);
-  };
 
   // Handle create new entity
   const handleCreateEntity = (entityType) => {

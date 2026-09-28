@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import useStore from '../store/useStore';
 import { getPlaceForAnnotation } from '../lib/places';
 import { getArtifactsForAnnotation } from '../lib/artifact-sources';
@@ -7,7 +7,6 @@ import ArtifactBadge from './ArtifactBadge';
 export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const [dragging, setDragging] = useState(false);
   const [draftRect, setDraftRect] = useState(null);
-  const [linkedAnnotations, setLinkedAnnotations] = useState(new Set());
   const [artifactLinks, setArtifactLinks] = useState(new Map());
   const [draggedAnnotation, setDraggedAnnotation] = useState(null);
   const [dragOffset, setDragOffset] = useState(null);
@@ -27,8 +26,8 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     (ann) => ann.source_id === activeSourceId && ann.page_number === currentPage
   );
 
-  // Track which annotations are linked to places
-  useEffect(() => {
+  // Compute which annotations are linked to places (derived state)
+  const linkedAnnotations = useMemo(() => {
     const linked = new Set();
     places.forEach((place) => {
       if (place.annotation_place_links) {
@@ -37,7 +36,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
         });
       }
     });
-    setLinkedAnnotations(linked);
+    return linked;
   }, [places]);
 
   // Load artifact links for current page annotations
@@ -57,7 +56,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     if (pageAnnotations.length > 0) {
       loadArtifactLinks();
     }
-  }, [pageAnnotations.length, activeSourceId, currentPage]);
+  }, [pageAnnotations, activeSourceId, currentPage]);
 
   const handleMouseDown = (e) => {
     // Select tool: don't create new annotations

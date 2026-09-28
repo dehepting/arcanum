@@ -3,8 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import EntityReview from './EntityReview';
 import * as peopleLib from '../lib/people';
 import * as eventsLib from '../lib/events';
-import * as theoriesLib from '../lib/theories';
-import * as placesLib from '../lib/places';
 
 // Mock the libraries
 vi.mock('../lib/people');
@@ -280,8 +278,8 @@ describe('EntityReview', () => {
 
   describe('Creating Entities', () => {
     it('should create selected entities', async () => {
-      peopleLib.createPerson = vi.fn().mockResolvedValue({ id: 'person-1', name: 'Plato' });
-      eventsLib.createEvent = vi.fn().mockResolvedValue({ id: 'event-1', name: 'Battle' });
+      vi.spyOn(peopleLib, 'createPerson').mockResolvedValue({ id: 'person-1', name: 'Plato' });
+      vi.spyOn(eventsLib, 'createEvent').mockResolvedValue({ id: 'event-1', name: 'Battle' });
 
       const initialEntities = {
         people: [{ name: 'Plato', role: 'author', bio: '', relationship_type: 'mentions' }],
@@ -314,7 +312,7 @@ describe('EntityReview', () => {
     });
 
     it('should skip empty entities', async () => {
-      peopleLib.createPerson = vi.fn();
+      vi.spyOn(peopleLib, 'createPerson');
 
       const initialEntities = {
         people: [{ name: '', role: 'author', relationship_type: 'mentions' }],
@@ -340,7 +338,7 @@ describe('EntityReview', () => {
     });
 
     it('should handle creation errors', async () => {
-      peopleLib.createPerson = vi.fn().mockRejectedValue(new Error('Database error'));
+      vi.spyOn(peopleLib, 'createPerson').mockRejectedValue(new Error('Database error'));
 
       const initialEntities = {
         people: [{ name: 'Plato', role: 'author', relationship_type: 'mentions' }],

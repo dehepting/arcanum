@@ -97,7 +97,7 @@ export default function ProvenanceTimeline({ artifactId, onEdit }) {
         />
 
         {/* Entries */}
-        {provenance.map((entry, idx) => (
+        {provenance.map((entry) => (
           <div
             key={entry.id}
             style={{

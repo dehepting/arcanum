@@ -211,25 +211,25 @@ export async function searchEntityPages(projectId, query, entityTypes = null) {
 
 // Entity links - TODO: Add backend commands for entity_links table
 export async function createEntityLink(
-  projectId,
-  fromEntityId,
-  fromEntityType,
-  toEntityId,
-  toEntityType,
-  relationshipType,
-  verified = false,
-  notes = null
+  _projectId,
+  _fromEntityId,
+  _fromEntityType,
+  _toEntityId,
+  _toEntityType,
+  _relationshipType,
+  _verified = false,
+  _notes = null
 ) {
   console.warn('createEntityLink not yet implemented in Tauri backend');
   return { data: null, error: new Error('Not implemented') };
 }
 
-export async function getEntityLinks(entityId) {
+export async function getEntityLinks(_entityId) {
   console.warn('getEntityLinks not yet implemented in Tauri backend');
   return { data: { outgoing: [], incoming: [] }, error: null };
 }
 
-export async function getProjectLinks(projectId) {
+export async function getProjectLinks(_projectId) {
   console.warn('getProjectLinks not yet implemented in Tauri backend');
   return { data: [], error: null };
 }

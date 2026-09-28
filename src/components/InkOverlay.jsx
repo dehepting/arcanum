@@ -141,7 +141,6 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
       e.preventDefault();
 
       // Find object at click position
-      const pointer = canvas.getPointer(e);
       const target = canvas.findTarget(e);
 
       if (target && target.annotationId) {

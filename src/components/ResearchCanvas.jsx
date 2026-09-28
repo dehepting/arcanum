@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Tldraw, useEditor, createShapeId, toRichText } from 'tldraw';
+import { Tldraw, useEditor, createShapeId } from 'tldraw';
 import 'tldraw/tldraw.css';
 import useStore from '../store/useStore';
 import EntityPicker from './canvas/EntityPicker';
@@ -16,11 +16,8 @@ const ARCANUM_THEME = {
   '--color-selected': 'var(--accent-9)',
 };
 
-function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
+function CanvasInner({ canvasId, onShowEntityPicker }) {
   const editor = useEditor();
-  const addTab = useStore((state) => state.addTab);
-  const setActiveTab = useStore((state) => state.setActiveTab);
-  const tabs = useStore((state) => state.tabs);
   const currentProject = useStore((state) => state.currentProject);
   const saveTimeoutRef = useRef(null);
   const hasLoadedRef = useRef(false);
@@ -207,7 +204,6 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
 export default function ResearchCanvas({ tab }) {
   const [showEntityPicker, setShowEntityPicker] = useState(false);
   const canvasId = tab.data?.canvasId || tab.canvasId;
-  const canvasName = tab.data?.canvasName || tab.title;
 
   const handleShowEntityPicker = useCallback(() => {
     setShowEntityPicker(true);
@@ -307,12 +303,7 @@ export default function ResearchCanvas({ tab }) {
       </button>
 
       <Tldraw key={canvasId} autoFocus>
-        <CanvasInner
-          tab={tab}
-          canvasId={canvasId}
-          canvasName={canvasName}
-          onShowEntityPicker={handleShowEntityPicker}
-        />
+        <CanvasInner canvasId={canvasId} onShowEntityPicker={handleShowEntityPicker} />
       </Tldraw>
     </div>
   );

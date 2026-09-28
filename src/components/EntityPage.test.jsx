@@ -15,7 +15,7 @@ vi.mock('../lib/entityPages', () => ({
 
 // Mock RichTextEditor
 vi.mock('./RichTextEditor', () => ({
-  default: ({ content, onChange }) => (
+  default: ({ content }) => (
     <div data-testid="rich-text-editor" data-content={content}>
       RichTextEditor
     </div>

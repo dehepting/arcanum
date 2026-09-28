@@ -2,16 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Tabs from './Tabs';
 import useStore from '../store/useStore';
-import { uploadPDF, deleteSource } from '../lib/upload';
 
 // Mock the store
 vi.mock('../store/useStore');
-
-// Mock upload library
-vi.mock('../lib/upload', () => ({
-  uploadPDF: vi.fn(),
-  deleteSource: vi.fn(),
-}));
 
 describe('Tabs', () => {
   const mockAddTab = vi.fn();
@@ -162,7 +155,7 @@ describe('Tabs', () => {
       return selector ? selector(state) : state;
     });
 
-    const { container } = render(<Tabs />);
+    render(<Tabs />);
 
     // Get the canvas tab button
     const canvasTab = screen.getByText(/Research Canvas/).closest('button');

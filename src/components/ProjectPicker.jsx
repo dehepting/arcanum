@@ -84,7 +84,20 @@ export default function ProjectPicker() {
 
   // Load projects on mount
   useEffect(() => {
-    loadProjects();
+    const fetchProjects = async () => {
+      setLoading(true);
+      try {
+        const data = await tauri.listProjects();
+        setProjects(data || []);
+      } catch (err) {
+        console.error('Error loading projects:', err);
+        alert('Error loading projects: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
   }, []);
 
   return (

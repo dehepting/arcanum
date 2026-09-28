@@ -1,5 +1,4 @@
 // Test setup for MCP server
-import { vi } from 'vitest';
 
 // Mock environment variables
 process.env.SUPABASE_URL = 'https://test.supabase.co';
