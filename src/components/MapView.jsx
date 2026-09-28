@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Map, NavigationControl, Marker, Popup, setWorkerUrl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
 import { createPlace, loadPlaces, getAnnotationsForPlace } from '../lib/places';
 import { loadOverlays } from '../lib/overlays';
@@ -25,6 +26,9 @@ export default function MapView() {
   const pinPlacementMode = useStore((state) => state.pinPlacementMode);
   const pendingPinAnnotationId = useStore((state) => state.pendingPinAnnotationId);
   const cancelPinPlacement = useStore((state) => state.cancelPinPlacement);
+  const locationPlacementMode = useStore((state) => state.locationPlacementMode);
+  const pendingLocationEntity = useStore((state) => state.pendingLocationEntity);
+  const cancelLocationPlacement = useStore((state) => state.cancelLocationPlacement);
   const setMapView = useStore((state) => state.setMapView);
   const setActiveSource = useStore((state) => state.setActiveSource);
   const setCurrentPage = useStore((state) => state.setCurrentPage);
@@ -92,6 +96,61 @@ export default function MapView() {
         // Check if in overlay georeferencing mode
         if (state.overlayMode && state.onOverlayMapClick) {
           state.onOverlayMapClick(e.lngLat);
+          return;
+        }
+
+        // Check if in location placement mode
+        if (state.locationPlacementMode && state.pendingLocationEntity) {
+          const { entityId, entityType, entityName } = state.pendingLocationEntity;
+
+          try {
+            // Update entity coordinates based on type
+            const updateCommandMap = {
+              person: { command: 'update_person', param: 'person_id' },
+              event: { command: 'update_event', param: 'event_id' },
+              theory: { command: 'update_theory', param: 'theory_id' },
+              place: { command: 'update_place', param: 'place_id' },
+              artifact: { command: 'update_artifact', param: 'artifact_id' },
+            };
+
+            const config = updateCommandMap[entityType];
+            if (config) {
+              await invoke(config.command, {
+                [config.param]: entityId,
+                input: {
+                  lng: e.lngLat.lng,
+                  lat: e.lngLat.lat,
+                },
+              });
+
+              // Update in local state
+              const updateFunctions = {
+                person: state.updatePerson,
+                event: state.updateEvent,
+                theory: state.updateTheory,
+                place: state.updatePlace,
+                artifact: state.updateArtifact,
+              };
+
+              const updateFn = updateFunctions[entityType];
+              if (updateFn) {
+                updateFn(entityId, {
+                  lng: e.lngLat.lng,
+                  lat: e.lngLat.lat,
+                });
+              }
+
+              state.cancelLocationPlacement();
+
+              // Fly to the new location
+              map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
+
+              alert(`Location updated for ${entityName}`);
+            }
+          } catch (err) {
+            console.error('Failed to update location:', err);
+            alert(`Failed to update location: ${err.message}`);
+          }
           return;
         }
 
@@ -324,8 +383,44 @@ export default function MapView() {
         width: '100%',
       }}
     >
+      {/* Location placement mode banner */}
+      {locationPlacementMode && pendingLocationEntity && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            background: 'var(--accent)',
+            color: '#fff',
+            padding: '10px 16px',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'center',
+          }}
+        >
+          <span>📍 Click on the map to set location for {pendingLocationEntity.entityName}</span>
+          <button
+            onClick={cancelLocationPlacement}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              color: '#fff',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
       {/* Pin placement mode banner */}
-      {pinPlacementMode && (
+      {!locationPlacementMode && pinPlacementMode && (
         <div
           style={{
             position: 'absolute',
@@ -382,7 +477,7 @@ export default function MapView() {
       )}
 
       {/* Add overlay button */}
-      {!pinPlacementMode && !overlayMode && (
+      {!pinPlacementMode && !overlayMode && !locationPlacementMode && (
         <button
           onClick={openOverlayMode}
           style={{

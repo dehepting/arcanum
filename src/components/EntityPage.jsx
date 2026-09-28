@@ -195,11 +195,17 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
 
   // Handle "Set on Map" button click
   const handleSetOnMap = useCallback(() => {
-    // TODO: Implement map placement mode (Phase 3)
-    // This will open map view and enter placement mode
-    console.log('Set on Map clicked - TODO: implement map placement mode');
-    alert('Map placement mode coming in Phase 3!');
-  }, []);
+    if (!entityId || !entityType) return;
+
+    const startLocationPlacement = useStore.getState().startLocationPlacement;
+    const setActiveTab = useStore.getState().setActiveTab;
+
+    // Enter location placement mode
+    startLocationPlacement(entityId, entityType, title);
+
+    // Switch to map tab
+    setActiveTab('default-map');
+  }, [entityId, entityType, title]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

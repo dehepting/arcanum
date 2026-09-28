@@ -148,6 +148,20 @@ const useStore = create((set, get) => ({
       pendingPinAnnotationId: null,
     }),
 
+  // Location placement mode (for setting entity coordinates)
+  locationPlacementMode: false,
+  pendingLocationEntity: null, // { entityId, entityType, entityName }
+  startLocationPlacement: (entityId, entityType, entityName) =>
+    set({
+      locationPlacementMode: true,
+      pendingLocationEntity: { entityId, entityType, entityName },
+    }),
+  cancelLocationPlacement: () =>
+    set({
+      locationPlacementMode: false,
+      pendingLocationEntity: null,
+    }),
+
   // Artifacts
   artifacts: [],
   setArtifacts: (artifacts) => set({ artifacts }),
