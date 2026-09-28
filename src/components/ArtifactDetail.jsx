@@ -5,6 +5,7 @@ import ProvenanceTimeline from './ProvenanceTimeline';
 import ProvenanceForm from './ProvenanceForm';
 import ClaimsList from './ClaimsList';
 import ArtifactSourcesList from './ArtifactSourcesList';
+import { showError, showSuccess } from '../utils/errorHandling';
 
 const CATEGORY_ICONS = {
   'Pottery & Ceramics': '🏺',
@@ -34,10 +35,10 @@ export default function ArtifactDetail({ artifact, onBack, onEdit }) {
     try {
       await deleteArtifact(artifact.id, artifact.image_urls);
       removeArtifact(artifact.id);
+      showSuccess('Artifact deleted successfully!');
       onBack();
     } catch (err) {
-      console.error('Failed to delete artifact:', err);
-      alert(`Failed to delete artifact: ${err.message}`);
+      showError(`Failed to delete artifact: ${err.message || 'Unknown error'}`);
     }
   };
 

@@ -3,6 +3,7 @@ import useStore from '../store/useStore';
 import { getPlaceForAnnotation } from '../lib/places';
 import { getArtifactsForAnnotation } from '../lib/artifact-sources';
 import ArtifactBadge from './ArtifactBadge';
+import { showError, showSuccess } from '../utils/errorHandling';
 
 export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const [dragging, setDragging] = useState(false);
@@ -157,7 +158,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
             currentAnnotations.map((a) => (a.id === draggedAnnotation.id ? draggedAnnotation : a))
           );
       } catch (err) {
-        console.error('Failed to update annotation position:', err);
+        showError(`Failed to update annotation position: ${err.message || 'Unknown error'}`);
       }
 
       setDraggedAnnotation(null);
@@ -198,7 +199,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
       if (error) throw error;
       useStore.getState().addAnnotation(data);
     } catch (err) {
-      console.error('Failed to save highlight:', err);
+      showError(`Failed to save highlight: ${err.message || 'Unknown error'}`);
     }
 
     // Reset
@@ -242,7 +243,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
           useStore.getState().flyToPlace = place;
         }
       } catch (err) {
-        console.error('Failed to navigate to place:', err);
+        showError(`Failed to navigate to place: ${err.message || 'Unknown error'}`);
       }
     }
 
@@ -270,9 +271,9 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
       // Remove from store
       const currentAnnotations = useStore.getState().annotations;
       useStore.getState().setAnnotations(currentAnnotations.filter((a) => a.id !== ann.id));
+      showSuccess('Annotation deleted successfully!');
     } catch (err) {
-      console.error('Failed to delete annotation:', err);
-      alert('Failed to delete annotation');
+      showError(`Failed to delete annotation: ${err.message || 'Unknown error'}`);
     }
   };
 
