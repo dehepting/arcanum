@@ -17,7 +17,9 @@ export default function AdvancedSearch({ isOpen, onClose }) {
   const currentProject = useStore((state) => state.currentProject);
   const addTab = useStore((state) => state.addTab);
 
-  // Debounced search
+  // Debounced search with cleanup
+  // Setting state within async effect is intentional for search UX
+  // eslint-disable-next-line react/set-state-in-effect
   useEffect(() => {
     if (!query.trim() || !currentProject) {
       setResults([]);

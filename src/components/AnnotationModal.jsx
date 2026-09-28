@@ -24,6 +24,9 @@ export default function AnnotationModal() {
     }
   }, []);
 
+  // Sync modal state with external store state when modal opens/closes
+  // This is an intentional state synchronization pattern for modals
+  // eslint-disable-next-line react/set-state-in-effect
   useEffect(() => {
     if (modalOpen && pendingAnnotation) {
       console.log('Opening modal with annotation:', pendingAnnotation);

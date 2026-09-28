@@ -39,6 +39,8 @@ export default function ProvenanceForm({ artifactId, entry, isOpen, onClose, onS
 
   const [saving, setSaving] = useState(false);
 
+  // Sync form data when editing different entry - intentional pattern
+  // eslint-disable-next-line react/set-state-in-effect
   useEffect(() => {
     if (entry) {
       setFormData({

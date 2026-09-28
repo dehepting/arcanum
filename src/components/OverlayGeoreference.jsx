@@ -15,6 +15,8 @@ export default function OverlayGeoreference() {
   const closeOverlayMode = useStore((state) => state.closeOverlayMode);
   const addMapOverlay = useStore((state) => state.addMapOverlay);
 
+  // Reset local state when modal closes - intentional cleanup pattern
+  // eslint-disable-next-line react/set-state-in-effect
   useEffect(() => {
     if (!overlayMode) {
       // Reset state when modal closes

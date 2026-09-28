@@ -50,6 +50,9 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
   const addArtifact = useStore((state) => state.addArtifact);
   const updateArtifactStore = useStore((state) => state.updateArtifact);
 
+  // Sync form data when editing different artifact - intentional pattern
+  // Alternative would be using key prop, but that loses unsaved changes on tab switch
+  // eslint-disable-next-line react/set-state-in-effect
   useEffect(() => {
     if (artifact) {
       setFormData({
