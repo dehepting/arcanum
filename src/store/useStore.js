@@ -27,6 +27,18 @@ const useStore = create((set, get) => ({
   setCurrentPage: (page) => set({ currentPage: page }),
   setScale: (scale) => set({ pdfScale: scale }),
 
+  // Annotation tool
+  activeTool: 'select', // 'select', 'highlight', 'ink', 'text'
+  setActiveTool: (tool) => set({ activeTool: tool }),
+
+  // Annotations for current source
+  annotations: [],
+  setAnnotations: (annotations) => set({ annotations }),
+  addAnnotation: (annotation) =>
+    set((state) => ({
+      annotations: [...state.annotations, annotation],
+    })),
+
   // Map state (deprecated - kept for backward compatibility)
   mapView: 'map', // 'map' or 'source'
   setMapView: (view) => set({ mapView: view }),
@@ -98,10 +110,43 @@ const useStore = create((set, get) => ({
       places: state.places.filter((p) => p.id !== placeId),
     })),
 
+  // Selected annotation (for linking to map)
+  selectedAnnotationId: null,
+  setSelectedAnnotation: (id) => set({ selectedAnnotationId: id }),
+
+  // Annotation modal
+  annotationModalOpen: false,
+  pendingAnnotation: null,
+  openAnnotationModal: (annotation) =>
+    set({
+      annotationModalOpen: true,
+      pendingAnnotation: annotation,
+    }),
+  closeAnnotationModal: () =>
+    set({
+      annotationModalOpen: false,
+      pendingAnnotation: null,
+    }),
+
   // Advanced search modal
   advancedSearchModalOpen: false,
   openAdvancedSearch: () => set({ advancedSearchModalOpen: true }),
   closeAdvancedSearch: () => set({ advancedSearchModalOpen: false }),
+
+  // Pin placement mode (for linking annotations to map)
+  pinPlacementMode: false,
+  pendingPinAnnotationId: null,
+  startPinPlacement: (annotationId) =>
+    set({
+      pinPlacementMode: true,
+      pendingPinAnnotationId: annotationId,
+      mapView: 'map', // Switch to map view
+    }),
+  cancelPinPlacement: () =>
+    set({
+      pinPlacementMode: false,
+      pendingPinAnnotationId: null,
+    }),
 
   // Location placement mode (for setting entity coordinates)
   locationPlacementMode: false,

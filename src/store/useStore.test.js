@@ -9,6 +9,7 @@ describe('useStore', () => {
     state.setCurrentProject(null);
     state.setSources([]);
     state.setActiveSource(null);
+    state.setAnnotations([]);
     state.setPlaces([]);
     state.setArtifacts([]);
     state.setPeople([]);
@@ -18,7 +19,10 @@ describe('useStore', () => {
     state.setEntityLinks([]);
     state.setMapOverlays([]);
     state.setSelectedArtifact(null);
+    state.setSelectedAnnotation(null);
+    state.closeAnnotationModal();
     state.closeAdvancedSearch();
+    state.cancelPinPlacement();
     state.closeOverlayMode();
 
     // Reset tabs to initial state (remove all except default map tab)
@@ -181,6 +185,70 @@ describe('useStore', () => {
       });
 
       expect(result.current.pdfScale).toBe(1.5);
+    });
+  });
+
+  describe('Annotation Tools', () => {
+    it('initializes with select tool', () => {
+      const { result } = renderHook(() => useStore());
+      expect(result.current.activeTool).toBe('select');
+    });
+
+    it('sets active tool', () => {
+      const { result } = renderHook(() => useStore());
+
+      act(() => {
+        result.current.setActiveTool('highlight');
+      });
+
+      expect(result.current.activeTool).toBe('highlight');
+    });
+
+    it('switches between tools', () => {
+      const { result } = renderHook(() => useStore());
+
+      act(() => {
+        result.current.setActiveTool('ink');
+      });
+      expect(result.current.activeTool).toBe('ink');
+
+      act(() => {
+        result.current.setActiveTool('text');
+      });
+      expect(result.current.activeTool).toBe('text');
+    });
+  });
+
+  describe('Annotations', () => {
+    it('initializes with empty annotations', () => {
+      const { result } = renderHook(() => useStore());
+      expect(result.current.annotations).toEqual([]);
+    });
+
+    it('adds annotation', () => {
+      const { result } = renderHook(() => useStore());
+      const annotation = { id: 'a1', type: 'highlight', text: 'Test' };
+
+      act(() => {
+        result.current.addAnnotation(annotation);
+      });
+
+      expect(result.current.annotations).toHaveLength(1);
+      expect(result.current.annotations[0]).toEqual(annotation);
+    });
+
+    it('sets annotations array', () => {
+      const { result } = renderHook(() => useStore());
+      const annotations = [
+        { id: 'a1', type: 'highlight' },
+        { id: 'a2', type: 'text' },
+      ];
+
+      act(() => {
+        result.current.setAnnotations(annotations);
+      });
+
+      expect(result.current.annotations).toEqual(annotations);
     });
   });
 
@@ -384,6 +452,36 @@ describe('useStore', () => {
   });
 
   describe('Modals', () => {
+    it('annotation modal starts closed', () => {
+      const { result } = renderHook(() => useStore());
+      expect(result.current.annotationModalOpen).toBe(false);
+      expect(result.current.pendingAnnotation).toBeNull();
+    });
+
+    it('opens annotation modal with pending annotation', () => {
+      const { result } = renderHook(() => useStore());
+      const annotation = { id: 'a1', text: 'Test' };
+
+      act(() => {
+        result.current.openAnnotationModal(annotation);
+      });
+
+      expect(result.current.annotationModalOpen).toBe(true);
+      expect(result.current.pendingAnnotation).toEqual(annotation);
+    });
+
+    it('closes annotation modal', () => {
+      const { result } = renderHook(() => useStore());
+
+      act(() => {
+        result.current.openAnnotationModal({ id: 'a1' });
+        result.current.closeAnnotationModal();
+      });
+
+      expect(result.current.annotationModalOpen).toBe(false);
+      expect(result.current.pendingAnnotation).toBeNull();
+    });
+
     it('advanced search modal starts closed', () => {
       const { result } = renderHook(() => useStore());
       expect(result.current.advancedSearchModalOpen).toBe(false);
@@ -408,6 +506,39 @@ describe('useStore', () => {
       });
 
       expect(result.current.advancedSearchModalOpen).toBe(false);
+    });
+  });
+
+  describe('Pin Placement Mode', () => {
+    it('starts with pin placement off', () => {
+      const { result } = renderHook(() => useStore());
+      expect(result.current.pinPlacementMode).toBe(false);
+      expect(result.current.pendingPinAnnotationId).toBeNull();
+    });
+
+    it('starts pin placement and switches to map view', () => {
+      const { result } = renderHook(() => useStore());
+
+      act(() => {
+        result.current.setMapView('source');
+        result.current.startPinPlacement('a1');
+      });
+
+      expect(result.current.pinPlacementMode).toBe(true);
+      expect(result.current.pendingPinAnnotationId).toBe('a1');
+      expect(result.current.mapView).toBe('map');
+    });
+
+    it('cancels pin placement', () => {
+      const { result } = renderHook(() => useStore());
+
+      act(() => {
+        result.current.startPinPlacement('a1');
+        result.current.cancelPinPlacement();
+      });
+
+      expect(result.current.pinPlacementMode).toBe(false);
+      expect(result.current.pendingPinAnnotationId).toBeNull();
     });
   });
 
@@ -824,6 +955,34 @@ describe('useStore', () => {
       });
 
       expect(result.current.mapView).toBe('source');
+    });
+  });
+
+  describe('Selected Annotation', () => {
+    it('initializes with no selected annotation', () => {
+      const { result } = renderHook(() => useStore());
+      expect(result.current.selectedAnnotationId).toBeNull();
+    });
+
+    it('sets selected annotation', () => {
+      const { result } = renderHook(() => useStore());
+
+      act(() => {
+        result.current.setSelectedAnnotation('a1');
+      });
+
+      expect(result.current.selectedAnnotationId).toBe('a1');
+    });
+
+    it('clears selected annotation', () => {
+      const { result } = renderHook(() => useStore());
+
+      act(() => {
+        result.current.setSelectedAnnotation('a1');
+        result.current.setSelectedAnnotation(null);
+      });
+
+      expect(result.current.selectedAnnotationId).toBeNull();
     });
   });
 });

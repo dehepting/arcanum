@@ -10,7 +10,13 @@ import '../styles/entity.css';
  * EntityReview - Review and approve entities before adding to knowledge graph
  * Can be used standalone or with pre-filled data from Claude's analysis
  */
-export default function EntityReview({ initialEntities = null, onClose, onApproved }) {
+export default function EntityReview({
+  annotationId,
+  annotationText,
+  initialEntities = null,
+  onClose,
+  onApproved,
+}) {
   const currentProject = useStore((state) => state.currentProject);
   const addPerson = useStore((state) => state.addPerson);
   const addEvent = useStore((state) => state.addEvent);
@@ -175,14 +181,18 @@ export default function EntityReview({ initialEntities = null, onClose, onApprov
         const person = entities.people[index];
         if (!person.name.trim()) continue;
 
-        const created = await createPerson({
-          project_id: currentProject.id,
-          name: person.name,
-          role: person.role,
-          birth_year: person.birth_year,
-          death_year: person.death_year,
-          bio: person.bio,
-        });
+        const created = await createPerson(
+          {
+            project_id: currentProject.id,
+            name: person.name,
+            role: person.role,
+            birth_year: person.birth_year,
+            death_year: person.death_year,
+            bio: person.bio,
+          },
+          annotationId,
+          person.relationship_type
+        );
         createdEntities.people.push(created);
         addPerson(created);
       }
@@ -192,14 +202,18 @@ export default function EntityReview({ initialEntities = null, onClose, onApprov
         const event = entities.events[index];
         if (!event.name.trim()) continue;
 
-        const created = await createEvent({
-          project_id: currentProject.id,
-          name: event.name,
-          date_year: event.date_year,
-          date_precision: event.date_precision,
-          event_type: event.event_type,
-          description: event.description,
-        });
+        const created = await createEvent(
+          {
+            project_id: currentProject.id,
+            name: event.name,
+            date_year: event.date_year,
+            date_precision: event.date_precision,
+            event_type: event.event_type,
+            description: event.description,
+          },
+          annotationId,
+          event.relationship_type
+        );
         createdEntities.events.push(created);
         addEvent(created);
       }
@@ -209,13 +223,17 @@ export default function EntityReview({ initialEntities = null, onClose, onApprov
         const theory = entities.theories[index];
         if (!theory.name.trim()) continue;
 
-        const created = await createTheory({
-          project_id: currentProject.id,
-          name: theory.name,
-          description: theory.description,
-          status: theory.status,
-          confidence_level: theory.confidence_level,
-        });
+        const created = await createTheory(
+          {
+            project_id: currentProject.id,
+            name: theory.name,
+            description: theory.description,
+            status: theory.status,
+            confidence_level: theory.confidence_level,
+          },
+          annotationId,
+          theory.relationship_type
+        );
         createdEntities.theories.push(created);
         addTheory(created);
       }
@@ -225,13 +243,16 @@ export default function EntityReview({ initialEntities = null, onClose, onApprov
         const place = entities.places[index];
         if (!place.name.trim()) continue;
 
-        const created = await createPlace({
-          project_id: currentProject.id,
-          name: place.name,
-          lng: place.lng,
-          lat: place.lat,
-          note: place.note,
-        });
+        const created = await createPlace(
+          {
+            project_id: currentProject.id,
+            name: place.name,
+            lng: place.lng,
+            lat: place.lat,
+            note: place.note,
+          },
+          annotationId
+        );
         createdEntities.places.push(created);
         addPlace(created);
       }
@@ -260,6 +281,13 @@ export default function EntityReview({ initialEntities = null, onClose, onApprov
             ×
           </button>
         </div>
+
+        {annotationText && (
+          <div className="annotation-context">
+            <strong>From annotation:</strong>
+            <p>{annotationText.substring(0, 200)}...</p>
+          </div>
+        )}
 
         <div className="entity-review-content">
           {/* People Section */}
