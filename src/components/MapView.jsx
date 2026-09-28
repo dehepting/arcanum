@@ -311,14 +311,81 @@ export default function MapView() {
 
       // Build popup content based on entity type
       let additionalInfo = '';
+      let metadataHTML = '';
+
+      // Parse and format metadata if it exists
+      if (entity.metadata) {
+        try {
+          const metadata = JSON.parse(entity.metadata);
+          const metadataItems = [];
+
+          // Format metadata based on entity type
+          if (entityType === 'theory') {
+            if (metadata.status) {
+              metadataItems.push(`Status: <strong>${metadata.status}</strong>`);
+            }
+            if (metadata.confidence_level) {
+              const stars =
+                '★'.repeat(metadata.confidence_level) + '☆'.repeat(5 - metadata.confidence_level);
+              metadataItems.push(`Confidence: ${stars}`);
+            }
+          } else if (entityType === 'artifact') {
+            if (metadata.material) {
+              metadataItems.push(`Material: <strong>${metadata.material}</strong>`);
+            }
+            if (metadata.condition) {
+              metadataItems.push(`Condition: <strong>${metadata.condition}</strong>`);
+            }
+          } else if (entityType === 'person') {
+            if (metadata.nationality) {
+              metadataItems.push(`Nationality: <strong>${metadata.nationality}</strong>`);
+            }
+            if (metadata.status) {
+              metadataItems.push(`Status: <strong>${metadata.status}</strong>`);
+            }
+          } else if (entityType === 'event') {
+            if (metadata.type) {
+              metadataItems.push(`Type: <strong>${metadata.type}</strong>`);
+            }
+            if (metadata.significance) {
+              metadataItems.push(`Significance: <strong>${metadata.significance}</strong>`);
+            }
+          }
+
+          if (metadataItems.length > 0) {
+            metadataHTML = `<div style="margin-bottom: 8px; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; font-size: 11px; color: #59636e; line-height: 1.6;">${metadataItems.join(' • ')}</div>`;
+          }
+        } catch (e) {
+          // If metadata isn't valid JSON, skip it
+        }
+      }
+
+      // Entity-specific info
       if (entityType === 'place' && entity.place_type) {
         additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">📍 ${entity.place_type}</div>`;
-      } else if (entityType === 'person' && entity.occupation) {
-        additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">💼 ${entity.occupation}</div>`;
-      } else if (entityType === 'event' && entity.event_date) {
-        additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">📅 ${entity.event_date}</div>`;
-      } else if (entityType === 'artifact' && entity.category) {
-        additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">🏺 ${entity.category}</div>`;
+      } else if (entityType === 'person') {
+        const personInfo = [];
+        if (entity.occupation) personInfo.push(`💼 ${entity.occupation}`);
+        if (entity.birth_date) personInfo.push(`Born: ${entity.birth_date}`);
+        if (entity.death_date) personInfo.push(`Died: ${entity.death_date}`);
+        if (personInfo.length > 0) {
+          additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">${personInfo.join(' • ')}</div>`;
+        }
+      } else if (entityType === 'event') {
+        const eventInfo = [];
+        if (entity.event_date) eventInfo.push(`📅 ${entity.event_date}`);
+        if (entity.location) eventInfo.push(`📍 ${entity.location}`);
+        if (eventInfo.length > 0) {
+          additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">${eventInfo.join(' • ')}</div>`;
+        }
+      } else if (entityType === 'artifact') {
+        const artifactInfo = [];
+        if (entity.category) artifactInfo.push(`🏺 ${entity.category}`);
+        if (entity.date_range) artifactInfo.push(`📅 ${entity.date_range}`);
+        if (entity.owner_name) artifactInfo.push(`Owner: ${entity.owner_name}`);
+        if (artifactInfo.length > 0) {
+          additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">${artifactInfo.join(' • ')}</div>`;
+        }
       }
 
       const popupHTML = `
@@ -330,7 +397,7 @@ export default function MapView() {
           <div style="margin-bottom: 6px; color: #59636e; font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">${config.label}</div>
           ${additionalInfo}
           ${entity.description ? `<div style="margin-bottom: 8px; color: #59636e; font-size: 13px; line-height: 1.5;">${entity.description}</div>` : ''}
-          ${entity.metadata ? `<div style="margin-bottom: 8px; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; font-size: 12px; color: #59636e;">${entity.metadata}</div>` : ''}
+          ${metadataHTML}
           <div style="display: flex; gap: 4px; font-size: 11px; color: #8b949e; margin-bottom: 8px;">
             <span>📍 ${entity.lat.toFixed(4)}, ${entity.lng.toFixed(4)}</span>
           </div>
