@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
-import { createPlace, loadPlaces, getAnnotationsForPlace } from '../lib/places';
+import { createPlace, loadPlaces } from '../lib/places';
 import { loadOverlays } from '../lib/overlays';
 import OverlayGeoreference from './OverlayGeoreference';
 
@@ -38,9 +38,6 @@ export default function MapView() {
   const setTheories = useStore((state) => state.setTheories);
   const artifacts = useStore((state) => state.artifacts);
   const setArtifacts = useStore((state) => state.setArtifacts);
-  const pinPlacementMode = useStore((state) => state.pinPlacementMode);
-  const pendingPinAnnotationId = useStore((state) => state.pendingPinAnnotationId);
-  const cancelPinPlacement = useStore((state) => state.cancelPinPlacement);
   const locationPlacementMode = useStore((state) => state.locationPlacementMode);
   const pendingLocationEntity = useStore((state) => state.pendingLocationEntity);
   const cancelLocationPlacement = useStore((state) => state.cancelLocationPlacement);
@@ -104,7 +101,7 @@ export default function MapView() {
         console.error('Map error:', e);
       });
 
-      // Click handler for adding pins and georeferencing overlays
+      // Click handler for georeferencing overlays and location placement
       map.current.on('click', async (e) => {
         const state = useStore.getState();
 
@@ -166,37 +163,6 @@ export default function MapView() {
             console.error('Failed to update location:', err);
           }
           return;
-        }
-
-        // Check if in pin placement mode
-        if (!state.pinPlacementMode || !state.pendingPinAnnotationId) return;
-
-        const name = prompt('Name for this location?', 'Untitled Location');
-        if (name === null) {
-          state.cancelPinPlacement();
-          return;
-        }
-
-        try {
-          const place = await createPlace(
-            {
-              project_id: currentProject.id,
-              name: name || 'Untitled Location',
-              lng: e.lngLat.lng,
-              lat: e.lngLat.lat,
-              note: '',
-            },
-            state.pendingPinAnnotationId
-          );
-
-          state.addPlace(place);
-          state.cancelPinPlacement();
-
-          // Fly to the new pin
-          map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
-        } catch (err) {
-          console.error('Failed to create place:', err);
-          alert(`Failed to create pin: ${err.message}`);
         }
       });
     } catch (error) {
@@ -486,42 +452,6 @@ export default function MapView() {
         </div>
       )}
 
-      {/* Pin placement mode banner */}
-      {!locationPlacementMode && pinPlacementMode && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '10px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000,
-            background: 'var(--accent)',
-            color: '#fff',
-            padding: '10px 16px',
-            borderRadius: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            display: 'flex',
-            gap: '12px',
-            alignItems: 'center',
-          }}
-        >
-          <span>📍 Click on the map to place a pin</span>
-          <button
-            onClick={cancelPinPlacement}
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none',
-              color: '#fff',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-
       {/* Overlay mode banner */}
       {overlayMode && (
         <div
@@ -544,7 +474,7 @@ export default function MapView() {
       )}
 
       {/* Entity type filters */}
-      {!pinPlacementMode && !overlayMode && !locationPlacementMode && (
+      {!overlayMode && !locationPlacementMode && (
         <div
           style={{
             position: 'absolute',
@@ -618,7 +548,7 @@ export default function MapView() {
       )}
 
       {/* Add overlay button */}
-      {!pinPlacementMode && !overlayMode && !locationPlacementMode && (
+      {!overlayMode && !locationPlacementMode && (
         <button
           onClick={openOverlayMode}
           style={{

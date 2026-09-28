@@ -2,10 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import useStore from '../store/useStore';
-import AnnotationOverlay from './AnnotationOverlay';
-import InkOverlay from './InkOverlay';
-import AnnotationModal from './AnnotationModal';
-import { loadAnnotations } from '../lib/annotations';
 import { invoke } from '@tauri-apps/api/core';
 
 // Set worker path from npm package (ensures version match)
@@ -26,27 +22,8 @@ export default function PDFView() {
   const pdfScale = useStore((state) => state.pdfScale);
   const setCurrentPage = useStore((state) => state.setCurrentPage);
   const setScale = useStore((state) => state.setScale);
-  const activeTool = useStore((state) => state.activeTool);
-  const setActiveTool = useStore((state) => state.setActiveTool);
-  const setAnnotations = useStore((state) => state.setAnnotations);
 
   const activeSource = sources.find((s) => s.id === activeSourceId);
-
-  // Load annotations when source changes
-  useEffect(() => {
-    if (!activeSourceId) return;
-
-    const fetchAnnotations = async () => {
-      try {
-        const anns = await loadAnnotations(activeSourceId);
-        setAnnotations(anns);
-      } catch (err) {
-        console.error('Failed to load annotations:', err);
-      }
-    };
-
-    fetchAnnotations();
-  }, [activeSourceId, setAnnotations]);
 
   // Load PDF
   useEffect(() => {
@@ -192,39 +169,6 @@ export default function PDFView() {
           </button>
         </div>
 
-        <div className="toolbar-separator" />
-
-        <div className="toolbar-group">
-          <button
-            className={`btn-icon ${activeTool === 'select' ? 'active' : ''}`}
-            onClick={() => setActiveTool('select')}
-            title="Select & Move"
-          >
-            ↖️
-          </button>
-          <button
-            className={`btn-icon ${activeTool === 'highlight' ? 'active' : ''}`}
-            onClick={() => setActiveTool('highlight')}
-            title="Highlight"
-          >
-            🖍️
-          </button>
-          <button
-            className={`btn-icon ${activeTool === 'ink' ? 'active' : ''}`}
-            onClick={() => setActiveTool('ink')}
-            title="Draw"
-          >
-            ✏️
-          </button>
-          <button
-            className={`btn-icon ${activeTool === 'text' ? 'active' : ''}`}
-            onClick={() => setActiveTool('text')}
-            title="Text note"
-          >
-            📝
-          </button>
-        </div>
-
         {selectedText && (
           <>
             <div className="toolbar-separator" />
@@ -269,29 +213,8 @@ export default function PDFView() {
               userSelect: 'text',
             }}
           />
-          <div
-            ref={overlayRef}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              pointerEvents: activeTool === 'select' ? 'none' : 'auto',
-            }}
-          >
-            <AnnotationOverlay canvasWidth={canvasSize.width} canvasHeight={canvasSize.height} />
-            <InkOverlay
-              canvasWidth={canvasSize.width}
-              canvasHeight={canvasSize.height}
-              active={activeTool === 'ink'}
-            />
-          </div>
         </div>
       </div>
-
-      {/* Annotation Modal */}
-      <AnnotationModal />
     </div>
   );
 }

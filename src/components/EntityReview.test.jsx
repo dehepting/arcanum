@@ -36,18 +36,9 @@ describe('EntityReview', () => {
 
   describe('Rendering', () => {
     it('should render empty entity review modal', () => {
-      render(
-        <EntityReview
-          annotationId="ann-1"
-          annotationText="Test annotation text"
-          onClose={mockOnClose}
-          onApproved={mockOnApproved}
-        />
-      );
+      render(<EntityReview onClose={mockOnClose} onApproved={mockOnApproved} />);
 
       expect(screen.getByText('Review Entities')).toBeInTheDocument();
-      expect(screen.getByText('From annotation:')).toBeInTheDocument();
-      expect(screen.getByText(/Test annotation text/)).toBeInTheDocument();
     });
 
     it('should render with initial entities', () => {
@@ -62,7 +53,6 @@ describe('EntityReview', () => {
 
       render(
         <EntityReview
-          annotationId="ann-1"
           initialEntities={initialEntities}
           onClose={mockOnClose}
           onApproved={mockOnApproved}
@@ -83,13 +73,7 @@ describe('EntityReview', () => {
         places: [],
       };
 
-      render(
-        <EntityReview
-          annotationId="ann-1"
-          initialEntities={initialEntities}
-          onClose={mockOnClose}
-        />
-      );
+      render(<EntityReview initialEntities={initialEntities} onClose={mockOnClose} />);
 
       expect(screen.getByText('People (1)')).toBeInTheDocument();
       expect(screen.getByText('Events (0)')).toBeInTheDocument();
@@ -147,13 +131,7 @@ describe('EntityReview', () => {
         places: [],
       };
 
-      render(
-        <EntityReview
-          annotationId="ann-1"
-          initialEntities={initialEntities}
-          onClose={mockOnClose}
-        />
-      );
+      render(<EntityReview initialEntities={initialEntities} onClose={mockOnClose} />);
 
       const nameInput = screen.getByDisplayValue('Plato');
       fireEvent.change(nameInput, { target: { value: 'Socrates' } });
@@ -169,13 +147,7 @@ describe('EntityReview', () => {
         places: [],
       };
 
-      render(
-        <EntityReview
-          annotationId="ann-1"
-          initialEntities={initialEntities}
-          onClose={mockOnClose}
-        />
-      );
+      render(<EntityReview initialEntities={initialEntities} onClose={mockOnClose} />);
 
       const typeSelect = screen.getAllByRole('combobox')[0]; // First select in event
       fireEvent.change(typeSelect, { target: { value: 'battle' } });
@@ -193,13 +165,7 @@ describe('EntityReview', () => {
         places: [],
       };
 
-      render(
-        <EntityReview
-          annotationId="ann-1"
-          initialEntities={initialEntities}
-          onClose={mockOnClose}
-        />
-      );
+      render(<EntityReview initialEntities={initialEntities} onClose={mockOnClose} />);
 
       expect(screen.getByDisplayValue('Plato')).toBeInTheDocument();
 
@@ -219,13 +185,7 @@ describe('EntityReview', () => {
         places: [],
       };
 
-      render(
-        <EntityReview
-          annotationId="ann-1"
-          initialEntities={initialEntities}
-          onClose={mockOnClose}
-        />
-      );
+      render(<EntityReview initialEntities={initialEntities} onClose={mockOnClose} />);
 
       const checkboxes = screen.getAllByRole('checkbox');
       expect(checkboxes[0]).toBeChecked();
@@ -240,13 +200,7 @@ describe('EntityReview', () => {
         places: [],
       };
 
-      render(
-        <EntityReview
-          annotationId="ann-1"
-          initialEntities={initialEntities}
-          onClose={mockOnClose}
-        />
-      );
+      render(<EntityReview initialEntities={initialEntities} onClose={mockOnClose} />);
 
       const checkbox = screen.getByRole('checkbox');
       expect(checkbox).toBeChecked();
@@ -266,13 +220,7 @@ describe('EntityReview', () => {
         places: [],
       };
 
-      render(
-        <EntityReview
-          annotationId="ann-1"
-          initialEntities={initialEntities}
-          onClose={mockOnClose}
-        />
-      );
+      render(<EntityReview initialEntities={initialEntities} onClose={mockOnClose} />);
 
       expect(screen.getByText('2 entities selected')).toBeInTheDocument();
     });
@@ -292,7 +240,6 @@ describe('EntityReview', () => {
 
       render(
         <EntityReview
-          annotationId="ann-1"
           initialEntities={initialEntities}
           onClose={mockOnClose}
           onApproved={mockOnApproved}
@@ -323,13 +270,7 @@ describe('EntityReview', () => {
         places: [],
       };
 
-      render(
-        <EntityReview
-          annotationId="ann-1"
-          initialEntities={initialEntities}
-          onClose={mockOnClose}
-        />
-      );
+      render(<EntityReview initialEntities={initialEntities} onClose={mockOnClose} />);
 
       const approveButton = screen.getByText('Create 1 Entity');
       fireEvent.click(approveButton);
@@ -349,13 +290,7 @@ describe('EntityReview', () => {
         places: [],
       };
 
-      render(
-        <EntityReview
-          annotationId="ann-1"
-          initialEntities={initialEntities}
-          onClose={mockOnClose}
-        />
-      );
+      render(<EntityReview initialEntities={initialEntities} onClose={mockOnClose} />);
 
       const approveButton = screen.getByText('Create 1 Entity');
       fireEvent.click(approveButton);
