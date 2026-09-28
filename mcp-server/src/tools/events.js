@@ -29,6 +29,8 @@ export const eventTools = [
           enum: ['disaster', 'discovery', 'publication', 'battle', 'expedition'],
         },
         description: { type: 'string', description: 'Event description' },
+        lng: { type: 'number', description: 'Longitude coordinate' },
+        lat: { type: 'number', description: 'Latitude coordinate' },
         notes: { type: 'string', description: 'Additional notes' },
       },
       required: ['project_id', 'name'],
@@ -64,8 +66,8 @@ export const eventHandlers = {
     });
 
     const stmt = db.prepare(`
-      INSERT INTO events (id, project_id, name, description, event_date, location, metadata, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO events (id, project_id, name, description, event_date, location, metadata, lng, lat, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     `);
 
@@ -77,6 +79,8 @@ export const eventHandlers = {
       args.date_year ? String(args.date_year) : null,
       null, // location is handled via event_places_links
       metadata,
+      args.lng || null,
+      args.lat || null,
       now,
       now
     );

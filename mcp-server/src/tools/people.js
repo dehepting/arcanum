@@ -24,6 +24,8 @@ export const peopleTools = [
         birth_year: { type: 'number', description: 'Birth year (negative for BC)' },
         death_year: { type: 'number', description: 'Death year (negative for BC)' },
         bio: { type: 'string', description: 'Biography' },
+        lng: { type: 'number', description: 'Longitude coordinate' },
+        lat: { type: 'number', description: 'Latitude coordinate' },
         notes: { type: 'string', description: 'Additional notes' },
       },
       required: ['project_id', 'name'],
@@ -59,8 +61,8 @@ export const peopleHandlers = {
     });
 
     const stmt = db.prepare(`
-      INSERT INTO people (id, project_id, name, description, birth_date, death_date, occupation, metadata, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO people (id, project_id, name, description, birth_date, death_date, occupation, metadata, lng, lat, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     `);
 
@@ -73,6 +75,8 @@ export const peopleHandlers = {
       args.death_year ? String(args.death_year) : null,
       args.role || null,
       metadata,
+      args.lng || null,
+      args.lat || null,
       now,
       now
     );

@@ -54,6 +54,8 @@ export const artifactTools = [
         findspot_name: { type: 'string', description: 'Discovery location name' },
         findspot_lng: { type: 'number', description: 'Discovery location longitude' },
         findspot_lat: { type: 'number', description: 'Discovery location latitude' },
+        lng: { type: 'number', description: 'Artifact current location longitude' },
+        lat: { type: 'number', description: 'Artifact current location latitude' },
         image_urls: {
           type: 'array',
           items: { type: 'string' },
@@ -116,6 +118,8 @@ export const artifactTools = [
               findspot_name: { type: 'string' },
               findspot_lng: { type: 'number' },
               findspot_lat: { type: 'number' },
+              lng: { type: 'number' },
+              lat: { type: 'number' },
               image_urls: { type: 'array', items: { type: 'string' } },
               notes: { type: 'string' },
             },
@@ -163,9 +167,9 @@ export const artifactHandlers = {
       INSERT INTO artifacts (
         id, project_id, name, description, category,
         date_range, owner_type, owner_name, findspot_place_id,
-        images, metadata, created_at, updated_at
+        images, metadata, lng, lat, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     `);
 
@@ -181,6 +185,8 @@ export const artifactHandlers = {
       findspotPlaceId,
       stringifyJsonField(args.image_urls || []),
       stringifyJsonField(metadata),
+      args.lng || null,
+      args.lat || null,
       now,
       now
     );
@@ -249,9 +255,9 @@ export const artifactHandlers = {
       INSERT INTO artifacts (
         id, project_id, name, description, category,
         date_range, owner_type, owner_name, findspot_place_id,
-        images, metadata, created_at, updated_at
+        images, metadata, lng, lat, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     `);
 
@@ -291,6 +297,8 @@ export const artifactHandlers = {
           null, // findspot_place_id
           stringifyJsonField(a.image_urls || []),
           stringifyJsonField(metadata),
+          a.lng || null,
+          a.lat || null,
           now,
           now
         );
