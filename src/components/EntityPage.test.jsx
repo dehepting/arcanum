@@ -380,7 +380,9 @@ describe('EntityPage', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/37.9838, 23.7275/)).toBeInTheDocument();
+        // Check for coordinate input fields instead of text
+        expect(screen.getByDisplayValue('37.9838')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('23.7275')).toBeInTheDocument();
         expect(screen.getByText(/City/)).toBeInTheDocument();
       });
     });

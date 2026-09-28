@@ -15,6 +15,8 @@ pub struct Person {
     pub death_date: Option<String>,
     pub occupation: Option<String>,
     pub metadata: Option<String>,
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -30,6 +32,8 @@ pub struct CreatePersonInput {
     pub metadata: Option<String>,
     pub annotation_id: Option<String>,
     pub relationship_type: Option<String>,
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,6 +44,8 @@ pub struct UpdatePersonInput {
     pub death_date: Option<String>,
     pub occupation: Option<String>,
     pub metadata: Option<String>,
+    pub lng: Option<f64>,
+    pub lat: Option<f64>,
 }
 
 #[tauri::command]
@@ -54,9 +60,9 @@ pub fn create_person(
     db.execute(
         "INSERT INTO people (
             id, project_id, name, description, birth_date, death_date,
-            occupation, metadata, created_at, updated_at
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-        [
+            occupation, metadata, lng, lat, created_at, updated_at
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+        rusqlite::params![
             &id,
             &input.project_id,
             &input.name,
@@ -65,6 +71,8 @@ pub fn create_person(
             &input.death_date.clone().unwrap_or_default(),
             &input.occupation.clone().unwrap_or_default(),
             &input.metadata.clone().unwrap_or_default(),
+            &input.lng,
+            &input.lat,
             &now,
             &now,
         ],
@@ -91,6 +99,8 @@ pub fn create_person(
         death_date: input.death_date,
         occupation: input.occupation,
         metadata: input.metadata,
+        lng: input.lng,
+        lat: input.lat,
         created_at: now.clone(),
         updated_at: now,
     })
@@ -105,7 +115,7 @@ pub fn get_person(
 
     let mut stmt = db.prepare(
         "SELECT id, project_id, name, description, birth_date, death_date,
-        occupation, metadata, created_at, updated_at
+        occupation, metadata, lng, lat, created_at, updated_at
         FROM people WHERE id = ?1"
     )?;
 
@@ -119,8 +129,10 @@ pub fn get_person(
             death_date: row.get(5)?,
             occupation: row.get(6)?,
             metadata: row.get(7)?,
-            created_at: row.get(8)?,
-            updated_at: row.get(9)?,
+            lng: row.get(8)?,
+            lat: row.get(9)?,
+            created_at: row.get(10)?,
+            updated_at: row.get(11)?,
         })
     });
 
@@ -140,7 +152,7 @@ pub fn list_people(
 
     let mut stmt = db.prepare(
         "SELECT id, project_id, name, description, birth_date, death_date,
-        occupation, metadata, created_at, updated_at
+        occupation, metadata, lng, lat, created_at, updated_at
         FROM people
         WHERE project_id = ?1
         ORDER BY created_at DESC"
@@ -157,8 +169,10 @@ pub fn list_people(
                 death_date: row.get(5)?,
                 occupation: row.get(6)?,
                 metadata: row.get(7)?,
-                created_at: row.get(8)?,
-                updated_at: row.get(9)?,
+                lng: row.get(8)?,
+                lat: row.get(9)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
             })
         })?
         .collect::<Result<Vec<_>, _>>()?;
@@ -201,6 +215,14 @@ pub fn update_person(
     if let Some(metadata) = input.metadata {
         updates.push("metadata = ?");
         params.push(metadata);
+    }
+    if let Some(lng) = input.lng {
+        updates.push("lng = ?");
+        params.push(lng.to_string());
+    }
+    if let Some(lat) = input.lat {
+        updates.push("lat = ?");
+        params.push(lat.to_string());
     }
 
     updates.push("updated_at = ?");

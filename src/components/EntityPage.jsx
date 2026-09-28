@@ -142,6 +142,71 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
     [entityId, saveTimeout, tabId, updateTab]
   );
 
+  // Handle location changes (lat/lng)
+  const handleLocationChange = useCallback(
+    async (field, value) => {
+      if (!entityId || !entityData) return;
+
+      const numValue = value === '' ? null : parseFloat(value);
+
+      // Update local state immediately
+      setEntityData((prev) => ({
+        ...prev,
+        [field]: numValue,
+      }));
+
+      // Mark tab as dirty
+      if (tabId) {
+        updateTab(tabId, { isDirty: true });
+      }
+
+      // Save to backend
+      try {
+        setSaving(true);
+        const updateCommandMap = {
+          person: { command: 'update_person', param: 'person_id' },
+          event: { command: 'update_event', param: 'event_id' },
+          theory: { command: 'update_theory', param: 'theory_id' },
+          place: { command: 'update_place', param: 'place_id' },
+          artifact: { command: 'update_artifact', param: 'artifact_id' },
+        };
+
+        const config = updateCommandMap[entityType];
+        if (config) {
+          await invoke(config.command, {
+            [config.param]: entityId,
+            input: { [field]: numValue },
+          });
+
+          // Mark tab as clean after successful save
+          if (tabId) {
+            updateTab(tabId, { isDirty: false });
+          }
+        }
+      } catch (err) {
+        console.error('Error updating location:', err);
+        setError(err.message || 'Failed to update location');
+      } finally {
+        setSaving(false);
+      }
+    },
+    [entityId, entityData, entityType, tabId, updateTab]
+  );
+
+  // Handle "Set on Map" button click
+  const handleSetOnMap = useCallback(() => {
+    if (!entityId || !entityType) return;
+
+    const startLocationPlacement = useStore.getState().startLocationPlacement;
+    const setActiveTab = useStore.getState().setActiveTab;
+
+    // Enter location placement mode
+    startLocationPlacement(entityId, entityType, title);
+
+    // Switch to map tab
+    setActiveTab('default-map');
+  }, [entityId, entityType, title]);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -236,15 +301,32 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
                   <strong>Description:</strong> {entityData.description}
                 </div>
               )}
+              <div className="metadata-field location-field">
+                <strong>Location:</strong>
+                <div className="location-inputs">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Latitude"
+                    value={entityData.lat || ''}
+                    onChange={(e) => handleLocationChange('lat', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Longitude"
+                    value={entityData.lng || ''}
+                    onChange={(e) => handleLocationChange('lng', e.target.value)}
+                  />
+                  <button onClick={() => handleSetOnMap()} className="set-on-map-btn">
+                    📍 Set on Map
+                  </button>
+                </div>
+              </div>
             </>
           )}
           {entityType === 'place' && (
             <>
-              {(entityData.lat || entityData.lng) && (
-                <div className="metadata-field">
-                  <strong>Coordinates:</strong> {entityData.lat}, {entityData.lng}
-                </div>
-              )}
               {entityData.place_type && (
                 <div className="metadata-field">
                   <strong>Type:</strong> {entityData.place_type}
@@ -255,6 +337,28 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
                   <strong>Description:</strong> {entityData.description}
                 </div>
               )}
+              <div className="metadata-field location-field">
+                <strong>Coordinates:</strong>
+                <div className="location-inputs">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Latitude"
+                    value={entityData.lat || ''}
+                    onChange={(e) => handleLocationChange('lat', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Longitude"
+                    value={entityData.lng || ''}
+                    onChange={(e) => handleLocationChange('lng', e.target.value)}
+                  />
+                  <button onClick={() => handleSetOnMap()} className="set-on-map-btn">
+                    📍 Set on Map
+                  </button>
+                </div>
+              </div>
             </>
           )}
           {entityType === 'artifact' && (
@@ -280,6 +384,28 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
                   <strong>Description:</strong> {entityData.description}
                 </div>
               )}
+              <div className="metadata-field location-field">
+                <strong>Location:</strong>
+                <div className="location-inputs">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Latitude"
+                    value={entityData.lat || ''}
+                    onChange={(e) => handleLocationChange('lat', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Longitude"
+                    value={entityData.lng || ''}
+                    onChange={(e) => handleLocationChange('lng', e.target.value)}
+                  />
+                  <button onClick={() => handleSetOnMap()} className="set-on-map-btn">
+                    📍 Set on Map
+                  </button>
+                </div>
+              </div>
             </>
           )}
           {entityType === 'event' && (
@@ -299,6 +425,28 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
                   <strong>Description:</strong> {entityData.description}
                 </div>
               )}
+              <div className="metadata-field location-field">
+                <strong>Coordinates:</strong>
+                <div className="location-inputs">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Latitude"
+                    value={entityData.lat || ''}
+                    onChange={(e) => handleLocationChange('lat', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Longitude"
+                    value={entityData.lng || ''}
+                    onChange={(e) => handleLocationChange('lng', e.target.value)}
+                  />
+                  <button onClick={() => handleSetOnMap()} className="set-on-map-btn">
+                    📍 Set on Map
+                  </button>
+                </div>
+              </div>
             </>
           )}
           {entityType === 'theory' && (
@@ -308,6 +456,28 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
                   <strong>Description:</strong> {entityData.description}
                 </div>
               )}
+              <div className="metadata-field location-field">
+                <strong>Location:</strong>
+                <div className="location-inputs">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Latitude"
+                    value={entityData.lat || ''}
+                    onChange={(e) => handleLocationChange('lat', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Longitude"
+                    value={entityData.lng || ''}
+                    onChange={(e) => handleLocationChange('lng', e.target.value)}
+                  />
+                  <button onClick={() => handleSetOnMap()} className="set-on-map-btn">
+                    📍 Set on Map
+                  </button>
+                </div>
+              </div>
             </>
           )}
         </div>
