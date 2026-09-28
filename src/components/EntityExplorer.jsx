@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import useStore from '../store/useStore';
 import { uploadPDF } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
+import { showError, showSuccess, showInfo } from '../utils/errorHandling';
+import { logger } from '../utils/logger';
 import './EntityExplorer.css';
 
 /**
@@ -21,7 +23,6 @@ export default function EntityExplorer() {
   const places = useStore((state) => state.places);
   const artifacts = useStore((state) => state.artifacts);
   const tabs = useStore((state) => state.tabs);
-  const activeTabId = useStore((state) => state.activeTabId);
   const addTab = useStore((state) => state.addTab);
   const setActiveTab = useStore((state) => state.setActiveTab);
   const addSource = useStore((state) => state.addSource);
@@ -93,7 +94,7 @@ export default function EntityExplorer() {
         });
         setCanvases(projectCanvases);
       } catch (error) {
-        console.error('Failed to load canvases:', error);
+        showError(`Failed to load canvases: ${error.message || 'Unknown error'}`);
       }
     };
 
@@ -136,8 +137,9 @@ export default function EntityExplorer() {
 
       setCanvases([...canvases, newCanvas]);
       handleCanvasClick(newCanvas);
+      showSuccess('Canvas created successfully!');
     } catch (error) {
-      console.error('Failed to create canvas:', error);
+      showError(`Failed to create canvas: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -168,8 +170,9 @@ export default function EntityExplorer() {
         canvases.map((c) => (c.id === canvasId ? { ...c, name: editingCanvasName.trim() } : c))
       );
       setEditingCanvasId(null);
+      showSuccess('Canvas renamed successfully!');
     } catch (error) {
-      console.error('Failed to rename canvas:', error);
+      showError(`Failed to rename canvas: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -224,8 +227,9 @@ export default function EntityExplorer() {
       updateFnMap[entityType](entityId, { name: editingEntityName.trim() });
 
       setEditingEntityId(null);
+      showSuccess('Entity renamed successfully!');
     } catch (error) {
-      console.error('Failed to rename entity:', error);
+      showError(`Failed to rename entity: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -290,19 +294,6 @@ export default function EntityExplorer() {
 
   // Handle double-click - adds entity to canvas if canvas tab is active
 
-  // Handle entity drag start - for dragging to canvas
-  const handleEntityDragStart = (e, entity, entityType) => {
-    console.log('🔵 DRAG START:', { name: entity.name, type: entityType });
-    e.dataTransfer.effectAllowed = 'copy';
-    const data = {
-      entityId: entity.id,
-      entityType,
-      entityName: entity.name,
-    };
-    e.dataTransfer.setData('application/json', JSON.stringify(data));
-    console.log('🔵 Data set:', data);
-  };
-
   // Handle create new entity
   const handleCreateEntity = (entityType) => {
     const titles = {
@@ -325,35 +316,35 @@ export default function EntityExplorer() {
 
   // Handle add source (PDF upload)
   const handleAddSource = () => {
-    console.log('handleAddSource called');
+    logger.debug('handleAddSource called');
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/pdf';
     input.onchange = async (e) => {
       const file = e.target.files[0];
-      console.log('File selected:', file);
+      logger.debug('File selected:', file);
       if (!file) return;
 
       setUploading(true);
       try {
-        console.log('Starting upload for project:', currentProject.id);
+        logger.debug('Starting upload for project:', currentProject.id);
         const source = await uploadPDF(file, currentProject.id);
-        console.log('Upload successful:', source);
+        logger.debug('Upload successful:', source);
         addSource(source);
         addTab({
           type: 'pdf',
           title: source.title,
           data: { source },
         });
+        showSuccess('PDF uploaded successfully!');
       } catch (err) {
-        console.error('Upload error:', err);
-        alert(`Failed to upload PDF: ${err.message}`);
+        showError(`Failed to upload PDF: ${err.message || 'Unknown error'}`);
       } finally {
         setUploading(false);
       }
     };
     input.click();
-    console.log('File input clicked');
+    logger.debug('File input clicked');
   };
 
   return (

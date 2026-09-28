@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '../utils/logger';
 import useStore from '../store/useStore';
 import ArtifactLinkModal from './ArtifactLinkModal';
 import { getArtifactsForAnnotation } from '../lib/artifact-sources';
+import { showError, showSuccess } from '../utils/errorHandling';
 
 export default function AnnotationModal() {
   const [noteText, setNoteText] = useState('');
@@ -24,9 +26,12 @@ export default function AnnotationModal() {
     }
   }, []);
 
+  // Sync modal state with external store state when modal opens/closes
+  // This is an intentional state synchronization pattern for modals
+  // eslint-disable-next-line react/set-state-in-effect
   useEffect(() => {
     if (modalOpen && pendingAnnotation) {
-      console.log('Opening modal with annotation:', pendingAnnotation);
+      logger.debug('Opening modal with annotation:', pendingAnnotation);
       // If editing existing annotation
       if (pendingAnnotation.id) {
         setNoteText(pendingAnnotation.text || '');
@@ -94,10 +99,10 @@ export default function AnnotationModal() {
         addAnnotation(data);
       }
 
+      showSuccess('Annotation saved successfully!');
       handleClose();
     } catch (err) {
-      console.error('Failed to save annotation:', err);
-      alert(`Failed to save annotation: ${err.message}`);
+      showError(`Failed to save annotation: ${err.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
@@ -179,11 +184,11 @@ export default function AnnotationModal() {
       }
 
       // Now start pin placement with the annotation ID
+      showSuccess('Annotation saved! Click on the map to place a pin.');
       handleClose();
       startPinPlacement(annotationId);
     } catch (err) {
-      console.error('Failed to save annotation:', err);
-      alert(`Failed to save annotation: ${err.message}`);
+      showError(`Failed to save annotation: ${err.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }

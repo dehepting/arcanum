@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { logger } from '../utils/logger';
 import useStore from '../store/useStore';
 import { createOverlay, uploadOverlay } from '../lib/overlays';
 
@@ -15,6 +16,8 @@ export default function OverlayGeoreference() {
   const closeOverlayMode = useStore((state) => state.closeOverlayMode);
   const addMapOverlay = useStore((state) => state.addMapOverlay);
 
+  // Reset local state when modal closes - intentional cleanup pattern
+  // eslint-disable-next-line react/set-state-in-effect
   useEffect(() => {
     if (!overlayMode) {
       // Reset state when modal closes
@@ -89,7 +92,7 @@ export default function OverlayGeoreference() {
       alert('Map overlay created successfully!');
       closeOverlayMode();
     } catch (err) {
-      console.error('Failed to create overlay:', err);
+      logger.error('Failed to create overlay:', err);
       alert(`Failed to create overlay: ${err.message}`);
     } finally {
       setUploading(false);

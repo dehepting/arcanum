@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { logger } from '../utils/logger';
 import { Map, NavigationControl, Marker, Popup, setWorkerUrl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
-import { createPlace, loadPlaces, getAnnotationsForPlace } from '../lib/places';
+import { createPlace, loadPlaces } from '../lib/places';
 import { loadOverlays } from '../lib/overlays';
 import OverlayGeoreference from './OverlayGeoreference';
 
@@ -29,7 +30,6 @@ export default function MapView() {
   const currentProject = useStore((state) => state.currentProject);
   const places = useStore((state) => state.places);
   const setPlaces = useStore((state) => state.setPlaces);
-  const addPlace = useStore((state) => state.addPlace);
   const people = useStore((state) => state.people);
   const setPeople = useStore((state) => state.setPeople);
   const events = useStore((state) => state.events);
@@ -39,15 +39,10 @@ export default function MapView() {
   const artifacts = useStore((state) => state.artifacts);
   const setArtifacts = useStore((state) => state.setArtifacts);
   const pinPlacementMode = useStore((state) => state.pinPlacementMode);
-  const pendingPinAnnotationId = useStore((state) => state.pendingPinAnnotationId);
   const cancelPinPlacement = useStore((state) => state.cancelPinPlacement);
   const locationPlacementMode = useStore((state) => state.locationPlacementMode);
   const pendingLocationEntity = useStore((state) => state.pendingLocationEntity);
   const cancelLocationPlacement = useStore((state) => state.cancelLocationPlacement);
-  const setMapView = useStore((state) => state.setMapView);
-  const setActiveSource = useStore((state) => state.setActiveSource);
-  const setCurrentPage = useStore((state) => state.setCurrentPage);
-  const sources = useStore((state) => state.sources);
   const mapOverlays = useStore((state) => state.mapOverlays);
   const setMapOverlays = useStore((state) => state.setMapOverlays);
   const overlayMode = useStore((state) => state.overlayMode);
@@ -57,7 +52,7 @@ export default function MapView() {
     if (map.current) return; // Initialize only once
 
     if (!mapContainer.current) {
-      console.error('Map container ref is null!');
+      logger.error('Map container ref is null!');
       return;
     }
 
@@ -101,7 +96,7 @@ export default function MapView() {
       });
 
       map.current.on('error', (e) => {
-        console.error('Map error:', e);
+        logger.error('Map error:', e);
       });
 
       // Click handler for adding pins and georeferencing overlays
@@ -160,10 +155,10 @@ export default function MapView() {
               // Fly to the new location
               map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
 
-              console.log(`✓ Location updated for ${entityName}`);
+              logger.debug(`✓ Location updated for ${entityName}`);
             }
           } catch (err) {
-            console.error('Failed to update location:', err);
+            logger.error('Failed to update location:', err);
           }
           return;
         }
@@ -195,12 +190,12 @@ export default function MapView() {
           // Fly to the new pin
           map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
         } catch (err) {
-          console.error('Failed to create place:', err);
+          logger.error('Failed to create place:', err);
           alert(`Failed to create pin: ${err.message}`);
         }
       });
     } catch (error) {
-      console.error('Failed to initialize map:', error);
+      logger.error('Failed to initialize map:', error);
     }
 
     return () => {
@@ -252,7 +247,7 @@ export default function MapView() {
         setTheories(loadedTheories);
         setArtifacts(loadedArtifacts);
       } catch (err) {
-        console.error('Failed to load map data:', err);
+        logger.error('Failed to load map data:', err);
       }
     };
 
@@ -355,7 +350,7 @@ export default function MapView() {
           if (metadataItems.length > 0) {
             metadataHTML = `<div style="margin-bottom: 8px; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; font-size: 11px; color: #59636e; line-height: 1.6;">${metadataItems.join(' • ')}</div>`;
           }
-        } catch (e) {
+        } catch {
           // If metadata isn't valid JSON, skip it
         }
       }

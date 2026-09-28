@@ -5,7 +5,10 @@ import { vi } from 'vitest';
  * Custom render function that wraps components with common providers
  * Usage: render(<MyComponent />, { initialState: {...} })
  */
-export function renderWithProviders(ui, { initialState = {}, ...renderOptions } = {}) {
+export function renderWithProviders(
+  ui,
+  { initialState: _initialState = {}, ...renderOptions } = {}
+) {
   // If you add providers (like Router, Theme, etc.), wrap them here
   // For now, this is a basic wrapper but easy to extend
 
@@ -119,7 +122,7 @@ export const waitFor = (callback, options) => {
         callback();
         clearInterval(interval);
         resolve();
-      } catch (error) {
+      } catch {
         // Keep waiting
       }
     }, options?.interval || 50);

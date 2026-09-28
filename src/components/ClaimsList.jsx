@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { getClaims, createClaim, updateClaim, deleteClaim } from '../lib/provenance';
+import { useAsync } from '../hooks/useAsync';
+import { showError, showSuccess } from '../utils/errorHandling';
 
 const CLAIM_STATUSES = [
   { value: 'pending', label: 'Pending', color: '#e8b86d' },
@@ -12,23 +14,16 @@ const CLAIM_STATUSES = [
 
 export default function ClaimsList({ artifactId }) {
   const [claims, setClaims] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
-  useEffect(() => {
-    const loadClaims = async () => {
-      try {
-        const data = await getClaims(artifactId);
-        setClaims(data);
-      } catch (err) {
-        console.error('Failed to load claims:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadClaims();
+  // Load claims using useAsync hook
+  const loadClaims = useCallback(async () => {
+    const data = await getClaims(artifactId);
+    setClaims(data);
+    return data;
   }, [artifactId]);
+
+  const { loading } = useAsync(loadClaims, true);
 
   const handleDelete = async (claimId) => {
     if (!confirm('Delete this claim?')) return;
@@ -36,9 +31,9 @@ export default function ClaimsList({ artifactId }) {
     try {
       await deleteClaim(claimId);
       setClaims(claims.filter((c) => c.id !== claimId));
+      showSuccess('Claim deleted');
     } catch (err) {
-      console.error('Failed to delete claim:', err);
-      alert('Failed to delete claim');
+      showError(`Failed to delete claim: ${err.message || 'Unknown error'}`);
     }
   };
 
@@ -46,9 +41,9 @@ export default function ClaimsList({ artifactId }) {
     try {
       const updated = await updateClaim(claimId, { status: newStatus });
       setClaims(claims.map((c) => (c.id === claimId ? updated : c)));
+      showSuccess('Status updated');
     } catch (err) {
-      console.error('Failed to update status:', err);
-      alert('Failed to update status');
+      showError(`Failed to update status: ${err.message || 'Unknown error'}`);
     }
   };
 
@@ -314,8 +309,9 @@ export default function ClaimsList({ artifactId }) {
                   });
                   setClaims([newClaim, ...claims]);
                   setShowForm(false);
+                  showSuccess('Claim added successfully');
                 } catch (err) {
-                  alert('Failed to add claim: ' + err.message);
+                  showError(`Failed to add claim: ${err.message || 'Unknown error'}`);
                 }
               }}
             >

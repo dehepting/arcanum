@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '../../utils/logger';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../../store/useStore';
 
@@ -38,12 +39,12 @@ export default function CanvasSelector({ currentCanvasId, onCanvasChange }) {
           onCanvasChange(defaultCanvas.id, defaultCanvas.name);
         }
       } catch (error) {
-        console.error('Failed to load canvases:', error);
+        logger.error('Failed to load canvases:', error);
       }
     };
 
     loadCanvases();
-  }, [currentProject]); // Remove currentCanvasId from deps to avoid infinite loop
+  }, [currentProject, currentCanvasId, onCanvasChange]);
 
   const createNewCanvas = async () => {
     if (!newCanvasName.trim() || !currentProject) return;
@@ -62,7 +63,7 @@ export default function CanvasSelector({ currentCanvasId, onCanvasChange }) {
       setShowNewCanvas(false);
       onCanvasChange(newCanvas.id, newCanvas.name);
     } catch (error) {
-      console.error('Failed to create canvas:', error);
+      logger.error('Failed to create canvas:', error);
     }
   };
 

@@ -1,0 +1,28 @@
+.entity-metadata {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.metadata-field {
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.metadata-field:last-child {
+  margin-bottom: 0;
+}
+
+.metadata-field strong {
+  color: var(--text);
+  margin-right: 6px;
+}
+
+.metadata-field.location-field {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}

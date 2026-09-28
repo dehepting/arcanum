@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { logger } from '../utils/logger';
 import * as fabric from 'fabric';
 import useStore from '../store/useStore';
 
@@ -101,7 +102,7 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
         canvas.clear();
         loadInkAnnotations(canvas);
       } catch (err) {
-        console.error('Failed to save ink annotation:', err);
+        logger.error('Failed to save ink annotation:', err);
         alert('Failed to save drawing');
       }
     });
@@ -141,7 +142,6 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
       e.preventDefault();
 
       // Find object at click position
-      const pointer = canvas.getPointer(e);
       const target = canvas.findTarget(e);
 
       if (target && target.annotationId) {
@@ -165,7 +165,7 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
           canvas.remove(target);
           canvas.renderAll();
         } catch (err) {
-          console.error('Failed to delete ink annotation:', err);
+          logger.error('Failed to delete ink annotation:', err);
           alert('Failed to delete annotation');
         }
       }

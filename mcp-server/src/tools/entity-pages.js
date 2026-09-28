@@ -1,7 +1,7 @@
 import { getDatabase } from '../db.js';
 import { generateUUID } from '../utils/uuid.js';
 import { getCurrentTimestamp, formatToolResponse } from '../utils/formatters.js';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import os from 'os';
 
@@ -221,7 +221,7 @@ export const entityPageHandlers = {
           if (existsSync(storagePath)) {
             unlinkSync(storagePath);
           }
-        } catch (cleanupError) {
+        } catch {
           // Ignore cleanup errors
         }
         throw new Error(`Failed to write entity page file: ${fileError.message}`);

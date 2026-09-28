@@ -1,4 +1,5 @@
 import * as tauri from './tauri';
+import { logger } from '../utils/logger';
 
 /**
  * Upload an artifact image to local storage
@@ -65,7 +66,7 @@ export async function deleteArtifact(artifactId, imageUrls) {
         const filePath = url;
         await tauri.deleteFile('artifacts', filePath);
       } catch (error) {
-        console.error('Error deleting artifact image:', error);
+        logger.error('Error deleting artifact image:', error);
       }
     }
   }

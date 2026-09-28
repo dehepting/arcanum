@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import useStore from '../store/useStore';
 import ArtifactList from './ArtifactList';
 import ArtifactDetail from './ArtifactDetail';
-import ArtifactForm from './ArtifactForm';
+
+// Lazy load form modal (only needed when editing artifacts)
+const ArtifactForm = lazy(() => import('./ArtifactForm'));
 
 export default function Sidebar() {
   const [showArtifactForm, setShowArtifactForm] = useState(false);
@@ -89,14 +91,18 @@ export default function Sidebar() {
       </div>
 
       {/* Artifact Form Modal */}
-      <ArtifactForm
-        artifact={editingArtifact}
-        isOpen={showArtifactForm}
-        onClose={() => {
-          setShowArtifactForm(false);
-          setEditingArtifact(null);
-        }}
-      />
+      {showArtifactForm && (
+        <Suspense fallback={null}>
+          <ArtifactForm
+            artifact={editingArtifact}
+            isOpen={showArtifactForm}
+            onClose={() => {
+              setShowArtifactForm(false);
+              setEditingArtifact(null);
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

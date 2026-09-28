@@ -1,4 +1,5 @@
 import * as tauri from './tauri';
+import { logger } from '../utils/logger';
 
 /**
  * Get provenance history for an entity
@@ -73,16 +74,16 @@ export async function deleteClaim(claimId) {
 /**
  * Reorder provenance entries (not implemented - can be added later if needed)
  */
-export async function reorderProvenance(artifactId, orderedIds) {
-  console.warn('reorderProvenance not yet implemented in Tauri backend');
+export async function reorderProvenance(_artifactId, _orderedIds) {
+  logger.warn('reorderProvenance not yet implemented in Tauri backend');
   // TODO: Add sequence_order field to provenance_records table if needed
 }
 
 /**
  * Get artifacts with disputed ownership (not implemented)
  */
-export async function getDisputedArtifacts(projectId) {
-  console.warn('getDisputedArtifacts not yet implemented in Tauri backend');
+export async function getDisputedArtifacts(_projectId) {
+  logger.warn('getDisputedArtifacts not yet implemented in Tauri backend');
   // TODO: Add has_disputed_ownership field to artifacts table if needed
   return [];
 }

@@ -1,4 +1,5 @@
 import * as tauri from './tauri';
+import { logger } from '../utils/logger';
 
 /**
  * Upload a PDF file to local storage and create a source record
@@ -60,7 +61,7 @@ export async function deleteSource(sourceId, storagePath) {
     try {
       await tauri.deleteFile('sources', storagePath);
     } catch (error) {
-      console.warn('Failed to delete file from storage:', error);
+      logger.warn('Failed to delete file from storage:', error);
     }
   }
 

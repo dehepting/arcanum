@@ -2,6 +2,8 @@
  * Error Handling Utilities
  *
  * Centralized error handling for Tauri commands and other operations
+ * Note: Uses console directly for error logging as this is a low-level utility
+ * and tests expect console.error to be called
  */
 
 /**

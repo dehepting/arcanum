@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Tldraw, useEditor, createShapeId, toRichText } from 'tldraw';
+import { logger } from '../utils/logger';
+import { Tldraw, useEditor, createShapeId } from 'tldraw';
 import 'tldraw/tldraw.css';
 import useStore from '../store/useStore';
 import EntityPicker from './canvas/EntityPicker';
@@ -16,18 +17,15 @@ const ARCANUM_THEME = {
   '--color-selected': 'var(--accent-9)',
 };
 
-function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
+function CanvasInner({ canvasId, onShowEntityPicker }) {
   const editor = useEditor();
-  const addTab = useStore((state) => state.addTab);
-  const setActiveTab = useStore((state) => state.setActiveTab);
-  const tabs = useStore((state) => state.tabs);
   const currentProject = useStore((state) => state.currentProject);
   const saveTimeoutRef = useRef(null);
   const hasLoadedRef = useRef(false);
 
   // Log for debugging
   useEffect(() => {
-    console.log('CanvasInner mounted with canvasId:', canvasId);
+    logger.debug('CanvasInner mounted with canvasId:', canvasId);
   }, [canvasId]);
 
   // Add keyboard shortcut (Cmd/Ctrl + E) to open entity picker
@@ -118,7 +116,7 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
   // Load canvas data when component mounts
   useEffect(() => {
     if (!editor || !currentProject || !canvasId) {
-      console.log('Load effect skipped:', {
+      logger.debug('Load effect skipped:', {
         editor: !!editor,
         currentProject: !!currentProject,
         canvasId,
@@ -128,18 +126,18 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
 
     const loadCanvas = async () => {
       try {
-        console.log('Loading canvas data for:', canvasId);
+        logger.debug('Loading canvas data for:', canvasId);
         const canvas = await invoke('get_canvas', { canvasId });
         if (canvas && canvas.canvas_data) {
           const snapshot = JSON.parse(canvas.canvas_data);
           editor.loadSnapshot(snapshot);
-          console.log('Canvas data loaded successfully');
+          logger.debug('Canvas data loaded successfully');
         } else {
-          console.log('No canvas data found, starting fresh');
+          logger.debug('No canvas data found, starting fresh');
         }
         hasLoadedRef.current = true;
       } catch (error) {
-        console.error('Failed to load canvas:', error);
+        logger.error('Failed to load canvas:', error);
       }
     };
 
@@ -149,16 +147,16 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
   // Auto-save canvas data when it changes (debounced)
   useEffect(() => {
     if (!editor || !canvasId) {
-      console.log('Auto-save effect skipped:', { editor: !!editor, canvasId });
+      logger.debug('Auto-save effect skipped:', { editor: !!editor, canvasId });
       return;
     }
 
-    console.log('Setting up auto-save for canvas:', canvasId);
+    logger.debug('Setting up auto-save for canvas:', canvasId);
 
     const saveCanvas = async () => {
       // Only save if we've loaded the canvas first
       if (!hasLoadedRef.current) {
-        console.log('Skipping save - canvas not loaded yet');
+        logger.debug('Skipping save - canvas not loaded yet');
         return;
       }
 
@@ -166,14 +164,14 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
         const snapshot = editor.getSnapshot();
         const canvas_data = JSON.stringify(snapshot);
 
-        console.log('Saving canvas data...');
+        logger.debug('Saving canvas data...');
         await invoke('update_canvas', {
           canvasId: canvasId,
           input: { canvas_data },
         });
-        console.log('Canvas auto-saved successfully');
+        logger.debug('Canvas auto-saved successfully');
       } catch (error) {
-        console.error('Failed to save canvas:', error);
+        logger.error('Failed to save canvas:', error);
       }
     };
 
@@ -191,7 +189,7 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
     const unsubscribe = editor.store.listen(handleChange);
 
     return () => {
-      console.log('Cleaning up auto-save, saving immediately...');
+      logger.debug('Cleaning up auto-save, saving immediately...');
       unsubscribe();
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -207,7 +205,6 @@ function CanvasInner({ tab, canvasId, canvasName, onShowEntityPicker }) {
 export default function ResearchCanvas({ tab }) {
   const [showEntityPicker, setShowEntityPicker] = useState(false);
   const canvasId = tab.data?.canvasId || tab.canvasId;
-  const canvasName = tab.data?.canvasName || tab.title;
 
   const handleShowEntityPicker = useCallback(() => {
     setShowEntityPicker(true);
@@ -307,12 +304,7 @@ export default function ResearchCanvas({ tab }) {
       </button>
 
       <Tldraw key={canvasId} autoFocus>
-        <CanvasInner
-          tab={tab}
-          canvasId={canvasId}
-          canvasName={canvasName}
-          onShowEntityPicker={handleShowEntityPicker}
-        />
+        <CanvasInner canvasId={canvasId} onShowEntityPicker={handleShowEntityPicker} />
       </Tldraw>
     </div>
   );

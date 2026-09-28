@@ -1,0 +1,54 @@
+.location-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.location-inputs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.location-inputs input {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.location-inputs input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.location-inputs input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.set-on-map-btn {
+  padding: 6px 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.set-on-map-btn:hover:not(:disabled) {
+  background: var(--accent-2);
+}
+
+.set-on-map-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

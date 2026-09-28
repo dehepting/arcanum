@@ -30,14 +30,14 @@ describe('ConfirmDialog', () => {
   });
 
   it('uses default title when not provided', () => {
-    const { title, ...propsWithoutTitle } = defaultProps;
+    const { title: _title, ...propsWithoutTitle } = defaultProps;
     render(<ConfirmDialog {...propsWithoutTitle} />);
 
     expect(screen.getByText('Confirm Action')).toBeInTheDocument();
   });
 
   it('uses default message when not provided', () => {
-    const { message, ...propsWithoutMessage } = defaultProps;
+    const { message: _message, ...propsWithoutMessage } = defaultProps;
     render(<ConfirmDialog {...propsWithoutMessage} />);
 
     expect(screen.getByText('Are you sure?')).toBeInTheDocument();

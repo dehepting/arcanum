@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
+import { useDebounce } from '../hooks/useDebounce';
+import { logger } from '../utils/logger';
 import './AdvancedSearch.css';
 
 export default function AdvancedSearch({ isOpen, onClose }) {
@@ -17,30 +19,32 @@ export default function AdvancedSearch({ isOpen, onClose }) {
   const currentProject = useStore((state) => state.currentProject);
   const addTab = useStore((state) => state.addTab);
 
-  // Debounced search
+  // Debounce search query to avoid excessive API calls
+  const debouncedQuery = useDebounce(query, 300);
+
+  // Perform search when debounced query changes
   useEffect(() => {
-    if (!query.trim() || !currentProject) {
+    if (!debouncedQuery.trim() || !currentProject) {
       setResults([]);
       return;
     }
 
-    const timeoutId = setTimeout(async () => {
+    const performSearch = async () => {
       setIsSearching(true);
       try {
         const selectedTypes = Object.entries(entityTypes)
-          .filter(([_, enabled]) => enabled)
-          .map(([type, _]) => type);
+          .filter(([, enabled]) => enabled)
+          .map(([type]) => type);
 
         if (selectedTypes.length === 0) {
           setResults([]);
-          setIsSearching(false);
           return;
         }
 
         const searchResults = await invoke('search_entities', {
           input: {
             project_id: currentProject.id,
-            query: query.trim(),
+            query: debouncedQuery.trim(),
             entity_types: selectedTypes,
             limit: 50,
           },
@@ -48,15 +52,15 @@ export default function AdvancedSearch({ isOpen, onClose }) {
 
         setResults(searchResults);
       } catch (error) {
-        console.error('Search failed:', error);
+        logger.error('Search failed:', error);
         setResults([]);
       } finally {
         setIsSearching(false);
       }
-    }, 300);
+    };
 
-    return () => clearTimeout(timeoutId);
-  }, [query, entityTypes, currentProject]);
+    performSearch();
+  }, [debouncedQuery, entityTypes, currentProject]);
 
   const handleOpenEntity = (result) => {
     // Map entity type to singular form for tab type

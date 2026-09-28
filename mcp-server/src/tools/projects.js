@@ -45,7 +45,7 @@ export const projectHandlers = {
     return formatToolResponse(`Project created successfully:\n${JSON.stringify(project, null, 2)}`);
   },
 
-  list_projects: (args) => {
+  list_projects: () => {
     const db = getDatabase();
 
     const stmt = db.prepare(`

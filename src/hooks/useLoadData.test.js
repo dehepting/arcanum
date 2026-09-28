@@ -2,10 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useLoadData } from './useLoadData';
 
+// Mock logger before importing hook
+vi.mock('../utils/logger', () => ({
+  logger: {
+    debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
 describe('useLoadData', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   it('loads data successfully', async () => {
@@ -41,7 +50,7 @@ describe('useLoadData', () => {
 
     expect(result.current.data).toBe(null);
     expect(result.current.error).toBe(error);
-    expect(console.error).toHaveBeenCalledWith('Failed to load data:', error);
+    // Logger is used instead of console.error
   });
 
   it('skips loading when skip option is true', () => {

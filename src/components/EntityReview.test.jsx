@@ -3,8 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import EntityReview from './EntityReview';
 import * as peopleLib from '../lib/people';
 import * as eventsLib from '../lib/events';
-import * as theoriesLib from '../lib/theories';
-import * as placesLib from '../lib/places';
 
 // Mock the libraries
 vi.mock('../lib/people');
@@ -91,8 +89,8 @@ describe('EntityReview', () => {
         />
       );
 
-      expect(screen.getByText('People (1)')).toBeInTheDocument();
-      expect(screen.getByText('Events (0)')).toBeInTheDocument();
+      expect(screen.getByText(/People \(1\)/)).toBeInTheDocument();
+      expect(screen.getByText(/Events \(0\)/)).toBeInTheDocument();
     });
   });
 
@@ -103,7 +101,7 @@ describe('EntityReview', () => {
       const addButton = screen.getByText('+ Add Person');
       fireEvent.click(addButton);
 
-      const nameInputs = screen.getAllByPlaceholderText('Name');
+      const nameInputs = screen.getAllByPlaceholderText('Name *');
       expect(nameInputs.length).toBeGreaterThan(0);
     });
 
@@ -113,7 +111,7 @@ describe('EntityReview', () => {
       const addButton = screen.getByText('+ Add Event');
       fireEvent.click(addButton);
 
-      const nameInputs = screen.getAllByPlaceholderText('Event Name');
+      const nameInputs = screen.getAllByPlaceholderText('Event Name *');
       expect(nameInputs.length).toBeGreaterThan(0);
     });
 
@@ -123,7 +121,7 @@ describe('EntityReview', () => {
       const addButton = screen.getByText('+ Add Theory');
       fireEvent.click(addButton);
 
-      const nameInputs = screen.getAllByPlaceholderText('Theory Name');
+      const nameInputs = screen.getAllByPlaceholderText('Theory Name *');
       expect(nameInputs.length).toBeGreaterThan(0);
     });
 
@@ -133,7 +131,7 @@ describe('EntityReview', () => {
       const addButton = screen.getByText('+ Add Place');
       fireEvent.click(addButton);
 
-      const nameInputs = screen.getAllByPlaceholderText('Place Name');
+      const nameInputs = screen.getAllByPlaceholderText('Place Name *');
       expect(nameInputs.length).toBeGreaterThan(0);
     });
   });
@@ -280,8 +278,8 @@ describe('EntityReview', () => {
 
   describe('Creating Entities', () => {
     it('should create selected entities', async () => {
-      peopleLib.createPerson = vi.fn().mockResolvedValue({ id: 'person-1', name: 'Plato' });
-      eventsLib.createEvent = vi.fn().mockResolvedValue({ id: 'event-1', name: 'Battle' });
+      vi.spyOn(peopleLib, 'createPerson').mockResolvedValue({ id: 'person-1', name: 'Plato' });
+      vi.spyOn(eventsLib, 'createEvent').mockResolvedValue({ id: 'event-1', name: 'Battle' });
 
       const initialEntities = {
         people: [{ name: 'Plato', role: 'author', bio: '', relationship_type: 'mentions' }],
@@ -314,7 +312,7 @@ describe('EntityReview', () => {
     });
 
     it('should skip empty entities', async () => {
-      peopleLib.createPerson = vi.fn();
+      vi.spyOn(peopleLib, 'createPerson');
 
       const initialEntities = {
         people: [{ name: '', role: 'author', relationship_type: 'mentions' }],
@@ -340,7 +338,7 @@ describe('EntityReview', () => {
     });
 
     it('should handle creation errors', async () => {
-      peopleLib.createPerson = vi.fn().mockRejectedValue(new Error('Database error'));
+      vi.spyOn(peopleLib, 'createPerson').mockRejectedValue(new Error('Database error'));
 
       const initialEntities = {
         people: [{ name: 'Plato', role: 'author', relationship_type: 'mentions' }],

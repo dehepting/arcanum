@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '../utils/logger';
 import { createProvenanceEntry, updateProvenanceEntry } from '../lib/provenance';
 
 const TRANSFER_METHODS = [
@@ -39,6 +40,8 @@ export default function ProvenanceForm({ artifactId, entry, isOpen, onClose, onS
 
   const [saving, setSaving] = useState(false);
 
+  // Sync form data when editing different entry - intentional pattern
+  // eslint-disable-next-line react/set-state-in-effect
   useEffect(() => {
     if (entry) {
       setFormData({
@@ -95,7 +98,7 @@ export default function ProvenanceForm({ artifactId, entry, isOpen, onClose, onS
       onSaved();
       onClose();
     } catch (err) {
-      console.error('Failed to save provenance:', err);
+      logger.error('Failed to save provenance:', err);
       alert(`Failed to save: ${err.message}`);
     } finally {
       setSaving(false);

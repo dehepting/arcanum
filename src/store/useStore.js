@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-const useStore = create((set, get) => ({
+const useStore = create((set) => ({
   // Current project
   currentProject: null,
   setCurrentProject: (project) => set({ currentProject: project }),

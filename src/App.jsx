@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 import useStore from './store/useStore';
 import Topbar from './components/Topbar';
 import Workspace from './components/Workspace';
@@ -6,6 +7,7 @@ import ProjectPicker from './components/ProjectPicker';
 import { loadSources } from './lib/upload';
 import { loadArtifacts } from './lib/artifacts';
 import { invoke } from '@tauri-apps/api/core';
+import { logger } from './utils/logger';
 import './styles/index.css';
 
 function App() {
@@ -17,15 +19,14 @@ function App() {
   const setPeople = useStore((state) => state.setPeople);
   const setEvents = useStore((state) => state.setEvents);
   const setTheories = useStore((state) => state.setTheories);
-  const [loading, setLoading] = useState(true);
 
-  // Load last project from localStorage on mount
+  // Load last project from localStorage on mount (when implemented)
   useEffect(() => {
     const lastProjectId = localStorage.getItem('arcanum_last_project_id');
     if (lastProjectId) {
       // TODO: Load project from Supabase by ID
+      // When implemented, set loading state appropriately
     }
-    setLoading(false);
   }, []);
 
   // Load project data when project changes
@@ -57,7 +58,7 @@ function App() {
         // TODO: Load annotations
         setAnnotations([]);
       } catch (err) {
-        console.error('Failed to load project data:', err);
+        logger.error('Failed to load project data:', err);
       }
     };
 
@@ -73,22 +74,35 @@ function App() {
     setTheories,
   ]);
 
-  if (loading) {
-    return (
-      <div className="app">
-        <div className="empty-state">
-          <div className="empty-state-title">Loading Arcanum...</div>
-        </div>
-      </div>
-    );
-  }
-
   if (!currentProject) {
     return <ProjectPicker />;
   }
 
   return (
     <div className="app">
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'var(--surface)',
+            color: 'var(--text)',
+            border: '1px solid var(--line)',
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--accent-9)',
+              secondary: 'var(--surface)',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: 'var(--surface)',
+            },
+          },
+        }}
+      />
       <Topbar />
       <Workspace />
     </div>
