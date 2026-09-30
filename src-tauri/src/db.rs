@@ -19,12 +19,23 @@ pub fn init_db(app_data_dir: PathBuf) -> Result<Connection> {
 
 /// Checks if the annotation links migration has been completed
 pub fn is_migration_completed(conn: &Connection) -> bool {
+    // Check if migrations table exists and contains our migration
     let result: Result<i32, _> = conn.query_row(
-        "SELECT COUNT(*) FROM annotation_entity_links WHERE id = 'migration_marker'",
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='migrations'",
         [],
         |row| row.get(0)
     );
-    result.is_ok() && result.unwrap() > 0
+
+    if result.unwrap_or(0) == 0 {
+        return false;
+    }
+
+    let migration_result: Result<i32, _> = conn.query_row(
+        "SELECT COUNT(*) FROM migrations WHERE name = 'annotation_entity_links_v1'",
+        [],
+        |row| row.get(0)
+    );
+    migration_result.is_ok() && migration_result.unwrap() > 0
 }
 
 /// Migrates data from old annotation link tables to the new unified table.
@@ -51,7 +62,9 @@ pub fn migrate_annotation_links(conn: &Connection) -> Result<()> {
         conn.execute(
             "INSERT OR IGNORE INTO annotation_entity_links (id, annotation_id, entity_id, entity_type, relationship_type, created_at)
             SELECT id, annotation_id, person_id, 'person', relationship_type, created_at
-            FROM annotation_people_links",
+            FROM annotation_people_links
+            WHERE EXISTS (SELECT 1 FROM annotations WHERE id = annotation_id)
+              AND EXISTS (SELECT 1 FROM people WHERE id = person_id)",
             [],
         )?;
     }
@@ -68,7 +81,9 @@ pub fn migrate_annotation_links(conn: &Connection) -> Result<()> {
         conn.execute(
             "INSERT OR IGNORE INTO annotation_entity_links (id, annotation_id, entity_id, entity_type, relationship_type, created_at)
             SELECT id, annotation_id, theory_id, 'theory', 'mentions', created_at
-            FROM annotation_theories_links",
+            FROM annotation_theories_links
+            WHERE EXISTS (SELECT 1 FROM annotations WHERE id = annotation_id)
+              AND EXISTS (SELECT 1 FROM theories WHERE id = theory_id)",
             [],
         )?;
     }
@@ -85,16 +100,17 @@ pub fn migrate_annotation_links(conn: &Connection) -> Result<()> {
         conn.execute(
             "INSERT OR IGNORE INTO annotation_entity_links (id, annotation_id, entity_id, entity_type, relationship_type, created_at)
             SELECT id, annotation_id, place_id, 'place', 'mentions', created_at
-            FROM annotation_place_links",
+            FROM annotation_place_links
+            WHERE EXISTS (SELECT 1 FROM annotations WHERE id = annotation_id)
+              AND EXISTS (SELECT 1 FROM places WHERE id = place_id)",
             [],
         )?;
     }
 
-    // Add migration marker to prevent re-running
+    // Record migration completion in migrations table
     let now = chrono::Utc::now().to_rfc3339();
     conn.execute(
-        "INSERT OR IGNORE INTO annotation_entity_links (id, annotation_id, entity_id, entity_type, relationship_type, created_at)
-        VALUES ('migration_marker', 'migration_marker', 'migration_marker', 'person', 'migration', ?1)",
+        "INSERT INTO migrations (name, applied_at) VALUES ('annotation_entity_links_v1', ?1)",
         [&now],
     )?;
 
@@ -724,6 +740,15 @@ fn create_tables(conn: &Connection) -> Result<()> {
     conn.execute("INSERT INTO theories_fts(theories_fts) VALUES('rebuild')", [])?;
     conn.execute("INSERT INTO places_fts(places_fts) VALUES('rebuild')", [])?;
     conn.execute("INSERT INTO artifacts_fts(artifacts_fts) VALUES('rebuild')", [])?;
+
+    // Migrations tracking table
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS migrations (
+            name TEXT PRIMARY KEY,
+            applied_at TEXT NOT NULL
+        )",
+        [],
+    )?;
 
     // Unified annotation-entity links table
     conn.execute(
