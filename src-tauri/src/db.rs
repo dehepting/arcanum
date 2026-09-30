@@ -11,8 +11,9 @@ pub fn init_db(app_data_dir: PathBuf) -> Result<Connection> {
     // Create all tables
     create_tables(&conn)?;
 
-    // Run migration if needed
+    // Run migrations if needed
     migrate_annotation_links(&conn)?;
+    migrate_add_profile_photos_and_source_type(&conn)?;
 
     Ok(conn)
 }
@@ -120,6 +121,72 @@ pub fn migrate_annotation_links(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
+/// Adds profile_photo_url columns to entity tables and source_type to sources table.
+/// This function is idempotent - it can be run multiple times safely.
+pub fn migrate_add_profile_photos_and_source_type(conn: &Connection) -> Result<()> {
+    // Check if migration has already been run
+    let migration_name = "add_profile_photos_and_source_type_v1";
+    let result: Result<i32, _> = conn.query_row(
+        "SELECT COUNT(*) FROM migrations WHERE name = ?1",
+        [migration_name],
+        |row| row.get(0)
+    );
+
+    if result.unwrap_or(0) > 0 {
+        log::info!("Profile photos migration already completed, skipping");
+        return Ok(());
+    }
+
+    log::info!("Starting profile photos and source_type migration...");
+
+    // Add profile_photo_url to places
+    let _ = conn.execute(
+        "ALTER TABLE places ADD COLUMN profile_photo_url TEXT",
+        [],
+    );
+
+    // Add profile_photo_url to artifacts
+    let _ = conn.execute(
+        "ALTER TABLE artifacts ADD COLUMN profile_photo_url TEXT",
+        [],
+    );
+
+    // Add profile_photo_url to people
+    let _ = conn.execute(
+        "ALTER TABLE people ADD COLUMN profile_photo_url TEXT",
+        [],
+    );
+
+    // Add profile_photo_url to events
+    let _ = conn.execute(
+        "ALTER TABLE events ADD COLUMN profile_photo_url TEXT",
+        [],
+    );
+
+    // Add profile_photo_url to theories
+    let _ = conn.execute(
+        "ALTER TABLE theories ADD COLUMN profile_photo_url TEXT",
+        [],
+    );
+
+    // Add source_type to sources (defaults to 'pdf' for existing records)
+    let _ = conn.execute(
+        "ALTER TABLE sources ADD COLUMN source_type TEXT DEFAULT 'pdf'",
+        [],
+    );
+
+    // Record migration completion
+    let now = chrono::Utc::now().to_rfc3339();
+    conn.execute(
+        "INSERT INTO migrations (name, applied_at) VALUES (?1, ?2)",
+        [migration_name, &now],
+    )?;
+
+    log::info!("Profile photos and source_type migration completed");
+
+    Ok(())
+}
+
 fn create_tables(conn: &Connection) -> Result<()> {
     // Projects table
     conn.execute(
@@ -143,6 +210,7 @@ fn create_tables(conn: &Connection) -> Result<()> {
             lat REAL NOT NULL,
             description TEXT,
             place_type TEXT,
+            profile_photo_url TEXT,
             metadata TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
@@ -168,6 +236,7 @@ fn create_tables(conn: &Connection) -> Result<()> {
             owner_type TEXT,
             owner_name TEXT,
             findspot_place_id TEXT,
+            profile_photo_url TEXT,
             images TEXT,
             metadata TEXT,
             created_at TEXT NOT NULL,
@@ -197,6 +266,7 @@ fn create_tables(conn: &Connection) -> Result<()> {
             birth_date TEXT,
             death_date TEXT,
             occupation TEXT,
+            profile_photo_url TEXT,
             metadata TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
@@ -219,6 +289,7 @@ fn create_tables(conn: &Connection) -> Result<()> {
             description TEXT,
             event_date TEXT,
             location TEXT,
+            profile_photo_url TEXT,
             metadata TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
@@ -239,6 +310,7 @@ fn create_tables(conn: &Connection) -> Result<()> {
             project_id TEXT NOT NULL,
             name TEXT NOT NULL,
             description TEXT,
+            profile_photo_url TEXT,
             metadata TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
@@ -351,6 +423,7 @@ fn create_tables(conn: &Connection) -> Result<()> {
             id TEXT PRIMARY KEY,
             project_id TEXT NOT NULL,
             title TEXT NOT NULL,
+            source_type TEXT DEFAULT 'pdf',
             file_name TEXT NOT NULL,
             storage_path TEXT NOT NULL,
             file_size INTEGER,
