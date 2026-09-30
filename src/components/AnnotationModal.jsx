@@ -8,6 +8,7 @@ import {
   linkAnnotationToEntity,
   unlinkAnnotationFromEntity,
 } from '../lib/annotationLinks';
+import { createAnnotation, updateAnnotation } from '../lib/tauri';
 
 export default function AnnotationModal() {
   const [noteText, setNoteText] = useState('');
@@ -82,14 +83,9 @@ export default function AnnotationModal() {
       // Check if editing existing annotation
       if (pendingAnnotation.id) {
         // Update existing
-        const { data, error } = await supabase
-          .from('annotations')
-          .update({ text: noteText.trim() })
-          .eq('id', pendingAnnotation.id)
-          .select()
-          .single();
-
-        if (error) throw error;
+        const data = await updateAnnotation(pendingAnnotation.id, {
+          text: noteText.trim(),
+        });
 
         // Update in store
         const currentAnnotations = useStore.getState().annotations;
@@ -101,22 +97,17 @@ export default function AnnotationModal() {
         const annotationData = {
           source_id: activeSourceId,
           page_number: currentPage,
-          type: pendingAnnotation.type || 'text',
-          rect_x: pendingAnnotation.rect.x,
-          rect_y: pendingAnnotation.rect.y,
-          rect_w: pendingAnnotation.rect.w,
-          rect_h: pendingAnnotation.rect.h,
+          annotation_type: pendingAnnotation.type || 'text',
+          rect: {
+            x: pendingAnnotation.rect.x,
+            y: pendingAnnotation.rect.y,
+            w: pendingAnnotation.rect.w,
+            h: pendingAnnotation.rect.h,
+          },
           text: noteText.trim(),
         };
 
-        const { data, error } = await supabase
-          .from('annotations')
-          .insert([annotationData])
-          .select()
-          .single();
-
-        if (error) throw error;
-
+        const data = await createAnnotation(annotationData);
         addAnnotation(data);
       }
 
@@ -243,14 +234,9 @@ export default function AnnotationModal() {
       // Check if editing existing annotation or creating new
       if (pendingAnnotation.id) {
         // Update existing
-        const { data, error } = await supabase
-          .from('annotations')
-          .update({ text: noteText.trim() })
-          .eq('id', pendingAnnotation.id)
-          .select()
-          .single();
-
-        if (error) throw error;
+        const data = await updateAnnotation(pendingAnnotation.id, {
+          text: noteText.trim(),
+        });
 
         const currentAnnotations = useStore.getState().annotations;
         useStore
@@ -261,22 +247,17 @@ export default function AnnotationModal() {
         const annotationData = {
           source_id: activeSourceId,
           page_number: currentPage,
-          type: pendingAnnotation.type || 'text',
-          rect_x: pendingAnnotation.rect.x,
-          rect_y: pendingAnnotation.rect.y,
-          rect_w: pendingAnnotation.rect.w,
-          rect_h: pendingAnnotation.rect.h,
+          annotation_type: pendingAnnotation.type || 'text',
+          rect: {
+            x: pendingAnnotation.rect.x,
+            y: pendingAnnotation.rect.y,
+            w: pendingAnnotation.rect.w,
+            h: pendingAnnotation.rect.h,
+          },
           text: noteText.trim(),
         };
 
-        const { data, error } = await supabase
-          .from('annotations')
-          .insert([annotationData])
-          .select()
-          .single();
-
-        if (error) throw error;
-
+        const data = await createAnnotation(annotationData);
         addAnnotation(data);
         annotationId = data.id;
       }
