@@ -19,6 +19,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const annotations = useStore((state) => state.annotations);
   const currentPage = useStore((state) => state.currentPage);
   const activeSourceId = useStore((state) => state.activeSourceId);
+  const currentProject = useStore((state) => state.currentProject);
   const setSelectedAnnotation = useStore((state) => state.setSelectedAnnotation);
   const setMapView = useStore((state) => state.setMapView);
   const places = useStore((state) => state.places);
@@ -174,9 +175,18 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     }
 
     // Save highlight directly (no modal for highlights)
+    if (!activeSourceId) {
+      console.error('Cannot save highlight: No active source');
+      setDragging(false);
+      setDraftRect(null);
+      startPos.current = null;
+      return;
+    }
+
     try {
       const data = await createAnnotation({
         source_id: activeSourceId,
+        project_id: currentProject?.id,
         page_number: currentPage,
         annotation_type: 'highlight',
         rect: {
@@ -191,6 +201,9 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
       useStore.getState().addAnnotation(data);
     } catch (err) {
       console.error('Failed to save highlight:', err);
+      alert(
+        `Failed to save highlight: ${typeof err === 'string' ? err : err.message || JSON.stringify(err)}`
+      );
     }
 
     // Reset

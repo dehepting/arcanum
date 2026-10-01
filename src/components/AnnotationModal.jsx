@@ -26,6 +26,7 @@ export default function AnnotationModal() {
   const annotations = useStore((state) => state.annotations);
   const currentPage = useStore((state) => state.currentPage);
   const activeSourceId = useStore((state) => state.activeSourceId);
+  const currentProject = useStore((state) => state.currentProject);
   const startPinPlacement = useStore((state) => state.startPinPlacement);
 
   // Get entity stores for displaying linked entities
@@ -94,6 +95,7 @@ export default function AnnotationModal() {
       // Create new
       const annotationData = {
         source_id: activeSourceId,
+        project_id: currentProject?.id,
         page_number: currentPage,
         annotation_type: pendingAnnotation.type || 'text',
         rect: {
@@ -122,7 +124,9 @@ export default function AnnotationModal() {
       }
     } catch (err) {
       console.error('Failed to save annotation:', err);
-      alert(`Failed to save annotation: ${err.message}`);
+      alert(
+        `Failed to save annotation: ${typeof err === 'string' ? err : err.message || JSON.stringify(err)}`
+      );
     } finally {
       setSaving(false);
     }
@@ -253,7 +257,9 @@ export default function AnnotationModal() {
       }
     } catch (err) {
       console.error('Failed to save annotation:', err);
-      alert(`Failed to save annotation: ${err.message}`);
+      alert(
+        `Failed to save annotation: ${typeof err === 'string' ? err : err.message || JSON.stringify(err)}`
+      );
     } finally {
       setSaving(false);
     }

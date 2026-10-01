@@ -269,15 +269,115 @@ export async function importFiles(filesDir) {
 
 // Annotations
 export async function createAnnotation(annotationData) {
-  return await invoke('create_annotation', { input: annotationData });
+  // Transform frontend format to backend format
+  // Frontend sends: { source_id, project_id, page_number, annotation_type, rect, text }
+  // Backend expects: { source_id, project_id, page_number, annotation_type, content, geometry, metadata }
+
+  let projectId = annotationData.project_id;
+
+  // If project_id not provided, try to look it up from the source
+  if (!projectId) {
+    try {
+      const sources = await invoke('list_sources', { projectId: null });
+      const source = sources.find((s) => s.id === annotationData.source_id);
+      projectId = source?.project_id;
+    } catch (e) {
+      console.warn('Failed to look up project_id:', e);
+    }
+  }
+
+  if (!projectId) {
+    throw new Error('Could not determine project_id for annotation');
+  }
+
+  const input = {
+    source_id: annotationData.source_id,
+    project_id: projectId,
+    page_number: annotationData.page_number,
+    annotation_type: annotationData.annotation_type,
+    content: annotationData.text || null,
+    geometry: annotationData.rect ? JSON.stringify(annotationData.rect) : null,
+    metadata: null,
+  };
+
+  const result = await invoke('create_annotation', { input });
+
+  // Transform backend response to frontend format
+  return {
+    ...result,
+    text: result.content,
+    rect_x: annotationData.rect?.x,
+    rect_y: annotationData.rect?.y,
+    rect_w: annotationData.rect?.w,
+    rect_h: annotationData.rect?.h,
+    type: result.annotation_type,
+  };
 }
 
 export async function loadAnnotations(sourceId) {
-  return await invoke('load_annotations', { sourceId });
+  const annotations = await invoke('load_annotations', { sourceId });
+
+  // Transform backend format to frontend format
+  return annotations.map((ann) => {
+    let rect = null;
+    if (ann.geometry) {
+      try {
+        rect = JSON.parse(ann.geometry);
+      } catch (e) {
+        console.warn('Failed to parse annotation geometry:', e);
+      }
+    }
+
+    return {
+      ...ann,
+      text: ann.content,
+      rect_x: rect?.x ?? 0,
+      rect_y: rect?.y ?? 0,
+      rect_w: rect?.w ?? 0.1,
+      rect_h: rect?.h ?? 0.05,
+      type: ann.annotation_type,
+    };
+  });
 }
 
 export async function updateAnnotation(annotationId, updates) {
-  return await invoke('update_annotation', { annotationId, input: updates });
+  // Transform frontend format to backend format
+  const input = {};
+
+  if (updates.text !== undefined) {
+    input.content = updates.text;
+  }
+  if (updates.rect_x !== undefined || updates.rect_y !== undefined) {
+    // If position is being updated, we need to get current geometry and update it
+    input.geometry = JSON.stringify({
+      x: updates.rect_x,
+      y: updates.rect_y,
+      w: updates.rect_w,
+      h: updates.rect_h,
+    });
+  }
+
+  const result = await invoke('update_annotation', { annotationId, input });
+
+  // Transform backend response to frontend format
+  let rect = null;
+  if (result.geometry) {
+    try {
+      rect = JSON.parse(result.geometry);
+    } catch (e) {
+      console.warn('Failed to parse annotation geometry:', e);
+    }
+  }
+
+  return {
+    ...result,
+    text: result.content,
+    rect_x: rect?.x ?? 0,
+    rect_y: rect?.y ?? 0,
+    rect_w: rect?.w ?? 0.1,
+    rect_h: rect?.h ?? 0.05,
+    type: result.annotation_type,
+  };
 }
 
 export async function deleteAnnotation(annotationId) {
