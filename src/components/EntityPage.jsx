@@ -221,7 +221,9 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
       <div className="entity-page">
         <div className="entity-page-header">
           <div className="entity-page-title">
-            <span className="entity-type-badge">{entityType}</span>
+            <span className="entity-type-badge">
+              {entityType.charAt(0).toUpperCase() + entityType.slice(1)}
+            </span>
             <h2>{title}</h2>
           </div>
           {onClose && (
@@ -243,7 +245,9 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
       <div className="entity-page">
         <div className="entity-page-header">
           <div className="entity-page-title">
-            <span className="entity-type-badge">{entityType}</span>
+            <span className="entity-type-badge">
+              {entityType.charAt(0).toUpperCase() + entityType.slice(1)}
+            </span>
             <h2>{title}</h2>
           </div>
           {onClose && (
@@ -263,7 +267,9 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
     <div className="entity-page">
       <div className="entity-page-header">
         <div className="entity-page-title">
-          <span className="entity-type-badge">{entityType}</span>
+          <span className="entity-type-badge">
+            {entityType.charAt(0).toUpperCase() + entityType.slice(1)}
+          </span>
           <h2>{title}</h2>
         </div>
         <div className="entity-page-actions">
