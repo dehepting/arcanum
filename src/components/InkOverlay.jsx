@@ -10,6 +10,7 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
 
   const currentPage = useStore((state) => state.currentPage);
   const activeSourceId = useStore((state) => state.activeSourceId);
+  const currentProject = useStore((state) => state.currentProject);
   const annotations = useStore((state) => state.annotations);
   const addAnnotation = useStore((state) => state.addAnnotation);
 
@@ -80,6 +81,7 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
         // Save to database
         const data = await createAnnotation({
           source_id: activeSourceId,
+          project_id: currentProject?.id,
           page_number: currentPage,
           annotation_type: 'ink',
           rect: {

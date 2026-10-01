@@ -88,7 +88,16 @@ const useStore = create((set) => ({
         activeTabId: newActiveTabId,
       };
     }),
-  setActiveTab: (tabId) => set({ activeTabId: tabId }),
+  setActiveTab: (tabId) =>
+    set((state) => {
+      const tab = state.tabs.find((t) => t.id === tabId);
+      // If switching to a PDF tab, also update activeSourceId
+      const updates = { activeTabId: tabId };
+      if (tab?.type === 'pdf' && tab.data?.source?.id) {
+        updates.activeSourceId = tab.data.source.id;
+      }
+      return updates;
+    }),
   updateTab: (tabId, updates) =>
     set((state) => ({
       tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, ...updates } : t)),

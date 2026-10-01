@@ -297,7 +297,9 @@ export async function createAnnotation(annotationData) {
     annotation_type: annotationData.annotation_type,
     content: annotationData.text || null,
     geometry: annotationData.rect ? JSON.stringify(annotationData.rect) : null,
-    metadata: null,
+    metadata: annotationData.ink_data
+      ? JSON.stringify({ ink_data: annotationData.ink_data })
+      : null,
   };
 
   const result = await invoke('create_annotation', { input });
@@ -311,6 +313,7 @@ export async function createAnnotation(annotationData) {
     rect_w: annotationData.rect?.w,
     rect_h: annotationData.rect?.h,
     type: result.annotation_type,
+    ink_data: annotationData.ink_data,
   };
 }
 
@@ -320,11 +323,22 @@ export async function loadAnnotations(sourceId) {
   // Transform backend format to frontend format
   return annotations.map((ann) => {
     let rect = null;
+    let inkData = null;
+
     if (ann.geometry) {
       try {
         rect = JSON.parse(ann.geometry);
       } catch (e) {
         console.warn('Failed to parse annotation geometry:', e);
+      }
+    }
+
+    if (ann.metadata) {
+      try {
+        const metadata = JSON.parse(ann.metadata);
+        inkData = metadata.ink_data;
+      } catch (e) {
+        console.warn('Failed to parse annotation metadata:', e);
       }
     }
 
@@ -336,6 +350,7 @@ export async function loadAnnotations(sourceId) {
       rect_w: rect?.w ?? 0.1,
       rect_h: rect?.h ?? 0.05,
       type: ann.annotation_type,
+      ink_data: inkData,
     };
   });
 }

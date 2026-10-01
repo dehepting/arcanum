@@ -145,6 +145,8 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
         await updateAnnotation(draggedAnnotation.id, {
           rect_x: draggedAnnotation.rect_x,
           rect_y: draggedAnnotation.rect_y,
+          rect_w: draggedAnnotation.rect_w,
+          rect_h: draggedAnnotation.rect_h,
         });
 
         // Update in store
