@@ -7,6 +7,7 @@ import InkOverlay from './InkOverlay';
 import AnnotationModal from './AnnotationModal';
 import { loadAnnotations } from '../lib/annotations';
 import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc } from '@tauri-apps/api/core';
 
 // Set worker path from npm package (ensures version match)
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
@@ -60,13 +61,18 @@ export default function PDFView() {
 
     const loadPDF = async () => {
       try {
+        // Convert file path to URL that Tauri WebView can access
+        const assetUrl = convertFileSrc(activeSource.file_url);
         console.log('Loading PDF from:', activeSource.file_url);
-        const doc = await pdfjsLib.getDocument({ url: activeSource.file_url }).promise;
+        console.log('Converted to asset URL:', assetUrl);
+
+        const doc = await pdfjsLib.getDocument({ url: assetUrl }).promise;
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setCurrentPage(1);
       } catch (err) {
         console.error('Error loading PDF:', err);
+        console.error('Failed to load from:', activeSource.file_url);
       }
     };
 
