@@ -51,9 +51,11 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
       selection: false,
     });
 
-    // Configure brush
-    canvas.freeDrawingBrush.color = '#d4a373';
-    canvas.freeDrawingBrush.width = 2;
+    // Configure brush (Fabric.js v6+ requires explicit brush creation)
+    const brush = new fabric.PencilBrush(canvas);
+    brush.color = '#d4a373';
+    brush.width = 2;
+    canvas.freeDrawingBrush = brush;
 
     fabricCanvasRef.current = canvas;
 

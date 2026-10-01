@@ -1,5 +1,4 @@
 import useStore from '../store/useStore';
-import { deleteSource } from '../lib/upload';
 
 const TAB_ICONS = {
   map: '🗺️',
@@ -18,9 +17,8 @@ export default function Tabs() {
   const activeTabId = useStore((state) => state.activeTabId);
   const removeTab = useStore((state) => state.removeTab);
   const setActiveTab = useStore((state) => state.setActiveTab);
-  const removeSource = useStore((state) => state.removeSource);
 
-  const handleCloseTab = async (tab, e) => {
+  const handleCloseTab = (tab, e) => {
     e.stopPropagation();
 
     // If tab is dirty, confirm before closing
@@ -30,18 +28,8 @@ export default function Tabs() {
       }
     }
 
-    // If it's a PDF tab, also remove from sources
-    if (tab.type === 'pdf' && tab.data?.source) {
-      try {
-        await deleteSource(tab.data.source.id, tab.data.source.file_url);
-        removeSource(tab.data.source.id);
-      } catch (err) {
-        console.error('Delete error:', err);
-        alert(`Failed to delete PDF: ${err.message}`);
-        return;
-      }
-    }
-
+    // Just close the tab - don't delete the source
+    // Sources can be deleted via right-click context menu in the sidebar
     removeTab(tab.id);
   };
 

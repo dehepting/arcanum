@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import useStore from '../store/useStore';
 import { uploadPDF } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
+import { readFile } from '@tauri-apps/plugin-fs';
 import '../styles/entity.css';
 
 /**
@@ -326,36 +328,63 @@ export default function EntityExplorer() {
   };
 
   // Handle add source (PDF upload)
-  const handleAddSource = () => {
+  const handleAddSource = async () => {
     console.log('handleAddSource called');
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/pdf';
-    input.onchange = async (e) => {
-      const file = e.target.files[0];
-      console.log('File selected:', file);
-      if (!file) return;
+
+    if (!currentProject) {
+      alert('Please select a project first');
+      return;
+    }
+
+    try {
+      // Use Tauri dialog plugin for file selection
+      const selectedPath = await open({
+        multiple: false,
+        filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+      });
+
+      console.log('File selected:', selectedPath);
+
+      if (!selectedPath) {
+        console.log('No file selected');
+        return;
+      }
 
       setUploading(true);
-      try {
-        console.log('Starting upload for project:', currentProject.id);
-        const source = await uploadPDF(file, currentProject.id);
-        console.log('Upload successful:', source);
-        addSource(source);
-        addTab({
-          type: 'pdf',
-          title: source.title,
-          data: { source },
-        });
-      } catch (err) {
-        console.error('Upload error:', err);
-        alert(`Failed to upload PDF: ${err.message}`);
-      } finally {
-        setUploading(false);
-      }
-    };
-    input.click();
-    console.log('File input clicked');
+
+      // Read file using Tauri fs plugin
+      const fileData = await readFile(selectedPath);
+      const fileName = selectedPath.split('/').pop() || 'document.pdf';
+
+      console.log('Starting upload for project:', currentProject.id);
+
+      // Create a File-like object for uploadPDF
+      // readFile returns Uint8Array, convert to ArrayBuffer for uploadPDF
+      const arrayBuffer = fileData.buffer.slice(
+        fileData.byteOffset,
+        fileData.byteOffset + fileData.byteLength
+      );
+      const file = {
+        name: fileName,
+        type: 'application/pdf',
+        size: fileData.length,
+        arrayBuffer: async () => arrayBuffer,
+      };
+
+      const source = await uploadPDF(file, currentProject.id);
+      console.log('Upload successful:', source);
+      addSource(source);
+      addTab({
+        type: 'pdf',
+        title: source.title,
+        data: { source },
+      });
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert(`Failed to upload PDF: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -726,24 +755,25 @@ export default function EntityExplorer() {
               sources.map((source) => (
                 <div
                   key={source.id}
-                  className={`entity-item ${tabs.find((t) => t.id === source.id) ? 'active' : ''}`}
+                  className={`entity-result ${tabs.find((t) => t.data?.source?.id === source.id) ? 'active' : ''}`}
                   onClick={() => {
                     // Open source in tab
-                    const existingTab = tabs.find((t) => t.id === source.id);
+                    const existingTab = tabs.find((t) => t.data?.source?.id === source.id);
                     if (existingTab) {
-                      setActiveTab(source.id);
+                      setActiveTab(existingTab.id);
                     } else {
                       addTab({
-                        id: source.id,
-                        type: 'source',
+                        type: 'pdf',
                         title: source.title,
+                        data: { source },
                       });
-                      setActiveTab(source.id);
                       setActiveSource(source.id);
                     }
                   }}
+                  title={source.title}
                 >
-                  📄 {source.title}
+                  <span className="entity-result-icon">📄</span>
+                  <span className="entity-result-name">{source.title}</span>
                 </div>
               ))
             )}

@@ -157,6 +157,7 @@ pub fn run() {
       commands::files::save_file_dialog,
       commands::files::open_file_dialog,
       commands::files::copy_file_to_storage,
+      commands::files::read_file_bytes,
 
       // Migration commands
       commands::migration::import_projects,

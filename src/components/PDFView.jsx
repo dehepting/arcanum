@@ -7,7 +7,6 @@ import InkOverlay from './InkOverlay';
 import AnnotationModal from './AnnotationModal';
 import { loadAnnotations } from '../lib/annotations';
 import { invoke } from '@tauri-apps/api/core';
-import { readFile } from '@tauri-apps/plugin-fs';
 
 // Set worker path from npm package (ensures version match)
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
@@ -63,12 +62,14 @@ export default function PDFView() {
       try {
         console.log('Reading PDF file from:', activeSource.file_url);
 
-        // Read file as binary data using Tauri filesystem API
-        const fileData = await readFile(activeSource.file_url);
+        // Read file as binary data using Tauri command
+        const fileData = await invoke('read_file_bytes', {
+          filePath: activeSource.file_url,
+        });
         console.log('File read successfully, size:', fileData.length, 'bytes');
 
-        // Load PDF from binary data instead of URL
-        const doc = await pdfjsLib.getDocument({ data: fileData }).promise;
+        // Load PDF from binary data
+        const doc = await pdfjsLib.getDocument({ data: new Uint8Array(fileData) }).promise;
         console.log('PDF loaded successfully, pages:', doc.numPages);
 
         setPdfDoc(doc);
@@ -93,11 +94,18 @@ export default function PDFView() {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
 
+      // Clear the canvas before rendering new page
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
       // Update canvas size for overlay
       setCanvasSize({ width: viewport.width, height: viewport.height });
+
+      // Set white background for proper PDF rendering
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       await page.render({ canvasContext: ctx, viewport }).promise;
 

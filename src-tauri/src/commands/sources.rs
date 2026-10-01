@@ -46,20 +46,18 @@ pub fn create_source(
     let id = Uuid::new_v4().to_string();
     let now = Utc::now().to_rfc3339();
 
-    let file_size_str = input.file_size.map(|s| s.to_string()).unwrap_or_default();
-
     db.execute(
         "INSERT INTO sources (
             id, project_id, title, file_name, storage_path,
             file_size, mime_type, metadata, created_at, updated_at
         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-        [
+        rusqlite::params![
             &id,
             &input.project_id,
             &input.title,
             &input.file_name,
             &input.storage_path,
-            &file_size_str,
+            input.file_size,
             &input.mime_type.clone().unwrap_or_default(),
             &input.metadata.clone().unwrap_or_default(),
             &now,
@@ -100,8 +98,7 @@ pub fn get_source(
     )?;
 
     let result = stmt.query_row([&source_id], |row| {
-        let file_size_str: Option<String> = row.get(5)?;
-        let file_size = file_size_str.and_then(|s| s.parse::<i64>().ok());
+        let file_size: Option<i64> = row.get(5)?;
         let storage_path: String = row.get(4)?;
 
         // Generate file URL
@@ -147,8 +144,7 @@ pub fn list_sources(
 
     let sources: Vec<Source> = stmt
         .query_map([&project_id], |row| {
-            let file_size_str: Option<String> = row.get(5)?;
-            let file_size = file_size_str.and_then(|s| s.parse::<i64>().ok());
+            let file_size: Option<i64> = row.get(5)?;
             let storage_path: String = row.get(4)?;
 
             // Generate file URL

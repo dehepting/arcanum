@@ -271,6 +271,39 @@ const useStore = create((set, get) => ({
     set((state) => ({
       entityLinks: state.entityLinks.filter((l) => l.id !== linkId),
     })),
+
+  // Reset project-specific state (called when switching projects)
+  resetProjectState: () =>
+    set({
+      sources: [],
+      activeSourceId: null,
+      annotations: [],
+      tabs: [
+        {
+          id: 'default-map',
+          type: 'map',
+          title: 'Map',
+          data: null,
+          isDirty: false,
+        },
+      ],
+      activeTabId: 'default-map',
+      places: [],
+      artifacts: [],
+      selectedArtifact: null,
+      mapOverlays: [],
+      people: [],
+      events: [],
+      theories: [],
+      entityPages: [],
+      entityLinks: [],
+      currentPage: 1,
+      selectedAnnotationId: null,
+      pinPlacementMode: false,
+      pendingPinAnnotationId: null,
+      locationPlacementMode: false,
+      pendingLocationEntity: null,
+    }),
 }));
 
 export default useStore;

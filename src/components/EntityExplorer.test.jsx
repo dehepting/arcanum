@@ -12,6 +12,16 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: (...args) => mockInvoke(...args),
 }));
 
+// Mock Tauri dialog plugin
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+  open: vi.fn(),
+}));
+
+// Mock Tauri fs plugin
+vi.mock('@tauri-apps/plugin-fs', () => ({
+  readFile: vi.fn(),
+}));
+
 describe('EntityExplorer', () => {
   const mockAddTab = vi.fn();
   const mockSetActiveTab = vi.fn();
@@ -40,10 +50,13 @@ describe('EntityExplorer', () => {
         theories: mockTheories,
         places: mockPlaces,
         artifacts: mockArtifacts,
+        sources: [],
         tabs: [], // No existing tabs, so addTab should be called
+        activeTabId: null,
         addTab: mockAddTab,
         setActiveTab: mockSetActiveTab,
         addSource: vi.fn(),
+        setActiveSource: vi.fn(),
         currentProject: { id: 'project-1', name: 'Test Project' },
         updatePerson: vi.fn(),
         updateEvent: vi.fn(),
@@ -172,6 +185,7 @@ describe('EntityExplorer', () => {
         theories: mockTheories,
         places: mockPlaces,
         artifacts: mockArtifacts,
+        sources: [],
         tabs: [
           {
             id: 'tab-1',
@@ -179,8 +193,17 @@ describe('EntityExplorer', () => {
             data: { entityId: '1', entityType: 'person' },
           },
         ],
+        activeTabId: 'tab-1',
         addTab: mockAddTab,
         setActiveTab: mockSetActiveTab,
+        addSource: vi.fn(),
+        setActiveSource: vi.fn(),
+        currentProject: { id: 'project-1', name: 'Test Project' },
+        updatePerson: vi.fn(),
+        updateEvent: vi.fn(),
+        updateTheory: vi.fn(),
+        updatePlace: vi.fn(),
+        updateArtifact: vi.fn(),
       };
       return selector ? selector(state) : state;
     });
@@ -268,7 +291,19 @@ describe('EntityExplorer', () => {
         theories: [],
         places: [],
         artifacts: [],
+        sources: [],
+        tabs: [],
+        activeTabId: null,
         addTab: mockAddTab,
+        setActiveTab: mockSetActiveTab,
+        addSource: vi.fn(),
+        setActiveSource: vi.fn(),
+        currentProject: { id: 'project-1', name: 'Test Project' },
+        updatePerson: vi.fn(),
+        updateEvent: vi.fn(),
+        updateTheory: vi.fn(),
+        updatePlace: vi.fn(),
+        updateArtifact: vi.fn(),
       };
       return selector ? selector(state) : state;
     });
@@ -435,10 +470,13 @@ describe('EntityExplorer', () => {
           theories: [],
           places: [],
           artifacts: [],
+          sources: [],
           tabs: [],
+          activeTabId: null,
           addTab: mockAddTab,
           setActiveTab: mockSetActiveTab,
           addSource: vi.fn(),
+          setActiveSource: vi.fn(),
           currentProject: { id: 'project-1', name: 'Test Project' },
           updatePerson: vi.fn(),
           updateEvent: vi.fn(),
@@ -463,10 +501,13 @@ describe('EntityExplorer', () => {
           theories: [],
           places: [],
           artifacts: [],
+          sources: [],
           tabs: [],
+          activeTabId: null,
           addTab: mockAddTab,
           setActiveTab: mockSetActiveTab,
           addSource: vi.fn(),
+          setActiveSource: vi.fn(),
           currentProject: { id: 'project-1', name: 'Test Project' },
           updatePerson: vi.fn(),
           updateEvent: vi.fn(),

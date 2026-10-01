@@ -17,12 +17,13 @@ export default function AnnotationModal() {
   const [showEntityPicker, setShowEntityPicker] = useState(false);
   const [linkedArtifacts, setLinkedArtifacts] = useState([]);
   const [linkedEntities, setLinkedEntities] = useState([]);
-  const [selectedEntityType, setSelectedEntityType] = useState('person');
 
   const modalOpen = useStore((state) => state.annotationModalOpen);
   const pendingAnnotation = useStore((state) => state.pendingAnnotation);
   const closeModal = useStore((state) => state.closeAnnotationModal);
   const addAnnotation = useStore((state) => state.addAnnotation);
+  const setAnnotations = useStore((state) => state.setAnnotations);
+  const annotations = useStore((state) => state.annotations);
   const currentPage = useStore((state) => state.currentPage);
   const activeSourceId = useStore((state) => state.activeSourceId);
   const startPinPlacement = useStore((state) => state.startPinPlacement);
@@ -69,49 +70,56 @@ export default function AnnotationModal() {
     }
   }, [modalOpen, pendingAnnotation, loadLinkedArtifacts, loadLinkedEntities]);
 
-  const handleSave = async () => {
-    if (!pendingAnnotation) return;
+  // Shared save logic - returns the annotation ID (new or existing)
+  const saveAnnotation = async () => {
+    if (!pendingAnnotation) return null;
 
     // Text annotations require text
     if (pendingAnnotation.type === 'text' && !noteText.trim()) {
       alert('Please enter some text for the note');
-      return;
+      return null;
     }
+
+    // Check if editing existing annotation
+    if (pendingAnnotation.id) {
+      // Update existing
+      const data = await updateAnnotation(pendingAnnotation.id, {
+        text: noteText.trim(),
+      });
+
+      // Update in store using the annotations from component state (not direct store access)
+      setAnnotations(annotations.map((a) => (a.id === data.id ? data : a)));
+      return data.id;
+    } else {
+      // Create new
+      const annotationData = {
+        source_id: activeSourceId,
+        page_number: currentPage,
+        annotation_type: pendingAnnotation.type || 'text',
+        rect: {
+          x: pendingAnnotation.rect.x,
+          y: pendingAnnotation.rect.y,
+          w: pendingAnnotation.rect.w,
+          h: pendingAnnotation.rect.h,
+        },
+        text: noteText.trim(),
+      };
+
+      const data = await createAnnotation(annotationData);
+      addAnnotation(data);
+      return data.id;
+    }
+  };
+
+  const handleSave = async () => {
+    if (!pendingAnnotation) return;
 
     setSaving(true);
     try {
-      // Check if editing existing annotation
-      if (pendingAnnotation.id) {
-        // Update existing
-        const data = await updateAnnotation(pendingAnnotation.id, {
-          text: noteText.trim(),
-        });
-
-        // Update in store
-        const currentAnnotations = useStore.getState().annotations;
-        useStore
-          .getState()
-          .setAnnotations(currentAnnotations.map((a) => (a.id === data.id ? data : a)));
-      } else {
-        // Create new
-        const annotationData = {
-          source_id: activeSourceId,
-          page_number: currentPage,
-          annotation_type: pendingAnnotation.type || 'text',
-          rect: {
-            x: pendingAnnotation.rect.x,
-            y: pendingAnnotation.rect.y,
-            w: pendingAnnotation.rect.w,
-            h: pendingAnnotation.rect.h,
-          },
-          text: noteText.trim(),
-        };
-
-        const data = await createAnnotation(annotationData);
-        addAnnotation(data);
+      const annotationId = await saveAnnotation();
+      if (annotationId) {
+        handleClose();
       }
-
-      handleClose();
     } catch (err) {
       console.error('Failed to save annotation:', err);
       alert(`Failed to save annotation: ${err.message}`);
@@ -120,7 +128,21 @@ export default function AnnotationModal() {
     }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    // Auto-save if there's content (for text annotations) or if editing existing
+    const hasContent = noteText.trim().length > 0;
+    const isNewTextAnnotation = !pendingAnnotation?.id && pendingAnnotation?.type === 'text';
+
+    if (hasContent && (isNewTextAnnotation || pendingAnnotation?.id)) {
+      // Auto-save before closing
+      try {
+        await saveAnnotation();
+      } catch (err) {
+        console.error('Auto-save failed:', err);
+        // Still close even if save fails
+      }
+    }
+
     setNoteText('');
     setShowArtifactLinkModal(false);
     setShowEntityPicker(false);
@@ -221,50 +243,14 @@ export default function AnnotationModal() {
   const handleSaveAndLink = async () => {
     if (!pendingAnnotation) return;
 
-    // Text annotations require text
-    if (pendingAnnotation.type === 'text' && !noteText.trim()) {
-      alert('Please enter some text for the note');
-      return;
-    }
-
     setSaving(true);
     try {
-      let annotationId = pendingAnnotation.id;
-
-      // Check if editing existing annotation or creating new
-      if (pendingAnnotation.id) {
-        // Update existing
-        const data = await updateAnnotation(pendingAnnotation.id, {
-          text: noteText.trim(),
-        });
-
-        const currentAnnotations = useStore.getState().annotations;
-        useStore
-          .getState()
-          .setAnnotations(currentAnnotations.map((a) => (a.id === data.id ? data : a)));
-      } else {
-        // Create new
-        const annotationData = {
-          source_id: activeSourceId,
-          page_number: currentPage,
-          annotation_type: pendingAnnotation.type || 'text',
-          rect: {
-            x: pendingAnnotation.rect.x,
-            y: pendingAnnotation.rect.y,
-            w: pendingAnnotation.rect.w,
-            h: pendingAnnotation.rect.h,
-          },
-          text: noteText.trim(),
-        };
-
-        const data = await createAnnotation(annotationData);
-        addAnnotation(data);
-        annotationId = data.id;
+      const annotationId = await saveAnnotation();
+      if (annotationId) {
+        // Close modal and start pin placement with the annotation ID
+        handleClose();
+        startPinPlacement(annotationId);
       }
-
-      // Now start pin placement with the annotation ID
-      handleClose();
-      startPinPlacement(annotationId);
     } catch (err) {
       console.error('Failed to save annotation:', err);
       alert(`Failed to save annotation: ${err.message}`);
