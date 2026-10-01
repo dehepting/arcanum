@@ -12,6 +12,7 @@ pub struct Source {
     pub title: String,
     pub file_name: String,
     pub storage_path: String,
+    pub file_url: String,
     pub file_size: Option<i64>,
     pub mime_type: Option<String>,
     pub metadata: Option<String>,
@@ -45,20 +46,18 @@ pub fn create_source(
     let id = Uuid::new_v4().to_string();
     let now = Utc::now().to_rfc3339();
 
-    let file_size_str = input.file_size.map(|s| s.to_string()).unwrap_or_default();
-
     db.execute(
         "INSERT INTO sources (
             id, project_id, title, file_name, storage_path,
             file_size, mime_type, metadata, created_at, updated_at
         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-        [
+        rusqlite::params![
             &id,
             &input.project_id,
             &input.title,
             &input.file_name,
             &input.storage_path,
-            &file_size_str,
+            input.file_size,
             &input.mime_type.clone().unwrap_or_default(),
             &input.metadata.clone().unwrap_or_default(),
             &now,
@@ -66,12 +65,17 @@ pub fn create_source(
         ],
     )?;
 
+    // Generate file URL from storage path
+    let full_path = state.storage.get_full_path("sources", &input.storage_path);
+    let file_url = full_path.to_string_lossy().to_string();
+
     Ok(Source {
         id,
         project_id: input.project_id,
         title: input.title,
         file_name: input.file_name,
         storage_path: input.storage_path,
+        file_url,
         file_size: input.file_size,
         mime_type: input.mime_type,
         metadata: input.metadata,
@@ -94,15 +98,20 @@ pub fn get_source(
     )?;
 
     let result = stmt.query_row([&source_id], |row| {
-        let file_size_str: Option<String> = row.get(5)?;
-        let file_size = file_size_str.and_then(|s| s.parse::<i64>().ok());
+        let file_size: Option<i64> = row.get(5)?;
+        let storage_path: String = row.get(4)?;
+
+        // Generate file URL
+        let full_path = state.storage.get_full_path("sources", &storage_path);
+        let file_url = full_path.to_string_lossy().to_string();
 
         Ok(Source {
             id: row.get(0)?,
             project_id: row.get(1)?,
             title: row.get(2)?,
             file_name: row.get(3)?,
-            storage_path: row.get(4)?,
+            storage_path,
+            file_url,
             file_size,
             mime_type: row.get(6)?,
             metadata: row.get(7)?,
@@ -133,17 +142,22 @@ pub fn list_sources(
         ORDER BY created_at DESC"
     )?;
 
-    let sources = stmt
+    let sources: Vec<Source> = stmt
         .query_map([&project_id], |row| {
-            let file_size_str: Option<String> = row.get(5)?;
-            let file_size = file_size_str.and_then(|s| s.parse::<i64>().ok());
+            let file_size: Option<i64> = row.get(5)?;
+            let storage_path: String = row.get(4)?;
+
+            // Generate file URL
+            let full_path = state.storage.get_full_path("sources", &storage_path);
+            let file_url = full_path.to_string_lossy().to_string();
 
             Ok(Source {
                 id: row.get(0)?,
                 project_id: row.get(1)?,
                 title: row.get(2)?,
                 file_name: row.get(3)?,
-                storage_path: row.get(4)?,
+                storage_path,
+                file_url,
                 file_size,
                 mime_type: row.get(6)?,
                 metadata: row.get(7)?,

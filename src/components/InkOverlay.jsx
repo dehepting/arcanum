@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { logger } from '../utils/logger';
 import * as fabric from 'fabric';
 import useStore from '../store/useStore';
+import { createAnnotation, updateAnnotation, deleteAnnotation } from '../lib/tauri';
 
 export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
   const fabricCanvasRef = useRef(null);
@@ -51,9 +52,11 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
       selection: false,
     });
 
-    // Configure brush
-    canvas.freeDrawingBrush.color = '#d4a373';
-    canvas.freeDrawingBrush.width = 2;
+    // Configure brush (Fabric.js v6+ requires explicit brush creation)
+    const brush = new fabric.PencilBrush(canvas);
+    brush.color = '#d4a373';
+    brush.width = 2;
+    canvas.freeDrawingBrush = brush;
 
     fabricCanvasRef.current = canvas;
 
@@ -75,25 +78,19 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
 
       try {
         // Save to database
-        const { data, error } = await supabase
-          .from('annotations')
-          .insert([
-            {
-              source_id: activeSourceId,
-              page_number: currentPage,
-              type: 'ink',
-              rect_x: rect.x,
-              rect_y: rect.y,
-              rect_w: rect.w,
-              rect_h: rect.h,
-              ink_data: pathJSON,
-              text: null,
-            },
-          ])
-          .select()
-          .single();
-
-        if (error) throw error;
+        const data = await createAnnotation({
+          source_id: activeSourceId,
+          page_number: currentPage,
+          annotation_type: 'ink',
+          rect: {
+            x: rect.x,
+            y: rect.y,
+            w: rect.w,
+            h: rect.h,
+          },
+          ink_data: pathJSON,
+          text: null,
+        });
 
         // Add to store
         addAnnotation(data);
@@ -148,12 +145,7 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }) {
         if (!confirm('Delete this ink annotation?')) return;
 
         try {
-          const { error } = await supabase
-            .from('annotations')
-            .delete()
-            .eq('id', target.annotationId);
-
-          if (error) throw error;
+          await deleteAnnotation(target.annotationId);
 
           // Remove from store
           const currentAnnotations = useStore.getState().annotations;

@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { logger } from '../utils/logger';
 import { Map, NavigationControl, Marker, Popup, setWorkerUrl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
-import { createPlace, loadPlaces } from '../lib/places';
+import { createPlace, loadPlaces, getAnnotationsForPlace } from '../lib/places';
 import { loadOverlays } from '../lib/overlays';
 import OverlayGeoreference from './OverlayGeoreference';
 
@@ -30,6 +29,7 @@ export default function MapView() {
   const currentProject = useStore((state) => state.currentProject);
   const places = useStore((state) => state.places);
   const setPlaces = useStore((state) => state.setPlaces);
+  const addPlace = useStore((state) => state.addPlace);
   const people = useStore((state) => state.people);
   const setPeople = useStore((state) => state.setPeople);
   const events = useStore((state) => state.events);
@@ -39,10 +39,15 @@ export default function MapView() {
   const artifacts = useStore((state) => state.artifacts);
   const setArtifacts = useStore((state) => state.setArtifacts);
   const pinPlacementMode = useStore((state) => state.pinPlacementMode);
+  const pendingPinAnnotationId = useStore((state) => state.pendingPinAnnotationId);
   const cancelPinPlacement = useStore((state) => state.cancelPinPlacement);
   const locationPlacementMode = useStore((state) => state.locationPlacementMode);
   const pendingLocationEntity = useStore((state) => state.pendingLocationEntity);
   const cancelLocationPlacement = useStore((state) => state.cancelLocationPlacement);
+  const setMapView = useStore((state) => state.setMapView);
+  const setActiveSource = useStore((state) => state.setActiveSource);
+  const setCurrentPage = useStore((state) => state.setCurrentPage);
+  const sources = useStore((state) => state.sources);
   const mapOverlays = useStore((state) => state.mapOverlays);
   const setMapOverlays = useStore((state) => state.setMapOverlays);
   const overlayMode = useStore((state) => state.overlayMode);
@@ -52,7 +57,7 @@ export default function MapView() {
     if (map.current) return; // Initialize only once
 
     if (!mapContainer.current) {
-      logger.error('Map container ref is null!');
+      console.error('Map container ref is null!');
       return;
     }
 
@@ -96,7 +101,7 @@ export default function MapView() {
       });
 
       map.current.on('error', (e) => {
-        logger.error('Map error:', e);
+        console.error('Map error:', e);
       });
 
       // Click handler for adding pins and georeferencing overlays
@@ -155,10 +160,10 @@ export default function MapView() {
               // Fly to the new location
               map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
 
-              logger.debug(`✓ Location updated for ${entityName}`);
+              console.log(`✓ Location updated for ${entityName}`);
             }
           } catch (err) {
-            logger.error('Failed to update location:', err);
+            console.error('Failed to update location:', err);
           }
           return;
         }
@@ -190,12 +195,12 @@ export default function MapView() {
           // Fly to the new pin
           map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
         } catch (err) {
-          logger.error('Failed to create place:', err);
+          console.error('Failed to create place:', err);
           alert(`Failed to create pin: ${err.message}`);
         }
       });
     } catch (error) {
-      logger.error('Failed to initialize map:', error);
+      console.error('Failed to initialize map:', error);
     }
 
     return () => {
@@ -247,7 +252,7 @@ export default function MapView() {
         setTheories(loadedTheories);
         setArtifacts(loadedArtifacts);
       } catch (err) {
-        logger.error('Failed to load map data:', err);
+        console.error('Failed to load map data:', err);
       }
     };
 
@@ -306,81 +311,14 @@ export default function MapView() {
 
       // Build popup content based on entity type
       let additionalInfo = '';
-      let metadataHTML = '';
-
-      // Parse and format metadata if it exists
-      if (entity.metadata) {
-        try {
-          const metadata = JSON.parse(entity.metadata);
-          const metadataItems = [];
-
-          // Format metadata based on entity type
-          if (entityType === 'theory') {
-            if (metadata.status) {
-              metadataItems.push(`Status: <strong>${metadata.status}</strong>`);
-            }
-            if (metadata.confidence_level) {
-              const stars =
-                '★'.repeat(metadata.confidence_level) + '☆'.repeat(5 - metadata.confidence_level);
-              metadataItems.push(`Confidence: ${stars}`);
-            }
-          } else if (entityType === 'artifact') {
-            if (metadata.material) {
-              metadataItems.push(`Material: <strong>${metadata.material}</strong>`);
-            }
-            if (metadata.condition) {
-              metadataItems.push(`Condition: <strong>${metadata.condition}</strong>`);
-            }
-          } else if (entityType === 'person') {
-            if (metadata.nationality) {
-              metadataItems.push(`Nationality: <strong>${metadata.nationality}</strong>`);
-            }
-            if (metadata.status) {
-              metadataItems.push(`Status: <strong>${metadata.status}</strong>`);
-            }
-          } else if (entityType === 'event') {
-            if (metadata.type) {
-              metadataItems.push(`Type: <strong>${metadata.type}</strong>`);
-            }
-            if (metadata.significance) {
-              metadataItems.push(`Significance: <strong>${metadata.significance}</strong>`);
-            }
-          }
-
-          if (metadataItems.length > 0) {
-            metadataHTML = `<div style="margin-bottom: 8px; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; font-size: 11px; color: #59636e; line-height: 1.6;">${metadataItems.join(' • ')}</div>`;
-          }
-        } catch {
-          // If metadata isn't valid JSON, skip it
-        }
-      }
-
-      // Entity-specific info
       if (entityType === 'place' && entity.place_type) {
         additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">📍 ${entity.place_type}</div>`;
-      } else if (entityType === 'person') {
-        const personInfo = [];
-        if (entity.occupation) personInfo.push(`💼 ${entity.occupation}`);
-        if (entity.birth_date) personInfo.push(`Born: ${entity.birth_date}`);
-        if (entity.death_date) personInfo.push(`Died: ${entity.death_date}`);
-        if (personInfo.length > 0) {
-          additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">${personInfo.join(' • ')}</div>`;
-        }
-      } else if (entityType === 'event') {
-        const eventInfo = [];
-        if (entity.event_date) eventInfo.push(`📅 ${entity.event_date}`);
-        if (entity.location) eventInfo.push(`📍 ${entity.location}`);
-        if (eventInfo.length > 0) {
-          additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">${eventInfo.join(' • ')}</div>`;
-        }
-      } else if (entityType === 'artifact') {
-        const artifactInfo = [];
-        if (entity.category) artifactInfo.push(`🏺 ${entity.category}`);
-        if (entity.date_range) artifactInfo.push(`📅 ${entity.date_range}`);
-        if (entity.owner_name) artifactInfo.push(`Owner: ${entity.owner_name}`);
-        if (artifactInfo.length > 0) {
-          additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">${artifactInfo.join(' • ')}</div>`;
-        }
+      } else if (entityType === 'person' && entity.occupation) {
+        additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">💼 ${entity.occupation}</div>`;
+      } else if (entityType === 'event' && entity.event_date) {
+        additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">📅 ${entity.event_date}</div>`;
+      } else if (entityType === 'artifact' && entity.category) {
+        additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">🏺 ${entity.category}</div>`;
       }
 
       const popupHTML = `
@@ -392,7 +330,7 @@ export default function MapView() {
           <div style="margin-bottom: 6px; color: #59636e; font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">${config.label}</div>
           ${additionalInfo}
           ${entity.description ? `<div style="margin-bottom: 8px; color: #59636e; font-size: 13px; line-height: 1.5;">${entity.description}</div>` : ''}
-          ${metadataHTML}
+          ${entity.metadata ? `<div style="margin-bottom: 8px; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; font-size: 12px; color: #59636e;">${entity.metadata}</div>` : ''}
           <div style="display: flex; gap: 4px; font-size: 11px; color: #8b949e; margin-bottom: 8px;">
             <span>📍 ${entity.lat.toFixed(4)}, ${entity.lng.toFixed(4)}</span>
           </div>
