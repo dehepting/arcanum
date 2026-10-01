@@ -317,3 +317,30 @@ export async function updateProvenanceRecord(recordId, updates) {
 export async function deleteProvenanceRecord(recordId) {
   return await invoke('delete_provenance_record', { recordId });
 }
+
+// Annotation Entity Links
+export async function linkAnnotationToEntity(
+  annotationId,
+  entityId,
+  entityType,
+  relationshipType = 'mentions'
+) {
+  return await invoke('link_annotation_to_entity', {
+    annotationId,
+    entityId,
+    entityType,
+    relationshipType,
+  });
+}
+
+export async function unlinkAnnotationFromEntity(annotationId, entityId) {
+  return await invoke('unlink_annotation_from_entity', { annotationId, entityId });
+}
+
+export async function getEntitiesForAnnotation(annotationId) {
+  return await invoke('get_entities_for_annotation', { annotationId });
+}
+
+export async function getAnnotationsForEntity(entityId, entityType) {
+  return await invoke('get_annotations_for_entity', { entityId, entityType });
+}

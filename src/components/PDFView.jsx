@@ -7,6 +7,7 @@ import AnnotationOverlay from './AnnotationOverlay';
 import InkOverlay from './InkOverlay';
 import AnnotationModal from './AnnotationModal';
 import { loadAnnotations } from '../lib/annotations';
+import { invoke } from '@tauri-apps/api/core';
 
 // Set worker path from npm package (ensures version match)
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
@@ -60,13 +61,24 @@ export default function PDFView() {
 
     const loadPDF = async () => {
       try {
-        logger.debug('Loading PDF from:', activeSource.file_url);
-        const doc = await pdfjsLib.getDocument({ url: activeSource.file_url }).promise;
+        logger.debug('Reading PDF file from:', activeSource.file_url);
+
+        // Read file as binary data using Tauri command
+        const fileData = await invoke('read_file_bytes', {
+          filePath: activeSource.file_url,
+        });
+        logger.debug('File read successfully, size:', fileData.length, 'bytes');
+
+        // Load PDF from binary data
+        const doc = await pdfjsLib.getDocument({ data: new Uint8Array(fileData) }).promise;
+        logger.debug('PDF loaded successfully, pages:', doc.numPages);
+
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setCurrentPage(1);
       } catch (err) {
         logger.error('Error loading PDF:', err);
+        logger.error('Failed to load from:', activeSource.file_url);
       }
     };
 
@@ -83,11 +95,18 @@ export default function PDFView() {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
 
+      // Clear the canvas before rendering new page
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
       // Update canvas size for overlay
       setCanvasSize({ width: viewport.width, height: viewport.height });
+
+      // Set white background for proper PDF rendering
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       await page.render({ canvasContext: ctx, viewport }).promise;
 

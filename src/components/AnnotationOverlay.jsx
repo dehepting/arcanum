@@ -1,13 +1,14 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import useStore from '../store/useStore';
 import { getPlaceForAnnotation } from '../lib/places';
 import { getArtifactsForAnnotation } from '../lib/artifact-sources';
 import ArtifactBadge from './ArtifactBadge';
-import { showError, showSuccess } from '../utils/errorHandling';
+import { createAnnotation, updateAnnotation, deleteAnnotation } from '../lib/tauri';
 
 export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const [dragging, setDragging] = useState(false);
   const [draftRect, setDraftRect] = useState(null);
+  const [linkedAnnotations, setLinkedAnnotations] = useState(new Set());
   const [artifactLinks, setArtifactLinks] = useState(new Map());
   const [draggedAnnotation, setDraggedAnnotation] = useState(null);
   const [dragOffset, setDragOffset] = useState(null);
@@ -27,8 +28,8 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     (ann) => ann.source_id === activeSourceId && ann.page_number === currentPage
   );
 
-  // Compute which annotations are linked to places (derived state)
-  const linkedAnnotations = useMemo(() => {
+  // Track which annotations are linked to places
+  useEffect(() => {
     const linked = new Set();
     places.forEach((place) => {
       if (place.annotation_place_links) {
@@ -37,7 +38,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
         });
       }
     });
-    return linked;
+    setLinkedAnnotations(linked);
   }, [places]);
 
   // Load artifact links for current page annotations
@@ -57,7 +58,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     if (pageAnnotations.length > 0) {
       loadArtifactLinks();
     }
-  }, [pageAnnotations, activeSourceId, currentPage]);
+  }, [pageAnnotations.length, activeSourceId, currentPage]);
 
   const handleMouseDown = (e) => {
     // Select tool: don't create new annotations
@@ -140,15 +141,10 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     // Handle annotation drag end
     if (draggedAnnotation) {
       try {
-        const { error } = await supabase
-          .from('annotations')
-          .update({
-            rect_x: draggedAnnotation.rect_x,
-            rect_y: draggedAnnotation.rect_y,
-          })
-          .eq('id', draggedAnnotation.id);
-
-        if (error) throw error;
+        await updateAnnotation(draggedAnnotation.id, {
+          rect_x: draggedAnnotation.rect_x,
+          rect_y: draggedAnnotation.rect_y,
+        });
 
         // Update in store
         const currentAnnotations = useStore.getState().annotations;
@@ -158,7 +154,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
             currentAnnotations.map((a) => (a.id === draggedAnnotation.id ? draggedAnnotation : a))
           );
       } catch (err) {
-        showError(`Failed to update annotation position: ${err.message || 'Unknown error'}`);
+        console.error('Failed to update annotation position:', err);
       }
 
       setDraggedAnnotation(null);
@@ -179,27 +175,22 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
 
     // Save highlight directly (no modal for highlights)
     try {
-      const { data, error } = await supabase
-        .from('annotations')
-        .insert([
-          {
-            source_id: activeSourceId,
-            page_number: currentPage,
-            type: 'highlight',
-            rect_x: draftRect.x,
-            rect_y: draftRect.y,
-            rect_w: draftRect.w,
-            rect_h: draftRect.h,
-            text: null,
-          },
-        ])
-        .select()
-        .single();
+      const data = await createAnnotation({
+        source_id: activeSourceId,
+        page_number: currentPage,
+        annotation_type: 'highlight',
+        rect: {
+          x: draftRect.x,
+          y: draftRect.y,
+          w: draftRect.w,
+          h: draftRect.h,
+        },
+        text: null,
+      });
 
-      if (error) throw error;
       useStore.getState().addAnnotation(data);
     } catch (err) {
-      showError(`Failed to save highlight: ${err.message || 'Unknown error'}`);
+      console.error('Failed to save highlight:', err);
     }
 
     // Reset
@@ -243,7 +234,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
           useStore.getState().flyToPlace = place;
         }
       } catch (err) {
-        showError(`Failed to navigate to place: ${err.message || 'Unknown error'}`);
+        console.error('Failed to navigate to place:', err);
       }
     }
 
@@ -264,16 +255,14 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     if (!confirm('Delete this annotation?')) return;
 
     try {
-      const { error } = await supabase.from('annotations').delete().eq('id', ann.id);
-
-      if (error) throw error;
+      await deleteAnnotation(ann.id);
 
       // Remove from store
       const currentAnnotations = useStore.getState().annotations;
       useStore.getState().setAnnotations(currentAnnotations.filter((a) => a.id !== ann.id));
-      showSuccess('Annotation deleted successfully!');
     } catch (err) {
-      showError(`Failed to delete annotation: ${err.message || 'Unknown error'}`);
+      console.error('Failed to delete annotation:', err);
+      alert('Failed to delete annotation');
     }
   };
 

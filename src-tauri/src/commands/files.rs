@@ -134,3 +134,11 @@ pub fn copy_file_to_storage(
 
     Ok(UploadFileResult { storage_path })
 }
+
+/// Read a file from an absolute file path and return its bytes
+/// Used for loading PDFs and other binary files
+#[tauri::command]
+pub fn read_file_bytes(file_path: String) -> CommandResult<Vec<u8>> {
+    let data = fs::read(&file_path)?;
+    Ok(data)
+}

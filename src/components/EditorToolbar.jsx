@@ -1,4 +1,4 @@
-import './EditorToolbar.css';
+import '../styles/editor.css';
 
 /**
  * EditorToolbar - Formatting toolbar for RichTextEditor

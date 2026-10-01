@@ -1,18 +1,18 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import RichTextEditor from './RichTextEditor';
 import { getEntityPage, updateEntityPage } from '../lib/entityPages';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
-import { showError } from '../utils/errorHandling';
-import { getEntityTypeConfig } from '../config/entityTypes';
-import EntityMetadataSection from './EntityMetadataSection';
-import './EntityPage.css';
-
-// Lazy load heavy TipTap rich text editor
-const RichTextEditor = lazy(() => import('./RichTextEditor'));
+import '../styles/entity.css';
 
 /**
  * EntityPage - Display and edit entity page content
- * Refactored to use entity type configuration and reusable components
+ * Features:
+ * - Rich text editing with Tiptap
+ * - Auto-save (debounced)
+ * - Loading states
+ * - Error handling
+ * - Tab dirty state integration
  */
 export default function EntityPage({ entityId, entityType, title, projectId, tabId, onClose }) {
   const [content, setContent] = useState('');
@@ -22,9 +22,6 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
   const [error, setError] = useState(null);
   const [saveTimeout, setSaveTimeout] = useState(null);
   const updateTab = useStore((state) => state.updateTab);
-
-  // Get entity type configuration
-  const config = getEntityTypeConfig(entityType);
 
   // Load entity page content and metadata
   useEffect(() => {
@@ -38,20 +35,30 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         setLoading(true);
         setError(null);
 
-        // Load entity metadata using entity type config
-        try {
-          const metadata = await invoke(config.getCommand, { [config.paramKey]: entityId });
-          setEntityData(metadata);
-        } catch (metadataError) {
-          showError(
-            `Failed to load ${config.label} metadata: ${metadataError.message || 'Unknown error'}`
-          );
+        // Load entity metadata based on type
+        const commandMap = {
+          person: { command: 'get_person', param: 'person_id' },
+          event: { command: 'get_event', param: 'event_id' },
+          theory: { command: 'get_theory', param: 'theory_id' },
+          place: { command: 'get_place', param: 'place_id' },
+          artifact: { command: 'get_artifact', param: 'artifact_id' },
+        };
+
+        const config = commandMap[entityType];
+        if (config) {
+          try {
+            const metadata = await invoke(config.command, { [config.param]: entityId });
+            setEntityData(metadata);
+          } catch (metadataError) {
+            console.error('Error loading entity metadata:', metadataError);
+          }
         }
 
         // Load entity page content
         const { data, error: loadError } = await getEntityPage(entityId);
 
         if (loadError) {
+          // Handle error object properly
           const errorMessage =
             typeof loadError === 'string'
               ? loadError
@@ -68,16 +75,15 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
           setContent(`<h1>${title}</h1><p>Start writing...</p>`);
         }
       } catch (err) {
-        const errorMessage = err.message || 'Failed to load entity page';
-        setError(errorMessage);
-        showError(`Failed to load ${config.label}: ${errorMessage}`);
+        console.error('Error loading entity page:', err);
+        setError(err.message || 'Failed to load entity page');
       } finally {
         setLoading(false);
       }
     }
 
     loadContent();
-  }, [entityId, entityType, title, config]);
+  }, [entityId, entityType, title]);
 
   // Auto-save handler (debounced)
   const handleContentChange = useCallback(
@@ -101,19 +107,20 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         try {
           setSaving(true);
           setError(null);
-          const { error: saveError } = await updateEntityPage(entityId, newContent, false, {
-            projectId,
-            entityType,
-            title,
-          });
+          const { error: saveError } = await updateEntityPage(
+            entityId,
+            newContent,
+            false, // replace mode
+            { projectId, entityType, title } // for creating new pages
+          );
 
           if (saveError) {
+            // Handle error object properly
             const errorMessage =
               typeof saveError === 'string'
                 ? saveError
                 : saveError.message || 'Failed to save changes';
             setError(errorMessage);
-            showError(`Failed to save ${config.label}: ${errorMessage}`);
             setSaving(false);
             return;
           }
@@ -122,12 +129,9 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
           if (tabId) {
             updateTab(tabId, { isDirty: false });
           }
-
-          setError(null);
         } catch (err) {
-          const errorMessage = err.message || 'Failed to save changes';
-          setError(errorMessage);
-          showError(`Failed to save ${config.label}: ${errorMessage}`);
+          console.error('Error saving entity page:', err);
+          setError(err.message || 'Failed to save changes');
         } finally {
           setSaving(false);
         }
@@ -135,7 +139,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
 
       setSaveTimeout(timeout);
     },
-    [entityId, saveTimeout, tabId, updateTab, projectId, entityType, title, config]
+    [entityId, saveTimeout, tabId, updateTab]
   );
 
   // Handle location changes (lat/lng)
@@ -156,26 +160,37 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         updateTab(tabId, { isDirty: true });
       }
 
-      // Save to backend using entity type config
+      // Save to backend
       try {
         setSaving(true);
-        await invoke(config.updateCommand, {
-          [config.paramKey]: entityId,
-          input: { [field]: numValue },
-        });
+        const updateCommandMap = {
+          person: { command: 'update_person', param: 'person_id' },
+          event: { command: 'update_event', param: 'event_id' },
+          theory: { command: 'update_theory', param: 'theory_id' },
+          place: { command: 'update_place', param: 'place_id' },
+          artifact: { command: 'update_artifact', param: 'artifact_id' },
+        };
 
-        // Mark tab as clean after successful save
-        if (tabId) {
-          updateTab(tabId, { isDirty: false });
+        const config = updateCommandMap[entityType];
+        if (config) {
+          await invoke(config.command, {
+            [config.param]: entityId,
+            input: { [field]: numValue },
+          });
+
+          // Mark tab as clean after successful save
+          if (tabId) {
+            updateTab(tabId, { isDirty: false });
+          }
         }
       } catch (err) {
-        showError(`Failed to update location: ${err.message || 'Unknown error'}`);
+        console.error('Error updating location:', err);
         setError(err.message || 'Failed to update location');
       } finally {
         setSaving(false);
       }
     },
-    [entityId, entityData, tabId, updateTab, config]
+    [entityId, entityData, entityType, tabId, updateTab]
   );
 
   // Handle "Set on Map" button click
@@ -206,7 +221,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
       <div className="entity-page">
         <div className="entity-page-header">
           <div className="entity-page-title">
-            <span className="entity-type-badge">{config.label}</span>
+            <span className="entity-type-badge">{entityType}</span>
             <h2>{title}</h2>
           </div>
           {onClose && (
@@ -228,7 +243,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
       <div className="entity-page">
         <div className="entity-page-header">
           <div className="entity-page-title">
-            <span className="entity-type-badge">{config.label}</span>
+            <span className="entity-type-badge">{entityType}</span>
             <h2>{title}</h2>
           </div>
           {onClose && (
@@ -248,7 +263,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
     <div className="entity-page">
       <div className="entity-page-header">
         <div className="entity-page-title">
-          <span className="entity-type-badge">{config.label}</span>
+          <span className="entity-type-badge">{entityType}</span>
           <h2>{title}</h2>
         </div>
         <div className="entity-page-actions">
@@ -261,33 +276,220 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         </div>
       </div>
 
-      {/* Entity Metadata - Uses configuration-based component */}
-      <EntityMetadataSection
-        entityType={entityType}
-        entityData={entityData}
-        entityId={entityId}
-        entityTitle={title}
-        onLocationChange={handleLocationChange}
-        onSetOnMap={handleSetOnMap}
-        saving={saving}
-      />
+      {/* Entity Metadata */}
+      {entityData && (
+        <div className="entity-metadata">
+          {entityType === 'person' && (
+            <>
+              {entityData.occupation && (
+                <div className="metadata-field">
+                  <strong>Occupation:</strong> {entityData.occupation}
+                </div>
+              )}
+              {entityData.birth_date && (
+                <div className="metadata-field">
+                  <strong>Birth:</strong> {entityData.birth_date}
+                </div>
+              )}
+              {entityData.death_date && (
+                <div className="metadata-field">
+                  <strong>Death:</strong> {entityData.death_date}
+                </div>
+              )}
+              {entityData.description && (
+                <div className="metadata-field">
+                  <strong>Description:</strong> {entityData.description}
+                </div>
+              )}
+              <div className="metadata-field location-field">
+                <strong>Location:</strong>
+                <div className="location-inputs">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Latitude"
+                    value={entityData.lat || ''}
+                    onChange={(e) => handleLocationChange('lat', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Longitude"
+                    value={entityData.lng || ''}
+                    onChange={(e) => handleLocationChange('lng', e.target.value)}
+                  />
+                  <button onClick={() => handleSetOnMap()} className="set-on-map-btn">
+                    📍 Set on Map
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+          {entityType === 'place' && (
+            <>
+              {entityData.place_type && (
+                <div className="metadata-field">
+                  <strong>Type:</strong> {entityData.place_type}
+                </div>
+              )}
+              {entityData.description && (
+                <div className="metadata-field">
+                  <strong>Description:</strong> {entityData.description}
+                </div>
+              )}
+              <div className="metadata-field location-field">
+                <strong>Coordinates:</strong>
+                <div className="location-inputs">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Latitude"
+                    value={entityData.lat || ''}
+                    onChange={(e) => handleLocationChange('lat', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Longitude"
+                    value={entityData.lng || ''}
+                    onChange={(e) => handleLocationChange('lng', e.target.value)}
+                  />
+                  <button onClick={() => handleSetOnMap()} className="set-on-map-btn">
+                    📍 Set on Map
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+          {entityType === 'artifact' && (
+            <>
+              {entityData.category && (
+                <div className="metadata-field">
+                  <strong>Category:</strong> {entityData.category}
+                </div>
+              )}
+              {entityData.date_range && (
+                <div className="metadata-field">
+                  <strong>Date Range:</strong> {entityData.date_range}
+                </div>
+              )}
+              {entityData.owner_name && (
+                <div className="metadata-field">
+                  <strong>Owner:</strong> {entityData.owner_name}
+                  {entityData.owner_type && ` (${entityData.owner_type})`}
+                </div>
+              )}
+              {entityData.description && (
+                <div className="metadata-field">
+                  <strong>Description:</strong> {entityData.description}
+                </div>
+              )}
+              <div className="metadata-field location-field">
+                <strong>Location:</strong>
+                <div className="location-inputs">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Latitude"
+                    value={entityData.lat || ''}
+                    onChange={(e) => handleLocationChange('lat', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Longitude"
+                    value={entityData.lng || ''}
+                    onChange={(e) => handleLocationChange('lng', e.target.value)}
+                  />
+                  <button onClick={() => handleSetOnMap()} className="set-on-map-btn">
+                    📍 Set on Map
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+          {entityType === 'event' && (
+            <>
+              {entityData.event_date && (
+                <div className="metadata-field">
+                  <strong>Date:</strong> {entityData.event_date}
+                </div>
+              )}
+              {entityData.location && (
+                <div className="metadata-field">
+                  <strong>Location:</strong> {entityData.location}
+                </div>
+              )}
+              {entityData.description && (
+                <div className="metadata-field">
+                  <strong>Description:</strong> {entityData.description}
+                </div>
+              )}
+              <div className="metadata-field location-field">
+                <strong>Coordinates:</strong>
+                <div className="location-inputs">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Latitude"
+                    value={entityData.lat || ''}
+                    onChange={(e) => handleLocationChange('lat', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Longitude"
+                    value={entityData.lng || ''}
+                    onChange={(e) => handleLocationChange('lng', e.target.value)}
+                  />
+                  <button onClick={() => handleSetOnMap()} className="set-on-map-btn">
+                    📍 Set on Map
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+          {entityType === 'theory' && (
+            <>
+              {entityData.description && (
+                <div className="metadata-field">
+                  <strong>Description:</strong> {entityData.description}
+                </div>
+              )}
+              <div className="metadata-field location-field">
+                <strong>Location:</strong>
+                <div className="location-inputs">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Latitude"
+                    value={entityData.lat || ''}
+                    onChange={(e) => handleLocationChange('lat', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Longitude"
+                    value={entityData.lng || ''}
+                    onChange={(e) => handleLocationChange('lng', e.target.value)}
+                  />
+                  <button onClick={() => handleSetOnMap()} className="set-on-map-btn">
+                    📍 Set on Map
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="entity-page-content">
-        <Suspense
-          fallback={
-            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <div className="loading-spinner" style={{ margin: '0 auto 12px' }}></div>
-              <p>Loading editor...</p>
-            </div>
-          }
-        >
-          <RichTextEditor
-            key={entityId || 'new'}
-            content={content}
-            onChange={handleContentChange}
-            placeholder={`Write about ${title}...`}
-          />
-        </Suspense>
+        <RichTextEditor
+          key={entityId || 'new'} // Stable key based on entity, not content
+          content={content}
+          onChange={handleContentChange}
+          placeholder={`Write about ${title}...`}
+        />
       </div>
     </div>
   );

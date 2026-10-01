@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import useStore from '../store/useStore';
 import { uploadPDF } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
-import { showError, showSuccess, showInfo } from '../utils/errorHandling';
-import { logger } from '../utils/logger';
-import './EntityExplorer.css';
+import { open } from '@tauri-apps/plugin-dialog';
+import { readFile } from '@tauri-apps/plugin-fs';
+import '../styles/entity.css';
 
 /**
  * EntityExplorer - Left panel showing all entities in the knowledge graph
@@ -22,10 +22,13 @@ export default function EntityExplorer() {
   const theories = useStore((state) => state.theories);
   const places = useStore((state) => state.places);
   const artifacts = useStore((state) => state.artifacts);
+  const sources = useStore((state) => state.sources);
   const tabs = useStore((state) => state.tabs);
+  const activeTabId = useStore((state) => state.activeTabId);
   const addTab = useStore((state) => state.addTab);
   const setActiveTab = useStore((state) => state.setActiveTab);
   const addSource = useStore((state) => state.addSource);
+  const setActiveSource = useStore((state) => state.setActiveSource);
   const currentProject = useStore((state) => state.currentProject);
   const updatePerson = useStore((state) => state.updatePerson);
   const updateEvent = useStore((state) => state.updateEvent);
@@ -94,7 +97,7 @@ export default function EntityExplorer() {
         });
         setCanvases(projectCanvases);
       } catch (error) {
-        showError(`Failed to load canvases: ${error.message || 'Unknown error'}`);
+        console.error('Failed to load canvases:', error);
       }
     };
 
@@ -137,9 +140,8 @@ export default function EntityExplorer() {
 
       setCanvases([...canvases, newCanvas]);
       handleCanvasClick(newCanvas);
-      showSuccess('Canvas created successfully!');
     } catch (error) {
-      showError(`Failed to create canvas: ${error.message || 'Unknown error'}`);
+      console.error('Failed to create canvas:', error);
     }
   };
 
@@ -170,9 +172,8 @@ export default function EntityExplorer() {
         canvases.map((c) => (c.id === canvasId ? { ...c, name: editingCanvasName.trim() } : c))
       );
       setEditingCanvasId(null);
-      showSuccess('Canvas renamed successfully!');
     } catch (error) {
-      showError(`Failed to rename canvas: ${error.message || 'Unknown error'}`);
+      console.error('Failed to rename canvas:', error);
     }
   };
 
@@ -227,9 +228,8 @@ export default function EntityExplorer() {
       updateFnMap[entityType](entityId, { name: editingEntityName.trim() });
 
       setEditingEntityId(null);
-      showSuccess('Entity renamed successfully!');
     } catch (error) {
-      showError(`Failed to rename entity: ${error.message || 'Unknown error'}`);
+      console.error('Failed to rename entity:', error);
     }
   };
 
@@ -294,6 +294,19 @@ export default function EntityExplorer() {
 
   // Handle double-click - adds entity to canvas if canvas tab is active
 
+  // Handle entity drag start - for dragging to canvas
+  const handleEntityDragStart = (e, entity, entityType) => {
+    console.log('🔵 DRAG START:', { name: entity.name, type: entityType });
+    e.dataTransfer.effectAllowed = 'copy';
+    const data = {
+      entityId: entity.id,
+      entityType,
+      entityName: entity.name,
+    };
+    e.dataTransfer.setData('application/json', JSON.stringify(data));
+    console.log('🔵 Data set:', data);
+  };
+
   // Handle create new entity
   const handleCreateEntity = (entityType) => {
     const titles = {
@@ -315,36 +328,63 @@ export default function EntityExplorer() {
   };
 
   // Handle add source (PDF upload)
-  const handleAddSource = () => {
-    logger.debug('handleAddSource called');
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/pdf';
-    input.onchange = async (e) => {
-      const file = e.target.files[0];
-      logger.debug('File selected:', file);
-      if (!file) return;
+  const handleAddSource = async () => {
+    console.log('handleAddSource called');
+
+    if (!currentProject) {
+      alert('Please select a project first');
+      return;
+    }
+
+    try {
+      // Use Tauri dialog plugin for file selection
+      const selectedPath = await open({
+        multiple: false,
+        filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+      });
+
+      console.log('File selected:', selectedPath);
+
+      if (!selectedPath) {
+        console.log('No file selected');
+        return;
+      }
 
       setUploading(true);
-      try {
-        logger.debug('Starting upload for project:', currentProject.id);
-        const source = await uploadPDF(file, currentProject.id);
-        logger.debug('Upload successful:', source);
-        addSource(source);
-        addTab({
-          type: 'pdf',
-          title: source.title,
-          data: { source },
-        });
-        showSuccess('PDF uploaded successfully!');
-      } catch (err) {
-        showError(`Failed to upload PDF: ${err.message || 'Unknown error'}`);
-      } finally {
-        setUploading(false);
-      }
-    };
-    input.click();
-    logger.debug('File input clicked');
+
+      // Read file using Tauri fs plugin
+      const fileData = await readFile(selectedPath);
+      const fileName = selectedPath.split('/').pop() || 'document.pdf';
+
+      console.log('Starting upload for project:', currentProject.id);
+
+      // Create a File-like object for uploadPDF
+      // readFile returns Uint8Array, convert to ArrayBuffer for uploadPDF
+      const arrayBuffer = fileData.buffer.slice(
+        fileData.byteOffset,
+        fileData.byteOffset + fileData.byteLength
+      );
+      const file = {
+        name: fileName,
+        type: 'application/pdf',
+        size: fileData.length,
+        arrayBuffer: async () => arrayBuffer,
+      };
+
+      const source = await uploadPDF(file, currentProject.id);
+      console.log('Upload successful:', source);
+      addSource(source);
+      addTab({
+        type: 'pdf',
+        title: source.title,
+        data: { source },
+      });
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert(`Failed to upload PDF: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -705,11 +745,38 @@ export default function EntityExplorer() {
       <div className="explorer-section">
         <div className="section-header" onClick={() => toggleSection('sources')}>
           <span className="section-icon">{expandedSections.sources ? '▼' : '▶'}</span>
-          <span className="section-title">📄 Sources</span>
+          <span className="section-title">📄 Sources ({sources.length})</span>
         </div>
         {expandedSections.sources && (
           <div className="section-content">
-            <div className="placeholder-text">No sources yet</div>
+            {sources.length === 0 ? (
+              <div className="placeholder-text">No sources yet</div>
+            ) : (
+              sources.map((source) => (
+                <div
+                  key={source.id}
+                  className={`entity-result ${tabs.find((t) => t.data?.source?.id === source.id) ? 'active' : ''}`}
+                  onClick={() => {
+                    // Open source in tab
+                    const existingTab = tabs.find((t) => t.data?.source?.id === source.id);
+                    if (existingTab) {
+                      setActiveTab(existingTab.id);
+                    } else {
+                      addTab({
+                        type: 'pdf',
+                        title: source.title,
+                        data: { source },
+                      });
+                      setActiveSource(source.id);
+                    }
+                  }}
+                  title={source.title}
+                >
+                  <span className="entity-result-icon">📄</span>
+                  <span className="entity-result-name">{source.title}</span>
+                </div>
+              ))
+            )}
             <button className="add-source-btn" onClick={handleAddSource} disabled={uploading}>
               {uploading ? '⏳ Uploading...' : '+ Add Source'}
             </button>

@@ -12,13 +12,13 @@ import './styles/index.css';
 
 function App() {
   const currentProject = useStore((state) => state.currentProject);
-  const setAnnotations = useStore((state) => state.setAnnotations);
   const setPlaces = useStore((state) => state.setPlaces);
   const setArtifacts = useStore((state) => state.setArtifacts);
   const setSources = useStore((state) => state.setSources);
   const setPeople = useStore((state) => state.setPeople);
   const setEvents = useStore((state) => state.setEvents);
   const setTheories = useStore((state) => state.setTheories);
+  const resetProjectState = useStore((state) => state.resetProjectState);
 
   // Load last project from localStorage on mount (when implemented)
   useEffect(() => {
@@ -36,16 +36,44 @@ function App() {
     // Save to localStorage for persistence
     localStorage.setItem('arcanum_last_project_id', currentProject.id);
 
+    // Reset all project-specific state before loading new data
+    resetProjectState();
+
     const loadProjectData = async () => {
       try {
-        const [sources, artifacts, places, people, events, theories] = await Promise.all([
-          loadSources(currentProject.id),
-          loadArtifacts(currentProject.id),
-          invoke('list_places', { projectId: currentProject.id }),
-          invoke('list_people', { projectId: currentProject.id }),
-          invoke('list_events', { projectId: currentProject.id }),
-          invoke('list_theories', { projectId: currentProject.id }),
-        ]);
+        logger.debug('Loading project data for:', currentProject.id, currentProject.name);
+
+        // Load each resource type with individual error handling
+        let sources = [];
+        let artifacts = [];
+        let places = [];
+        let people = [];
+        let events = [];
+        let theories = [];
+
+        try {
+          sources = await loadSources(currentProject.id);
+          logger.debug('Loaded sources:', sources.length);
+        } catch (e) {
+          logger.error('Failed to load sources:', e);
+        }
+
+        try {
+          artifacts = await loadArtifacts(currentProject.id);
+        } catch (e) {
+          logger.error('Failed to load artifacts:', e);
+        }
+
+        try {
+          [places, people, events, theories] = await Promise.all([
+            invoke('list_places', { projectId: currentProject.id }),
+            invoke('list_people', { projectId: currentProject.id }),
+            invoke('list_events', { projectId: currentProject.id }),
+            invoke('list_theories', { projectId: currentProject.id }),
+          ]);
+        } catch (e) {
+          logger.error('Failed to load entities:', e);
+        }
 
         // Update store with all data
         setSources(sources);
@@ -55,8 +83,7 @@ function App() {
         setEvents(events);
         setTheories(theories);
 
-        // TODO: Load annotations
-        setAnnotations([]);
+        // Note: Annotations are loaded per-source when a PDF is opened (see PDFView.jsx)
       } catch (err) {
         logger.error('Failed to load project data:', err);
       }
@@ -65,7 +92,7 @@ function App() {
     loadProjectData();
   }, [
     currentProject,
-    setAnnotations,
+    resetProjectState,
     setPlaces,
     setArtifacts,
     setSources,

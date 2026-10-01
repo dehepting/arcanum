@@ -1,5 +1,5 @@
 import useStore from '../store/useStore';
-import './EntityDetailPanel.css';
+import '../styles/entity.css';
 
 /**
  * EntityDetailPanel - Right panel showing details of selected entity
