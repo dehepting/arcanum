@@ -308,7 +308,7 @@ export default function EntityReview({
                 <div className="entity-fields">
                   <input
                     type="text"
-                    placeholder="Name"
+                    placeholder="Name *"
                     value={person.name}
                     onChange={(e) => handleUpdateEntity('people', index, 'name', e.target.value)}
                   />
@@ -371,7 +371,7 @@ export default function EntityReview({
                 <div className="entity-fields">
                   <input
                     type="text"
-                    placeholder="Event Name"
+                    placeholder="Event Name *"
                     value={event.name}
                     onChange={(e) => handleUpdateEntity('events', index, 'name', e.target.value)}
                   />
@@ -436,7 +436,7 @@ export default function EntityReview({
                 <div className="entity-fields">
                   <input
                     type="text"
-                    placeholder="Theory Name"
+                    placeholder="Theory Name *"
                     value={theory.name}
                     onChange={(e) => handleUpdateEntity('theories', index, 'name', e.target.value)}
                   />
@@ -507,7 +507,7 @@ export default function EntityReview({
                 <div className="entity-fields">
                   <input
                     type="text"
-                    placeholder="Place Name"
+                    placeholder="Place Name *"
                     value={place.name}
                     onChange={(e) => handleUpdateEntity('places', index, 'name', e.target.value)}
                   />
