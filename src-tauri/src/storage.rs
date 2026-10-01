@@ -41,6 +41,18 @@ impl AppStorage {
         self.root_dir.join("entity-pages")
     }
 
+    /// Get the full file path from a storage path and bucket
+    pub fn get_full_path(&self, bucket: &str, storage_path: &str) -> PathBuf {
+        match bucket {
+            "artifacts" => self.artifacts_dir(),
+            "sources" => self.sources_dir(),
+            "map-overlays" => self.map_overlays_dir(),
+            "entity-pages" => self.entity_pages_dir(),
+            _ => self.root_dir.clone(),
+        }
+        .join(storage_path)
+    }
+
     /// Store a file in a bucket and return the storage path
     pub fn store_file(
         &self,

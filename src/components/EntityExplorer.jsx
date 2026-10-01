@@ -20,11 +20,13 @@ export default function EntityExplorer() {
   const theories = useStore((state) => state.theories);
   const places = useStore((state) => state.places);
   const artifacts = useStore((state) => state.artifacts);
+  const sources = useStore((state) => state.sources);
   const tabs = useStore((state) => state.tabs);
   const activeTabId = useStore((state) => state.activeTabId);
   const addTab = useStore((state) => state.addTab);
   const setActiveTab = useStore((state) => state.setActiveTab);
   const addSource = useStore((state) => state.addSource);
+  const setActiveSource = useStore((state) => state.setActiveSource);
   const currentProject = useStore((state) => state.currentProject);
   const updatePerson = useStore((state) => state.updatePerson);
   const updateEvent = useStore((state) => state.updateEvent);
@@ -714,11 +716,37 @@ export default function EntityExplorer() {
       <div className="explorer-section">
         <div className="section-header" onClick={() => toggleSection('sources')}>
           <span className="section-icon">{expandedSections.sources ? '▼' : '▶'}</span>
-          <span className="section-title">📄 Sources</span>
+          <span className="section-title">📄 Sources ({sources.length})</span>
         </div>
         {expandedSections.sources && (
           <div className="section-content">
-            <div className="placeholder-text">No sources yet</div>
+            {sources.length === 0 ? (
+              <div className="placeholder-text">No sources yet</div>
+            ) : (
+              sources.map((source) => (
+                <div
+                  key={source.id}
+                  className={`entity-item ${tabs.find((t) => t.id === source.id) ? 'active' : ''}`}
+                  onClick={() => {
+                    // Open source in tab
+                    const existingTab = tabs.find((t) => t.id === source.id);
+                    if (existingTab) {
+                      setActiveTab(source.id);
+                    } else {
+                      addTab({
+                        id: source.id,
+                        type: 'source',
+                        title: source.title,
+                      });
+                      setActiveTab(source.id);
+                      setActiveSource(source.id);
+                    }
+                  }}
+                >
+                  📄 {source.title}
+                </div>
+              ))
+            )}
             <button className="add-source-btn" onClick={handleAddSource} disabled={uploading}>
               {uploading ? '⏳ Uploading...' : '+ Add Source'}
             </button>
