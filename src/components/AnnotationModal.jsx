@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import useStore from '../store/useStore';
-import ArtifactLinkModal from './ArtifactLinkModal';
 import EntityPicker from './canvas/EntityPicker';
-import { getArtifactsForAnnotation } from '../lib/artifact-sources';
 import {
   getEntitiesForAnnotation,
   linkAnnotationToEntity,
@@ -13,9 +11,7 @@ import { createAnnotation, updateAnnotation } from '../lib/tauri';
 export default function AnnotationModal() {
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
-  const [showArtifactLinkModal, setShowArtifactLinkModal] = useState(false);
   const [showEntityPicker, setShowEntityPicker] = useState(false);
-  const [linkedArtifacts, setLinkedArtifacts] = useState([]);
   const [linkedEntities, setLinkedEntities] = useState([]);
 
   const modalOpen = useStore((state) => state.annotationModalOpen);
@@ -36,13 +32,6 @@ export default function AnnotationModal() {
   const places = useStore((state) => state.places);
   const artifacts = useStore((state) => state.artifacts);
 
-  const loadLinkedArtifacts = useCallback(async (annotationId) => {
-    const result = await getArtifactsForAnnotation(annotationId);
-    if (result.success) {
-      setLinkedArtifacts(result.data);
-    }
-  }, []);
-
   const loadLinkedEntities = useCallback(async (annotationId) => {
     const result = await getEntitiesForAnnotation(annotationId);
     if (result.success) {
@@ -56,20 +45,17 @@ export default function AnnotationModal() {
       // If editing existing annotation
       if (pendingAnnotation.id) {
         setNoteText(pendingAnnotation.text || '');
-        loadLinkedArtifacts(pendingAnnotation.id);
         loadLinkedEntities(pendingAnnotation.id);
       } else {
         // New annotation
         setNoteText('');
-        setLinkedArtifacts([]);
         setLinkedEntities([]);
       }
     } else if (!modalOpen) {
       setNoteText('');
-      setLinkedArtifacts([]);
       setLinkedEntities([]);
     }
-  }, [modalOpen, pendingAnnotation, loadLinkedArtifacts, loadLinkedEntities]);
+  }, [modalOpen, pendingAnnotation, loadLinkedEntities]);
 
   // Shared save logic - returns the annotation ID (new or existing)
   const saveAnnotation = async () => {
@@ -148,24 +134,8 @@ export default function AnnotationModal() {
     }
 
     setNoteText('');
-    setShowArtifactLinkModal(false);
     setShowEntityPicker(false);
     closeModal();
-  };
-
-  const handleOpenArtifactLink = async () => {
-    // Save annotation first if it's new
-    if (!pendingAnnotation.id) {
-      await handleSave();
-    }
-    setShowArtifactLinkModal(true);
-  };
-
-  const handleArtifactLinked = async () => {
-    // Reload linked artifacts
-    if (pendingAnnotation?.id) {
-      await loadLinkedArtifacts(pendingAnnotation.id);
-    }
   };
 
   const handleOpenEntityPicker = async () => {
@@ -318,30 +288,6 @@ export default function AnnotationModal() {
           }}
         />
 
-        {linkedArtifacts.length > 0 && (
-          <div
-            style={{
-              marginBottom: '10px',
-              padding: '8px',
-              background: 'var(--bg)',
-              border: '1px solid var(--line)',
-              borderRadius: '4px',
-            }}
-          >
-            <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
-              Linked Artifacts:
-            </div>
-            {linkedArtifacts.map((link) => (
-              <div
-                key={link.id}
-                style={{ fontSize: '12px', padding: '4px 0', color: 'var(--text-muted)' }}
-              >
-                🏺 {link.artifacts?.name || 'Unknown'}
-              </div>
-            ))}
-          </div>
-        )}
-
         {linkedEntities.length > 0 && (
           <div
             style={{
@@ -393,41 +339,22 @@ export default function AnnotationModal() {
         )}
 
         {pendingAnnotation?.id && (
-          <>
-            <button
-              onClick={handleOpenArtifactLink}
-              style={{
-                width: '100%',
-                background: 'var(--panel)',
-                color: 'var(--text)',
-                border: '1px solid var(--line)',
-                padding: '8px 12px',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                marginBottom: '6px',
-                fontSize: '13px',
-              }}
-            >
-              🔗 Link to Artifact
-            </button>
-
-            <button
-              onClick={handleOpenEntityPicker}
-              style={{
-                width: '100%',
-                background: 'var(--panel)',
-                color: 'var(--text)',
-                border: '1px solid var(--line)',
-                padding: '8px 12px',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                marginBottom: '10px',
-                fontSize: '13px',
-              }}
-            >
-              🔗 Link to Entity
-            </button>
-          </>
+          <button
+            onClick={handleOpenEntityPicker}
+            style={{
+              width: '100%',
+              background: 'var(--panel)',
+              color: 'var(--text)',
+              border: '1px solid var(--line)',
+              padding: '8px 12px',
+              cursor: 'pointer',
+              borderRadius: '4px',
+              marginBottom: '10px',
+              fontSize: '13px',
+            }}
+          >
+            🔗 Link to Entity
+          </button>
         )}
 
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between' }}>
@@ -478,14 +405,6 @@ export default function AnnotationModal() {
           </div>
         </div>
       </div>
-
-      {showArtifactLinkModal && pendingAnnotation?.id && (
-        <ArtifactLinkModal
-          annotation={pendingAnnotation}
-          onClose={() => setShowArtifactLinkModal(false)}
-          onLink={handleArtifactLinked}
-        />
-      )}
 
       {showEntityPicker && (
         <EntityPicker onSelect={handleEntitySelected} onClose={() => setShowEntityPicker(false)} />
