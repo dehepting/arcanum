@@ -3,6 +3,7 @@ import useStore from '../store/useStore';
 import { getPlaceForAnnotation } from '../lib/places';
 import { getArtifactsForAnnotation } from '../lib/artifact-sources';
 import ArtifactBadge from './ArtifactBadge';
+import AnnotationContextMenu from './AnnotationContextMenu';
 import { createAnnotation, updateAnnotation, deleteAnnotation } from '../lib/tauri';
 
 export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
@@ -12,6 +13,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const [artifactLinks, setArtifactLinks] = useState(new Map());
   const [draggedAnnotation, setDraggedAnnotation] = useState(null);
   const [dragOffset, setDragOffset] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
   const startPos = useRef(null);
   const wrapRef = useRef(null);
 
@@ -141,6 +143,15 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const handleMouseUp = async () => {
     // Handle annotation drag end
     if (draggedAnnotation) {
+      // First update store immediately to prevent snap-back
+      const currentAnnotations = useStore.getState().annotations;
+      useStore
+        .getState()
+        .setAnnotations(
+          currentAnnotations.map((a) => (a.id === draggedAnnotation.id ? draggedAnnotation : a))
+        );
+
+      // Then save to database in background
       try {
         await updateAnnotation(draggedAnnotation.id, {
           rect_x: draggedAnnotation.rect_x,
@@ -148,16 +159,10 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
           rect_w: draggedAnnotation.rect_w,
           rect_h: draggedAnnotation.rect_h,
         });
-
-        // Update in store
-        const currentAnnotations = useStore.getState().annotations;
-        useStore
-          .getState()
-          .setAnnotations(
-            currentAnnotations.map((a) => (a.id === draggedAnnotation.id ? draggedAnnotation : a))
-          );
       } catch (err) {
         console.error('Failed to update annotation position:', err);
+        // Revert on error
+        useStore.getState().setAnnotations(currentAnnotations);
       }
 
       setDraggedAnnotation(null);
@@ -238,22 +243,26 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     // Don't navigate if we just dragged
     if (draggedAnnotation) return;
 
-    // If linked to a place, navigate to it on the map
+    // If linked to a place, navigate to it on the map (takes priority)
     if (linkedAnnotations.has(ann.id)) {
       try {
         const place = await getPlaceForAnnotation(ann.id);
         if (place) {
-          // Switch to map view
-          setMapView('map');
+          // Switch to map view by opening the map tab
+          const mapTab = useStore.getState().tabs.find((t) => t.type === 'map');
+          if (mapTab) {
+            useStore.getState().setActiveTab(mapTab.id);
+          }
           // Store the place to fly to (MapView will pick this up)
           useStore.getState().flyToPlace = place;
+          return; // Don't open modal if navigating to map
         }
       } catch (err) {
         console.error('Failed to navigate to place:', err);
       }
     }
 
-    // Text annotations also open modal on click (only if not dragging)
+    // Text annotations also open modal on click (only if not linked to map)
     if (ann.type === 'text' && activeTool !== 'select') {
       setSelectedAnnotation(ann.id);
       useStore.getState().openAnnotationModal(ann);
@@ -265,10 +274,19 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     useStore.getState().setSelectedArtifact(artifact);
   };
 
-  const handleAnnotationRightClick = async (ann, e) => {
+  const handleAnnotationRightClick = (ann, e) => {
     e.preventDefault();
-    if (!confirm('Delete this annotation?')) return;
+    e.stopPropagation();
 
+    // Show context menu at cursor position
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      annotation: ann,
+    });
+  };
+
+  const handleDeleteAnnotation = async (ann) => {
     try {
       await deleteAnnotation(ann.id);
 
@@ -279,6 +297,11 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
       console.error('Failed to delete annotation:', err);
       alert('Failed to delete annotation');
     }
+  };
+
+  const handleEditAnnotation = (ann) => {
+    setSelectedAnnotation(ann.id);
+    useStore.getState().openAnnotationModal(ann);
   };
 
   return (
@@ -397,6 +420,22 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
             background: 'rgba(196, 92, 74, 0.15)',
             pointerEvents: 'none',
           }}
+        />
+      )}
+
+      {/* Context menu */}
+      {contextMenu && (
+        <AnnotationContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          annotation={contextMenu.annotation}
+          onDelete={() => handleDeleteAnnotation(contextMenu.annotation)}
+          onEdit={
+            contextMenu.annotation.type === 'text'
+              ? () => handleEditAnnotation(contextMenu.annotation)
+              : null
+          }
+          onClose={() => setContextMenu(null)}
         />
       )}
     </div>

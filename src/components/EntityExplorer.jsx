@@ -44,6 +44,8 @@ export default function EntityExplorer() {
   const [editingEntityId, setEditingEntityId] = useState(null);
   const [editingEntityName, setEditingEntityName] = useState('');
   const [editingEntityType, setEditingEntityType] = useState(null);
+  const [editingSourceId, setEditingSourceId] = useState(null);
+  const [editingSourceTitle, setEditingSourceTitle] = useState('');
   const [expandedSections, setExpandedSections] = useState({
     entities: true,
     sources: true,
@@ -230,6 +232,59 @@ export default function EntityExplorer() {
       setEditingEntityId(null);
     } catch (error) {
       console.error('Failed to rename entity:', error);
+    }
+  };
+
+  // Handle source double-click to rename
+  const handleSourceDoubleClick = (source, e) => {
+    e.stopPropagation();
+    setEditingSourceId(source.id);
+    setEditingSourceTitle(source.title);
+  };
+
+  // Handle source rename
+  const handleSourceRename = async (sourceId) => {
+    if (!editingSourceTitle.trim()) {
+      setEditingSourceId(null);
+      return;
+    }
+
+    try {
+      await invoke('update_source', {
+        sourceId: sourceId,
+        input: {
+          title: editingSourceTitle.trim(),
+        },
+      });
+
+      // Update the source in store
+      const updatedSources = sources.map((s) =>
+        s.id === sourceId ? { ...s, title: editingSourceTitle.trim() } : s
+      );
+      useStore.getState().setSources(updatedSources);
+
+      // Also update any open tabs with this source
+      const updatedTabs = tabs.map((t) =>
+        t.data?.source?.id === sourceId
+          ? {
+              ...t,
+              title: editingSourceTitle.trim(),
+              data: { ...t.data, source: { ...t.data.source, title: editingSourceTitle.trim() } },
+            }
+          : t
+      );
+      tabs.forEach((t, idx) => {
+        if (t.data?.source?.id === sourceId) {
+          useStore.getState().updateTab(t.id, {
+            title: editingSourceTitle.trim(),
+            data: { ...t.data, source: { ...t.data.source, title: editingSourceTitle.trim() } },
+          });
+        }
+      });
+
+      setEditingSourceId(null);
+    } catch (error) {
+      console.error('Failed to rename source:', error);
     }
   };
 
@@ -757,6 +812,7 @@ export default function EntityExplorer() {
                   key={source.id}
                   className={`entity-result ${tabs.find((t) => t.data?.source?.id === source.id) ? 'active' : ''}`}
                   onClick={() => {
+                    if (editingSourceId === source.id) return; // Don't open if editing
                     // Open source in tab
                     const existingTab = tabs.find((t) => t.data?.source?.id === source.id);
                     if (existingTab) {
@@ -770,10 +826,30 @@ export default function EntityExplorer() {
                       setActiveSource(source.id);
                     }
                   }}
+                  onDoubleClick={(e) => handleSourceDoubleClick(source, e)}
                   title={source.title}
                 >
                   <span className="entity-result-icon">📄</span>
-                  <span className="entity-result-name">{source.title}</span>
+                  {editingSourceId === source.id ? (
+                    <input
+                      type="text"
+                      className="entity-result-input"
+                      value={editingSourceTitle}
+                      onChange={(e) => setEditingSourceTitle(e.target.value)}
+                      onBlur={() => handleSourceRename(source.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSourceRename(source.id);
+                        } else if (e.key === 'Escape') {
+                          setEditingSourceId(null);
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
+                    />
+                  ) : (
+                    <span className="entity-result-name">{source.title}</span>
+                  )}
                 </div>
               ))
             )}
