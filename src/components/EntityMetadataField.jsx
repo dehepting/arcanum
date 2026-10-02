@@ -81,9 +81,10 @@ export default function EntityMetadataField({
   };
 
   const displayValue = value || <span className="metadata-empty">{placeholder || 'Not set'}</span>;
+  const wrapperClass = `metadata-field-wrapper ${multiline ? 'full-width' : ''}`;
 
   return (
-    <div className="metadata-field-wrapper">
+    <div className={wrapperClass}>
       <div className="metadata-field-label">
         {icon && <span className="metadata-field-icon">{icon}</span>}
         <strong>{label}:</strong>

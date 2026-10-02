@@ -323,7 +323,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
       <div className="entity-page">
         <div className="entity-page-header">
           <div className="entity-page-title">
-            <span className="entity-type-badge">
+            <span className="entity-type-badge" data-type={entityType}>
               {entityType.charAt(0).toUpperCase() + entityType.slice(1)}
             </span>
             <h2>{title}</h2>
@@ -347,7 +347,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
       <div className="entity-page">
         <div className="entity-page-header">
           <div className="entity-page-title">
-            <span className="entity-type-badge">
+            <span className="entity-type-badge" data-type={entityType}>
               {entityType.charAt(0).toUpperCase() + entityType.slice(1)}
             </span>
             <h2>{title}</h2>
