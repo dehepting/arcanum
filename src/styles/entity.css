@@ -921,3 +921,79 @@
     margin-top: 0;
   }
 }
+
+/* ===== LINKED ANNOTATIONS ===== */
+
+.entity-linked-annotations {
+  padding: var(--space-4) var(--space-6);
+  background: var(--bg-panel-alt);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.entity-linked-annotations h3 {
+  margin: 0 0 var(--space-3) 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.loading-annotations {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  padding: var(--space-2);
+  font-style: italic;
+}
+
+.annotations-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.annotation-item {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.annotation-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-primary);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.annotation-icon {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.annotation-item:hover .annotation-icon {
+  opacity: 1;
+}
+
+.annotation-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.annotation-source {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.annotation-content {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}

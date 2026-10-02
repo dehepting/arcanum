@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import RichTextEditor from './RichTextEditor';
 import { getEntityPage, updateEntityPage } from '../lib/entityPages';
+import { getAnnotationsForEntity } from '../lib/annotationLinks';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
 import '../styles/entity.css';
@@ -21,7 +22,14 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [saveTimeout, setSaveTimeout] = useState(null);
+  const [linkedAnnotations, setLinkedAnnotations] = useState([]);
+  const [loadingAnnotations, setLoadingAnnotations] = useState(false);
   const updateTab = useStore((state) => state.updateTab);
+  const sources = useStore((state) => state.sources);
+  const tabs = useStore((state) => state.tabs);
+  const setActiveTab = useStore((state) => state.setActiveTab);
+  const addTab = useStore((state) => state.addTab);
+  const setCurrentPage = useStore((state) => state.setCurrentPage);
 
   // Load entity page content and metadata
   useEffect(() => {
@@ -84,6 +92,25 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
 
     loadContent();
   }, [entityId, entityType, title]);
+
+  // Load linked annotations
+  useEffect(() => {
+    async function loadAnnotations() {
+      if (!entityId || !entityType) return;
+
+      try {
+        setLoadingAnnotations(true);
+        const { data } = await getAnnotationsForEntity(entityId, entityType);
+        setLinkedAnnotations(data || []);
+      } catch (err) {
+        console.error('Error loading linked annotations:', err);
+      } finally {
+        setLoadingAnnotations(false);
+      }
+    }
+
+    loadAnnotations();
+  }, [entityId, entityType]);
 
   // Auto-save handler (debounced)
   const handleContentChange = useCallback(
@@ -206,6 +233,42 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
     // Switch to map tab
     setActiveTab('default-map');
   }, [entityId, entityType, title]);
+
+  // Handle annotation click - navigate to PDF
+  const handleAnnotationClick = useCallback(
+    (annotation) => {
+      // Find the source for this annotation
+      const source = sources.find((s) => s.id === annotation.source_id);
+      if (!source) {
+        console.error('Source not found for annotation:', annotation.source_id);
+        return;
+      }
+
+      // Check if there's already a tab open for this source
+      let pdfTab = tabs.find((t) => t.type === 'pdf' && t.data?.source?.id === source.id);
+
+      if (!pdfTab) {
+        // Create a new PDF tab
+        addTab({
+          type: 'pdf',
+          title: source.title,
+          data: { source },
+        });
+
+        // The new tab will be the active one after addTab
+        pdfTab = useStore
+          .getState()
+          .tabs.find((t) => t.type === 'pdf' && t.data?.source?.id === source.id);
+      } else {
+        // Switch to existing tab
+        setActiveTab(pdfTab.id);
+      }
+
+      // Navigate to the annotation's page
+      setCurrentPage(annotation.page_number);
+    },
+    [sources, tabs, addTab, setActiveTab, setCurrentPage]
+  );
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -485,6 +548,51 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
                 </div>
               </div>
             </>
+          )}
+        </div>
+      )}
+
+      {/* Linked Annotations */}
+      {(linkedAnnotations.length > 0 || loadingAnnotations) && (
+        <div className="entity-linked-annotations">
+          <h3>Linked Source References</h3>
+          {loadingAnnotations ? (
+            <div className="loading-annotations">Loading references...</div>
+          ) : (
+            <div className="annotations-list">
+              {linkedAnnotations.map((annotation) => {
+                const source = sources.find((s) => s.id === annotation.source_id);
+                const annotationTypeIcon =
+                  annotation.annotation_type === 'highlight'
+                    ? '🖍️'
+                    : annotation.annotation_type === 'text'
+                      ? '📝'
+                      : '✏️';
+
+                return (
+                  <div
+                    key={annotation.id}
+                    className="annotation-item"
+                    onClick={() => handleAnnotationClick(annotation)}
+                    title="Click to view in PDF"
+                  >
+                    <div className="annotation-icon">{annotationTypeIcon}</div>
+                    <div className="annotation-details">
+                      <div className="annotation-source">
+                        {source?.title || 'Unknown Source'} · Page {annotation.page_number}
+                      </div>
+                      {annotation.content && (
+                        <div className="annotation-content">
+                          {annotation.content.length > 150
+                            ? `${annotation.content.substring(0, 150)}...`
+                            : annotation.content}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
