@@ -9,6 +9,48 @@ import useStore from '../store/useStore';
 import { GET_COMMANDS, UPDATE_COMMANDS } from '../config/entityCommands';
 import '../styles/entity.css';
 
+import type { EntityType, Annotation, Source, Tab } from '@/types';
+
+/**
+ * EntityPage component props
+ */
+export interface EntityPageProps {
+  entityId: string;
+  entityType: string;
+  title: string;
+  projectId: string;
+  tabId: string;
+  onClose?: () => void;
+}
+
+/**
+ * Entity metadata type - represents the backend entity data
+ * with common fields across all entity types
+ */
+interface EntityMetadata {
+  id: string;
+  name: string;
+  lat?: number | null;
+  lng?: number | null;
+  description?: string | null;
+  // Person-specific fields
+  birth_date?: string | null;
+  death_date?: string | null;
+  occupation?: string | null;
+  // Event-specific fields
+  event_date?: string | null;
+  location?: string | null;
+  // Place-specific fields
+  place_type?: string | null;
+  // Artifact-specific fields
+  category?: string | null;
+  date_range?: string | null;
+  owner_name?: string | null;
+  owner_type?: string | null;
+  // Allow for other dynamic fields
+  [key: string]: unknown;
+}
+
 /**
  * EntityPage - Display and edit entity page content
  * Features:
@@ -20,17 +62,24 @@ import '../styles/entity.css';
  * - Loading states
  * - Error handling
  */
-export default function EntityPage({ entityId, entityType, title, projectId, tabId, onClose }) {
-  const [content, setContent] = useState('');
-  const [entityData, setEntityData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [error, setError] = useState(null);
-  const [saveTimeout, setSaveTimeout] = useState(null);
-  const [linkedAnnotations, setLinkedAnnotations] = useState([]);
-  const [loadingAnnotations, setLoadingAnnotations] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState(new Set());
+export default function EntityPage({
+  entityId,
+  entityType,
+  title,
+  projectId,
+  tabId,
+  onClose,
+}: EntityPageProps) {
+  const [content, setContent] = useState<string>('');
+  const [entityData, setEntityData] = useState<EntityMetadata | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [linkedAnnotations, setLinkedAnnotations] = useState<Annotation[]>([]);
+  const [loadingAnnotations, setLoadingAnnotations] = useState<boolean>(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const updateTab = useStore((state) => state.updateTab);
   const sources = useStore((state) => state.sources);
@@ -54,10 +103,12 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         // Load entity metadata based on type
         const commandMap = GET_COMMANDS;
 
-        const config = commandMap[entityType];
+        const config = commandMap[entityType as EntityType];
         if (config) {
           try {
-            const metadata = await invoke(config.command, { [config.param]: entityId });
+            const metadata = await invoke<EntityMetadata>(config.command, {
+              [config.param]: entityId,
+            });
             setEntityData(metadata);
           } catch (metadataError) {
             console.error('Error loading entity metadata:', metadataError);
@@ -85,7 +136,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         }
       } catch (err) {
         console.error('Error loading entity page:', err);
-        setError(err.message || 'Failed to load entity page');
+        setError(err instanceof Error ? err.message : 'Failed to load entity page');
       } finally {
         setLoading(false);
       }
@@ -115,7 +166,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
 
   // Auto-save handler (debounced 500ms)
   const handleContentChange = useCallback(
-    (newContent) => {
+    (newContent: string) => {
       setContent(newContent);
 
       // Mark tab as dirty
@@ -162,7 +213,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
           setTimeout(() => setSaveSuccess(false), 2000);
         } catch (err) {
           console.error('Error saving entity page:', err);
-          setError(err.message || 'Failed to save changes');
+          setError(err instanceof Error ? err.message : 'Failed to save changes');
         } finally {
           setSaving(false);
         }
@@ -175,7 +226,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
 
   // Handle metadata field changes
   const handleMetadataChange = useCallback(
-    async (field, value) => {
+    async (field: string, value: string | number | null) => {
       if (!entityId || !entityData) return;
 
       // Convert empty strings to null for optional fields
@@ -183,7 +234,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
 
       // Update local state immediately
       setEntityData((prev) => ({
-        ...prev,
+        ...prev!,
         [field]: processedValue,
       }));
 
@@ -198,7 +249,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         setSaveSuccess(false);
         const updateCommandMap = UPDATE_COMMANDS;
 
-        const config = updateCommandMap[entityType];
+        const config = updateCommandMap[entityType as EntityType];
         if (config) {
           await invoke(config.command, {
             [config.param]: entityId,
@@ -216,10 +267,10 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         }
       } catch (err) {
         console.error('Error updating metadata:', err);
-        setError(err.message || 'Failed to update metadata');
+        setError(err instanceof Error ? err.message : 'Failed to update metadata');
         // Revert local state on error
         setEntityData((prev) => ({
-          ...prev,
+          ...prev!,
           [field]: entityData[field],
         }));
       } finally {
@@ -257,25 +308,27 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
 
   // Handle annotation click - navigate to PDF
   const handleAnnotationClick = useCallback(
-    (annotation) => {
-      const source = (sources || []).find((s) => s.id === annotation.source_id);
+    (annotation: Annotation) => {
+      const source = (sources || []).find((s: Source) => s.id === annotation.source_id);
       if (!source) {
         console.error('Source not found for annotation:', annotation.source_id);
         return;
       }
 
-      let pdfTab = (tabs || []).find((t) => t.type === 'pdf' && t.data?.source?.id === source.id);
+      let pdfTab = (tabs || []).find(
+        (t: Tab) => t.type === 'pdf' && t.data?.source?.id === source.id
+      );
 
       if (!pdfTab) {
         addTab({
           type: 'pdf',
-          title: source.title,
+          title: source.title || source.name,
           data: { source },
         });
 
         pdfTab = useStore
           .getState()
-          .tabs.find((t) => t.type === 'pdf' && t.data?.source?.id === source.id);
+          .tabs.find((t: Tab) => t.type === 'pdf' && t.data?.source?.id === source.id);
       } else {
         setActiveTab(pdfTab.id);
       }
@@ -286,7 +339,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
   );
 
   // Toggle section collapsed state
-  const toggleSection = (sectionTitle) => {
+  const toggleSection = (sectionTitle: string) => {
     setCollapsedSections((prev) => {
       const next = new Set(prev);
       if (next.has(sectionTitle)) {
@@ -354,7 +407,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
     );
   }
 
-  const schema = entityMetadataSchemas[entityType];
+  const schema = entityMetadataSchemas[entityType as EntityType];
   const hasCoordinates = entityData?.lat && entityData?.lng;
 
   return (
@@ -398,7 +451,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
                       <EntityMetadataField
                         key={field.key}
                         label={field.label}
-                        value={entityData[field.key]}
+                        value={entityData[field.key] as string | number | null | undefined}
                         onChange={(value) => handleMetadataChange(field.key, value)}
                         type={field.type}
                         icon={field.icon}
@@ -455,7 +508,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
             ) : (
               <div className="annotations-list">
                 {(linkedAnnotations || []).map((annotation) => {
-                  const source = (sources || []).find((s) => s.id === annotation.source_id);
+                  const source = (sources || []).find((s: Source) => s.id === annotation.source_id);
                   const annotationTypeIcon =
                     annotation.annotation_type === 'highlight'
                       ? '🖍️'
@@ -473,7 +526,8 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
                       <div className="annotation-icon">{annotationTypeIcon}</div>
                       <div className="annotation-details">
                         <div className="annotation-source">
-                          {source?.title || 'Unknown Source'} · Page {annotation.page_number}
+                          {source?.title || source?.name || 'Unknown Source'} · Page{' '}
+                          {annotation.page_number}
                         </div>
                         {annotation.content && (
                           <div className="annotation-content">
