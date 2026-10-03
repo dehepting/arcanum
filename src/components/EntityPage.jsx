@@ -258,13 +258,13 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
   // Handle annotation click - navigate to PDF
   const handleAnnotationClick = useCallback(
     (annotation) => {
-      const source = sources.find((s) => s.id === annotation.source_id);
+      const source = (sources || []).find((s) => s.id === annotation.source_id);
       if (!source) {
         console.error('Source not found for annotation:', annotation.source_id);
         return;
       }
 
-      let pdfTab = tabs.find((t) => t.type === 'pdf' && t.data?.source?.id === source.id);
+      let pdfTab = (tabs || []).find((t) => t.type === 'pdf' && t.data?.source?.id === source.id);
 
       if (!pdfTab) {
         addTab({
@@ -454,8 +454,8 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
               </div>
             ) : (
               <div className="annotations-list">
-                {linkedAnnotations.map((annotation) => {
-                  const source = sources.find((s) => s.id === annotation.source_id);
+                {(linkedAnnotations || []).map((annotation) => {
+                  const source = (sources || []).find((s) => s.id === annotation.source_id);
                   const annotationTypeIcon =
                     annotation.annotation_type === 'highlight'
                       ? '🖍️'

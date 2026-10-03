@@ -52,10 +52,9 @@ export default defineConfig({
         'src/lib/artifact-sources.ts',
       ],
       // Enforce minimum coverage thresholds
-      // TODO: Restore branches to 64 after fixing EntityPage tests
       thresholds: {
         statements: 52,
-        branches: 56,
+        branches: 60,
         functions: 42,
         lines: 52,
       },
