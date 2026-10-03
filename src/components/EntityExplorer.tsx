@@ -145,8 +145,10 @@ export default function EntityExplorer() {
       addTab({
         type: 'canvas',
         title: canvas.name,
+        canvasId: canvas.id,
         data: {
           canvasId: canvas.id,
+          canvasName: canvas.name,
         },
       });
     }
@@ -352,10 +354,9 @@ export default function EntityExplorer() {
   // Handle entity click - opens entity in tab or switches to existing tab
   const handleEntityClick = (entity: Entity, entityType: EntityType) => {
     // Check if tab already exists for this entity
-    const existingTab = tabs.find((tab) => {
-      if (tab.type !== 'entity') return false;
-      return tab.data?.entityId === entity.id && tab.data?.entityType === entityType;
-    });
+    const existingTab = tabs.find(
+      (tab) => tab.type === entityType && tab.data?.entityId === entity.id
+    );
 
     if (existingTab) {
       // Switch to existing tab instead of creating duplicate
@@ -363,7 +364,7 @@ export default function EntityExplorer() {
     } else {
       // Create new tab
       addTab({
-        type: 'entity',
+        type: entityType,
         title: entity.name,
         data: {
           entityId: entity.id,
@@ -393,7 +394,7 @@ export default function EntityExplorer() {
     const config = getEntityType(entityType);
 
     addTab({
-      type: 'entity',
+      type: entityType,
       title: `New ${config.label}`,
       data: {
         entityId: null as any, // Will be created on first save

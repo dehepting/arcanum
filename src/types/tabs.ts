@@ -8,8 +8,9 @@ import type { Entity, EntityType } from './entities';
 
 /**
  * Tab type discriminator
+ * Includes generic tab types and specific entity types
  */
-export type TabType = 'map' | 'pdf' | 'entity' | 'canvas' | 'review';
+export type TabType = 'map' | 'pdf' | 'canvas' | 'review' | EntityType;
 
 /**
  * PDF tab data
@@ -36,7 +37,7 @@ export interface EntityTabData {
  */
 export interface CanvasTabData {
   canvasId?: string;
-  // Canvas-specific data
+  canvasName?: string;
 }
 
 /**
@@ -70,7 +71,7 @@ export interface PDFTab extends BaseTab {
 }
 
 export interface EntityTab extends BaseTab {
-  type: 'entity';
+  type: EntityType;
   data: EntityTabData;
 }
 
@@ -98,4 +99,6 @@ export interface CreateTabInput {
   title: string;
   data?: PDFTabData | EntityTabData | CanvasTabData | ReviewTabData | null;
   isDirty?: boolean;
+  // Allow additional properties for backwards compatibility
+  [key: string]: any;
 }

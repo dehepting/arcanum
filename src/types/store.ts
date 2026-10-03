@@ -89,6 +89,13 @@ export interface StoreState {
   mapView: 'map' | 'source';
   setMapView: (view: 'map' | 'source') => void;
 
+  // Map coordinates to fly to (set by EntityPage for places)
+  flyToCoordinates?: {
+    lat: number;
+    lng: number;
+    zoom: number;
+  };
+
   // Tabs
   tabs: Tab[];
   activeTabId: string;

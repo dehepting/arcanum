@@ -76,7 +76,7 @@ export default function EntityPage({
   const [saving, setSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [saveTimeout, setSaveTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [linkedAnnotations, setLinkedAnnotations] = useState<Annotation[]>([]);
   const [loadingAnnotations, setLoadingAnnotations] = useState<boolean>(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -299,7 +299,8 @@ export default function EntityPage({
     setActiveTab('default-map');
 
     // Set a flag to fly to this location
-    useStore.getState().flyToCoordinates = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useStore.getState() as any).flyToCoordinates = {
       lat: entityData.lat,
       lng: entityData.lng,
       zoom: 12,
@@ -322,7 +323,7 @@ export default function EntityPage({
       if (!pdfTab) {
         addTab({
           type: 'pdf',
-          title: source.title || source.name,
+          title: source.name,
           data: { source },
         });
 
@@ -526,8 +527,7 @@ export default function EntityPage({
                       <div className="annotation-icon">{annotationTypeIcon}</div>
                       <div className="annotation-details">
                         <div className="annotation-source">
-                          {source?.title || source?.name || 'Unknown Source'} · Page{' '}
-                          {annotation.page_number}
+                          {source?.name || 'Unknown Source'} · Page {annotation.page_number}
                         </div>
                         {annotation.content && (
                           <div className="annotation-content">
