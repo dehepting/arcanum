@@ -6,6 +6,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { readFile } from '@tauri-apps/plugin-fs';
 import { getAllEntityTypes, getEntityType, invokeEntityCommand } from '../lib/entityTypes';
 import EntityTypeSection from './EntityTypeSection';
+import { useEntitySearch } from '../hooks/useEntitySearch';
 import '../styles/entity.css';
 
 /**
@@ -262,31 +263,12 @@ export default function EntityExplorer() {
     }
   };
 
-  // Filter entities based on search query (memoized for performance)
-  const filteredPeople = useMemo(
-    () => people.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase())),
-    [people, searchQuery]
-  );
-
-  const filteredEvents = useMemo(
-    () => events.filter((e) => e.name.toLowerCase().includes(searchQuery.toLowerCase())),
-    [events, searchQuery]
-  );
-
-  const filteredTheories = useMemo(
-    () => theories.filter((t) => t.name.toLowerCase().includes(searchQuery.toLowerCase())),
-    [theories, searchQuery]
-  );
-
-  const filteredPlaces = useMemo(
-    () => places.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase())),
-    [places, searchQuery]
-  );
-
-  const filteredArtifacts = useMemo(
-    () => artifacts.filter((a) => a.name.toLowerCase().includes(searchQuery.toLowerCase())),
-    [artifacts, searchQuery]
-  );
+  // Filter entities using fuzzy search (searches name, description, bio, notes)
+  const filteredPeople = useEntitySearch(people, searchQuery);
+  const filteredEvents = useEntitySearch(events, searchQuery);
+  const filteredTheories = useEntitySearch(theories, searchQuery);
+  const filteredPlaces = useEntitySearch(places, searchQuery);
+  const filteredArtifacts = useEntitySearch(artifacts, searchQuery);
 
   const totalResults = useMemo(
     () =>
