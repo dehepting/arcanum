@@ -76,7 +76,7 @@ export default function RichTextEditor({
   }
 
   return (
-    <div className="rich-text-editor">
+    <div className="rich-text-editor" data-testid="rich-text-editor">
       {showToolbar && editable && <EditorToolbar editor={editor} />}
       <EditorContent editor={editor} />
     </div>

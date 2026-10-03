@@ -7,15 +7,21 @@
  */
 
 /**
+ * Options for error handling wrapper
+ */
+export interface ErrorHandlingOptions {
+  operation?: string;
+  showToast?: boolean;
+  onError?: (error: unknown, errorMessage: string) => void;
+  silent?: boolean;
+}
+
+/**
  * Wraps a Tauri command with error handling and user-friendly messages
  *
- * @param {Function} commandFn - The Tauri command function to execute
- * @param {Object} options - Options for error handling
- * @param {string} options.operation - Description of the operation (e.g., "load artifacts")
- * @param {boolean} options.showToast - Whether to show a toast notification on error
- * @param {Function} options.onError - Custom error handler
- * @param {boolean} options.silent - If true, doesn't log errors to console
- * @returns {Promise} The command result or throws with user-friendly message
+ * @param commandFn - The Tauri command function to execute
+ * @param options - Options for error handling
+ * @returns The command result or throws with user-friendly message
  *
  * @example
  * const artifacts = await withErrorHandling(
@@ -23,7 +29,10 @@
  *   { operation: 'load artifacts' }
  * );
  */
-export async function withErrorHandling(commandFn, options = {}) {
+export async function withErrorHandling<T>(
+  commandFn: () => Promise<T>,
+  options: ErrorHandlingOptions = {}
+): Promise<T> {
   const { operation = 'complete operation', showToast = false, onError, silent = false } = options;
 
   try {
@@ -51,11 +60,11 @@ export async function withErrorHandling(commandFn, options = {}) {
 /**
  * Extracts a user-friendly error message from various error formats
  *
- * @param {Error|string|Object} error - The error object
- * @param {string} operation - The operation that failed
- * @returns {string} User-friendly error message
+ * @param error - The error object
+ * @param operation - The operation that failed
+ * @returns User-friendly error message
  */
-export function getErrorMessage(error, operation = 'complete operation') {
+export function getErrorMessage(error: unknown, operation = 'complete operation'): string {
   // Handle null/undefined
   if (error === null || error === undefined) {
     return `Failed to ${operation}. Please try again.`;
@@ -72,8 +81,8 @@ export function getErrorMessage(error, operation = 'complete operation') {
   }
 
   // Handle Tauri error format
-  if (error?.message) {
-    return error.message;
+  if (error && typeof error === 'object' && 'message' in error) {
+    return (error.message as string) || `Failed to ${operation}`;
   }
 
   // Handle object errors
@@ -86,11 +95,19 @@ export function getErrorMessage(error, operation = 'complete operation') {
 }
 
 /**
+ * Validation result
+ */
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+/**
  * Validates required fields in an object
  *
- * @param {Object} data - Data object to validate
- * @param {string[]} requiredFields - Array of required field names
- * @returns {Object} { valid: boolean, errors: string[] }
+ * @param data - Data object to validate
+ * @param requiredFields - Array of required field names
+ * @returns Validation result with valid flag and errors array
  *
  * @example
  * const { valid, errors } = validateRequired(formData, ['name', 'email']);
@@ -99,8 +116,11 @@ export function getErrorMessage(error, operation = 'complete operation') {
  *   return;
  * }
  */
-export function validateRequired(data, requiredFields) {
-  const errors = [];
+export function validateRequired(
+  data: Record<string, unknown>,
+  requiredFields: string[]
+): ValidationResult {
+  const errors: string[] = [];
 
   for (const field of requiredFields) {
     const value = data[field];
@@ -117,14 +137,20 @@ export function validateRequired(data, requiredFields) {
 }
 
 /**
+ * Options for retry with backoff
+ */
+export interface RetryOptions {
+  maxAttempts?: number;
+  delayMs?: number;
+  shouldRetry?: (error: unknown) => boolean;
+}
+
+/**
  * Retries a failed operation with exponential backoff
  *
- * @param {Function} fn - Function to retry
- * @param {Object} options - Retry options
- * @param {number} options.maxAttempts - Maximum number of attempts (default: 3)
- * @param {number} options.delayMs - Initial delay in milliseconds (default: 1000)
- * @param {Function} options.shouldRetry - Function to determine if error should retry
- * @returns {Promise} The function result
+ * @param fn - Function to retry
+ * @param options - Retry options
+ * @returns The function result
  *
  * @example
  * const data = await retryWithBackoff(
@@ -132,10 +158,13 @@ export function validateRequired(data, requiredFields) {
  *   { maxAttempts: 3, delayMs: 1000 }
  * );
  */
-export async function retryWithBackoff(fn, options = {}) {
+export async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  options: RetryOptions = {}
+): Promise<T> {
   const { maxAttempts = 3, delayMs = 1000, shouldRetry = () => true } = options;
 
-  let lastError;
+  let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {

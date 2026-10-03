@@ -10,6 +10,26 @@ afterEach(() => {
   cleanup();
 });
 
+// Mock IndexedDB persistence layer (idb-keyval)
+// Makes storage synchronous during tests to avoid act() warnings
+const mockStorage = new Map();
+
+vi.mock('idb-keyval', () => ({
+  get: vi.fn((key) => Promise.resolve(mockStorage.get(key))),
+  set: vi.fn((key, value) => {
+    mockStorage.set(key, value);
+    return Promise.resolve();
+  }),
+  del: vi.fn((key) => {
+    mockStorage.delete(key);
+    return Promise.resolve();
+  }),
+  clear: vi.fn(() => {
+    mockStorage.clear();
+    return Promise.resolve();
+  }),
+}));
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

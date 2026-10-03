@@ -3,13 +3,24 @@
  * Automatically disabled in production builds
  */
 
-const isDevelopment = import.meta.env.DEV;
+const isDevelopment = (import.meta as { env?: { DEV?: boolean } }).env?.DEV;
 
-export const logger = {
+/**
+ * Logger interface
+ */
+export interface Logger {
+  debug: (...args: unknown[]) => void;
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  group: (label: string, fn: () => void) => void;
+}
+
+export const logger: Logger = {
   /**
    * Debug log - only shows in development
    */
-  debug: (...args) => {
+  debug: (...args: unknown[]) => {
     if (isDevelopment) {
       console.log('[DEBUG]', ...args);
     }
@@ -18,7 +29,7 @@ export const logger = {
   /**
    * Info log - only shows in development
    */
-  info: (...args) => {
+  info: (...args: unknown[]) => {
     if (isDevelopment) {
       console.info('[INFO]', ...args);
     }
@@ -27,21 +38,21 @@ export const logger = {
   /**
    * Warning log - shows in both dev and prod
    */
-  warn: (...args) => {
+  warn: (...args: unknown[]) => {
     console.warn('[WARN]', ...args);
   },
 
   /**
    * Error log - shows in both dev and prod
    */
-  error: (...args) => {
+  error: (...args: unknown[]) => {
     console.error('[ERROR]', ...args);
   },
 
   /**
    * Group logs together (only in development)
    */
-  group: (label, fn) => {
+  group: (label: string, fn: () => void) => {
     if (isDevelopment) {
       console.group(label);
       fn();

@@ -46,22 +46,20 @@ pub fn create_annotation(
     let id = Uuid::new_v4().to_string();
     let now = Utc::now().to_rfc3339();
 
-    let page_number_str = input.page_number.map(|p| p.to_string()).unwrap_or_default();
-
     db.execute(
         "INSERT INTO annotations (
             id, source_id, project_id, page_number, annotation_type,
             content, geometry, metadata, created_at, updated_at
         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-        [
+        rusqlite::params![
             &id,
             &input.source_id,
             &input.project_id,
-            &page_number_str,
+            &input.page_number,
             &input.annotation_type,
-            &input.content.clone().unwrap_or_default(),
-            &input.geometry.clone().unwrap_or_default(),
-            &input.metadata.clone().unwrap_or_default(),
+            &input.content,
+            &input.geometry,
+            &input.metadata,
             &now,
             &now,
         ],
@@ -96,14 +94,11 @@ pub fn load_annotations(
     )?;
 
     let rows = stmt.query_map([&source_id], |row| {
-        let page_number_str: Option<String> = row.get(3)?;
-        let page_number = page_number_str.and_then(|s| s.parse::<i32>().ok());
-
         Ok(Annotation {
             id: row.get(0)?,
             source_id: row.get(1)?,
             project_id: row.get(2)?,
-            page_number,
+            page_number: row.get(3)?,
             annotation_type: row.get(4)?,
             content: row.get(5)?,
             geometry: row.get(6)?,
@@ -167,14 +162,11 @@ pub fn update_annotation(
     )?;
 
     let annotation = stmt.query_row([&annotation_id], |row| {
-        let page_number_str: Option<String> = row.get(3)?;
-        let page_number = page_number_str.and_then(|s| s.parse::<i32>().ok());
-
         Ok(Annotation {
             id: row.get(0)?,
             source_id: row.get(1)?,
             project_id: row.get(2)?,
-            page_number,
+            page_number: row.get(3)?,
             annotation_type: row.get(4)?,
             content: row.get(5)?,
             geometry: row.get(6)?,

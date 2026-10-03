@@ -4,6 +4,7 @@ import { createEvent } from '../lib/events';
 import { createTheory } from '../lib/theories';
 import { createPlace } from '../lib/places';
 import useStore from '../store/useStore';
+import EntityReviewSection from './EntityReviewSection';
 import '../styles/entity.css';
 
 /**
@@ -291,251 +292,218 @@ export default function EntityReview({
 
         <div className="entity-review-content">
           {/* People Section */}
-          <div className="entity-section">
-            <div className="section-header">
-              <h3>People ({entities.people.length})</h3>
-              <button className="add-btn" onClick={handleAddPerson}>
-                + Add Person
-              </button>
-            </div>
-            {entities.people.map((person, index) => (
-              <div key={index} className="entity-item">
+          <EntityReviewSection
+            title="People"
+            singularLabel="Person"
+            entities={entities.people}
+            selected={selectedPeople}
+            onAdd={handleAddPerson}
+            onToggle={toggleSelection}
+            onUpdate={handleUpdateEntity}
+            onRemove={handleRemoveEntity}
+            entityType="people"
+            renderFields={(person, index) => (
+              <>
                 <input
-                  type="checkbox"
-                  checked={selectedPeople.has(index)}
-                  onChange={() => toggleSelection('people', index)}
+                  type="text"
+                  placeholder="Name *"
+                  value={person.name}
+                  onChange={(e) => handleUpdateEntity('people', index, 'name', e.target.value)}
                 />
-                <div className="entity-fields">
-                  <input
-                    type="text"
-                    placeholder="Name *"
-                    value={person.name}
-                    onChange={(e) => handleUpdateEntity('people', index, 'name', e.target.value)}
-                  />
-                  <select
-                    value={person.role}
-                    onChange={(e) => handleUpdateEntity('people', index, 'role', e.target.value)}
-                  >
-                    <option value="author">Author</option>
-                    <option value="historical_figure">Historical Figure</option>
-                    <option value="researcher">Researcher</option>
-                    <option value="owner">Owner</option>
-                    <option value="collector">Collector</option>
-                  </select>
-                  <input
-                    type="number"
-                    placeholder="Birth Year"
-                    value={person.birth_year || ''}
-                    onChange={(e) =>
-                      handleUpdateEntity(
-                        'people',
-                        index,
-                        'birth_year',
-                        parseInt(e.target.value) || null
-                      )
-                    }
-                  />
-                  <select
-                    value={person.relationship_type}
-                    onChange={(e) =>
-                      handleUpdateEntity('people', index, 'relationship_type', e.target.value)
-                    }
-                  >
-                    <option value="mentions">Mentions</option>
-                    <option value="authored_by">Authored By</option>
-                    <option value="about">About</option>
-                  </select>
-                </div>
-                <button className="remove-btn" onClick={() => handleRemoveEntity('people', index)}>
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
+                <select
+                  value={person.role}
+                  onChange={(e) => handleUpdateEntity('people', index, 'role', e.target.value)}
+                >
+                  <option value="author">Author</option>
+                  <option value="historical_figure">Historical Figure</option>
+                  <option value="researcher">Researcher</option>
+                  <option value="owner">Owner</option>
+                  <option value="collector">Collector</option>
+                </select>
+                <input
+                  type="number"
+                  placeholder="Birth Year"
+                  value={person.birth_year || ''}
+                  onChange={(e) =>
+                    handleUpdateEntity(
+                      'people',
+                      index,
+                      'birth_year',
+                      parseInt(e.target.value) || null
+                    )
+                  }
+                />
+                <select
+                  value={person.relationship_type}
+                  onChange={(e) =>
+                    handleUpdateEntity('people', index, 'relationship_type', e.target.value)
+                  }
+                >
+                  <option value="mentions">Mentions</option>
+                  <option value="authored_by">Authored By</option>
+                  <option value="about">About</option>
+                </select>
+              </>
+            )}
+          />
 
           {/* Events Section */}
-          <div className="entity-section">
-            <div className="section-header">
-              <h3>Events ({entities.events.length})</h3>
-              <button className="add-btn" onClick={handleAddEvent}>
-                + Add Event
-              </button>
-            </div>
-            {entities.events.map((event, index) => (
-              <div key={index} className="entity-item">
+          <EntityReviewSection
+            title="Events"
+            singularLabel="Event"
+            entities={entities.events}
+            selected={selectedEvents}
+            onAdd={handleAddEvent}
+            onToggle={toggleSelection}
+            onUpdate={handleUpdateEntity}
+            onRemove={handleRemoveEntity}
+            entityType="events"
+            renderFields={(event, index) => (
+              <>
                 <input
-                  type="checkbox"
-                  checked={selectedEvents.has(index)}
-                  onChange={() => toggleSelection('events', index)}
+                  type="text"
+                  placeholder="Event Name *"
+                  value={event.name}
+                  onChange={(e) => handleUpdateEntity('events', index, 'name', e.target.value)}
                 />
-                <div className="entity-fields">
-                  <input
-                    type="text"
-                    placeholder="Event Name *"
-                    value={event.name}
-                    onChange={(e) => handleUpdateEntity('events', index, 'name', e.target.value)}
-                  />
-                  <select
-                    value={event.event_type}
-                    onChange={(e) =>
-                      handleUpdateEntity('events', index, 'event_type', e.target.value)
-                    }
-                  >
-                    <option value="disaster">Disaster</option>
-                    <option value="discovery">Discovery</option>
-                    <option value="publication">Publication</option>
-                    <option value="battle">Battle</option>
-                    <option value="expedition">Expedition</option>
-                  </select>
-                  <input
-                    type="number"
-                    placeholder="Year"
-                    value={event.date_year || ''}
-                    onChange={(e) =>
-                      handleUpdateEntity(
-                        'events',
-                        index,
-                        'date_year',
-                        parseInt(e.target.value) || null
-                      )
-                    }
-                  />
-                  <select
-                    value={event.relationship_type}
-                    onChange={(e) =>
-                      handleUpdateEntity('events', index, 'relationship_type', e.target.value)
-                    }
-                  >
-                    <option value="mentions">Mentions</option>
-                    <option value="describes">Describes</option>
-                    <option value="occurred_during">Occurred During</option>
-                  </select>
-                </div>
-                <button className="remove-btn" onClick={() => handleRemoveEntity('events', index)}>
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
+                <select
+                  value={event.event_type}
+                  onChange={(e) =>
+                    handleUpdateEntity('events', index, 'event_type', e.target.value)
+                  }
+                >
+                  <option value="disaster">Disaster</option>
+                  <option value="discovery">Discovery</option>
+                  <option value="publication">Publication</option>
+                  <option value="battle">Battle</option>
+                  <option value="expedition">Expedition</option>
+                </select>
+                <input
+                  type="number"
+                  placeholder="Year"
+                  value={event.date_year || ''}
+                  onChange={(e) =>
+                    handleUpdateEntity(
+                      'events',
+                      index,
+                      'date_year',
+                      parseInt(e.target.value) || null
+                    )
+                  }
+                />
+                <select
+                  value={event.relationship_type}
+                  onChange={(e) =>
+                    handleUpdateEntity('events', index, 'relationship_type', e.target.value)
+                  }
+                >
+                  <option value="mentions">Mentions</option>
+                  <option value="describes">Describes</option>
+                  <option value="occurred_during">Occurred During</option>
+                </select>
+              </>
+            )}
+          />
 
           {/* Theories Section */}
-          <div className="entity-section">
-            <div className="section-header">
-              <h3>Theories ({entities.theories.length})</h3>
-              <button className="add-btn" onClick={handleAddTheory}>
-                + Add Theory
-              </button>
-            </div>
-            {entities.theories.map((theory, index) => (
-              <div key={index} className="entity-item">
+          <EntityReviewSection
+            title="Theories"
+            singularLabel="Theory"
+            entities={entities.theories}
+            selected={selectedTheories}
+            onAdd={handleAddTheory}
+            onToggle={toggleSelection}
+            onUpdate={handleUpdateEntity}
+            onRemove={handleRemoveEntity}
+            entityType="theories"
+            renderFields={(theory, index) => (
+              <>
                 <input
-                  type="checkbox"
-                  checked={selectedTheories.has(index)}
-                  onChange={() => toggleSelection('theories', index)}
+                  type="text"
+                  placeholder="Theory Name *"
+                  value={theory.name}
+                  onChange={(e) => handleUpdateEntity('theories', index, 'name', e.target.value)}
                 />
-                <div className="entity-fields">
-                  <input
-                    type="text"
-                    placeholder="Theory Name *"
-                    value={theory.name}
-                    onChange={(e) => handleUpdateEntity('theories', index, 'name', e.target.value)}
-                  />
-                  <select
-                    value={theory.status}
-                    onChange={(e) =>
-                      handleUpdateEntity('theories', index, 'status', e.target.value)
-                    }
-                  >
-                    <option value="active">Active</option>
-                    <option value="debunked">Debunked</option>
-                    <option value="proven">Proven</option>
-                    <option value="historical">Historical</option>
-                  </select>
-                  <select
-                    value={theory.confidence_level}
-                    onChange={(e) =>
-                      handleUpdateEntity(
-                        'theories',
-                        index,
-                        'confidence_level',
-                        parseInt(e.target.value)
-                      )
-                    }
-                  >
-                    <option value="1">1 Star</option>
-                    <option value="2">2 Stars</option>
-                    <option value="3">3 Stars</option>
-                    <option value="4">4 Stars</option>
-                    <option value="5">5 Stars</option>
-                  </select>
-                  <select
-                    value={theory.relationship_type}
-                    onChange={(e) =>
-                      handleUpdateEntity('theories', index, 'relationship_type', e.target.value)
-                    }
-                  >
-                    <option value="supports">Supports</option>
-                    <option value="contradicts">Contradicts</option>
-                    <option value="mentions">Mentions</option>
-                  </select>
-                </div>
-                <button
-                  className="remove-btn"
-                  onClick={() => handleRemoveEntity('theories', index)}
+                <select
+                  value={theory.status}
+                  onChange={(e) => handleUpdateEntity('theories', index, 'status', e.target.value)}
                 >
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
+                  <option value="active">Active</option>
+                  <option value="debunked">Debunked</option>
+                  <option value="proven">Proven</option>
+                  <option value="historical">Historical</option>
+                </select>
+                <select
+                  value={theory.confidence_level}
+                  onChange={(e) =>
+                    handleUpdateEntity(
+                      'theories',
+                      index,
+                      'confidence_level',
+                      parseInt(e.target.value)
+                    )
+                  }
+                >
+                  <option value="1">1 Star</option>
+                  <option value="2">2 Stars</option>
+                  <option value="3">3 Stars</option>
+                  <option value="4">4 Stars</option>
+                  <option value="5">5 Stars</option>
+                </select>
+                <select
+                  value={theory.relationship_type}
+                  onChange={(e) =>
+                    handleUpdateEntity('theories', index, 'relationship_type', e.target.value)
+                  }
+                >
+                  <option value="supports">Supports</option>
+                  <option value="contradicts">Contradicts</option>
+                  <option value="mentions">Mentions</option>
+                </select>
+              </>
+            )}
+          />
 
           {/* Places Section */}
-          <div className="entity-section">
-            <div className="section-header">
-              <h3>Places ({entities.places.length})</h3>
-              <button className="add-btn" onClick={handleAddPlace}>
-                + Add Place
-              </button>
-            </div>
-            {entities.places.map((place, index) => (
-              <div key={index} className="entity-item">
+          <EntityReviewSection
+            title="Places"
+            singularLabel="Place"
+            entities={entities.places}
+            selected={selectedPlaces}
+            onAdd={handleAddPlace}
+            onToggle={toggleSelection}
+            onUpdate={handleUpdateEntity}
+            onRemove={handleRemoveEntity}
+            entityType="places"
+            renderFields={(place, index) => (
+              <>
                 <input
-                  type="checkbox"
-                  checked={selectedPlaces.has(index)}
-                  onChange={() => toggleSelection('places', index)}
+                  type="text"
+                  placeholder="Place Name *"
+                  value={place.name}
+                  onChange={(e) => handleUpdateEntity('places', index, 'name', e.target.value)}
                 />
-                <div className="entity-fields">
-                  <input
-                    type="text"
-                    placeholder="Place Name *"
-                    value={place.name}
-                    onChange={(e) => handleUpdateEntity('places', index, 'name', e.target.value)}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Longitude"
-                    step="0.000001"
-                    value={place.lng}
-                    onChange={(e) =>
-                      handleUpdateEntity('places', index, 'lng', parseFloat(e.target.value) || 0)
-                    }
-                  />
-                  <input
-                    type="number"
-                    placeholder="Latitude"
-                    step="0.000001"
-                    value={place.lat}
-                    onChange={(e) =>
-                      handleUpdateEntity('places', index, 'lat', parseFloat(e.target.value) || 0)
-                    }
-                  />
-                </div>
-                <button className="remove-btn" onClick={() => handleRemoveEntity('places', index)}>
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
+                <input
+                  type="number"
+                  placeholder="Longitude"
+                  step="0.000001"
+                  value={place.lng}
+                  onChange={(e) =>
+                    handleUpdateEntity('places', index, 'lng', parseFloat(e.target.value) || 0)
+                  }
+                />
+                <input
+                  type="number"
+                  placeholder="Latitude"
+                  step="0.000001"
+                  value={place.lat}
+                  onChange={(e) =>
+                    handleUpdateEntity('places', index, 'lat', parseFloat(e.target.value) || 0)
+                  }
+                />
+              </>
+            )}
+          />
         </div>
 
         {error && <div className="error-message">{error}</div>}

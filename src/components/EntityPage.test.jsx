@@ -13,6 +13,17 @@ vi.mock('../lib/entityPages', () => ({
   updateEntityPage: vi.fn(),
 }));
 
+// Mock annotation links library
+vi.mock('../lib/annotationLinks', () => ({
+  getAnnotationsForEntity: vi.fn().mockResolvedValue({
+    success: true,
+    data: [],
+  }),
+  linkAnnotationToEntity: vi.fn(),
+  unlinkAnnotationFromEntity: vi.fn(),
+  getEntitiesForAnnotation: vi.fn(),
+}));
+
 // Mock RichTextEditor
 vi.mock('./RichTextEditor', () => ({
   default: ({ content }) => (
@@ -30,6 +41,9 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 describe('EntityPage', () => {
   const mockUpdateTab = vi.fn();
+  const mockSetActiveTab = vi.fn();
+  const mockAddTab = vi.fn();
+  const mockSetCurrentPage = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -37,6 +51,16 @@ describe('EntityPage', () => {
     useStore.mockImplementation((selector) => {
       const state = {
         updateTab: mockUpdateTab,
+        sources: [],
+        tabs: [],
+        setActiveTab: mockSetActiveTab,
+        addTab: mockAddTab,
+        setCurrentPage: mockSetCurrentPage,
+        people: [],
+        events: [],
+        theories: [],
+        places: [],
+        artifacts: [],
       };
       return selector ? selector(state) : state;
     });
@@ -380,9 +404,9 @@ describe('EntityPage', () => {
       );
 
       await waitFor(() => {
-        // Check for coordinate input fields instead of text
-        expect(screen.getByDisplayValue('37.9838')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('23.7275')).toBeInTheDocument();
+        // Check for coordinate values displayed as text
+        expect(screen.getByText('37.9838')).toBeInTheDocument();
+        expect(screen.getByText('23.7275')).toBeInTheDocument();
         expect(screen.getByText(/City/)).toBeInTheDocument();
       });
     });
@@ -437,8 +461,10 @@ describe('EntityPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/490 BC/)).toBeInTheDocument();
-        // Look for the metadata field specifically, not just the text
-        const metadataSection = document.querySelector('.entity-metadata');
+        // Marathon appears in both title and location field, so check it exists at least once
+        expect(screen.getAllByText(/Marathon/).length).toBeGreaterThan(0);
+        // Look for the metadata section with correct class name
+        const metadataSection = document.querySelector('.entity-metadata-sections');
         expect(metadataSection).toBeInTheDocument();
       });
     });

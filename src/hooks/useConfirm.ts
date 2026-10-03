@@ -1,9 +1,37 @@
 import { useState, useCallback } from 'react';
 
 /**
+ * Confirmation dialog configuration options
+ */
+export interface ConfirmOptions {
+  title?: string;
+  message?: string;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: 'default' | 'danger' | 'warning';
+}
+
+/**
+ * Confirmation dialog props
+ */
+export interface ConfirmDialogProps extends ConfirmOptions {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+/**
+ * useConfirm hook return type
+ */
+export interface UseConfirmReturn {
+  confirm: (options?: ConfirmOptions) => Promise<boolean>;
+  confirmProps: ConfirmDialogProps;
+}
+
+/**
  * Custom hook for managing confirmation dialogs
  *
- * @returns {Object} { confirm, ConfirmDialog props }
+ * @returns Confirm function and ConfirmDialog props
  *
  * @example
  * function MyComponent() {
@@ -30,12 +58,12 @@ import { useState, useCallback } from 'react';
  *   );
  * }
  */
-export function useConfirm() {
+export function useConfirm(): UseConfirmReturn {
   const [isOpen, setIsOpen] = useState(false);
-  const [config, setConfig] = useState({});
-  const [resolveRef, setResolveRef] = useState(null);
+  const [config, setConfig] = useState<ConfirmOptions>({});
+  const [resolveRef, setResolveRef] = useState<((value: boolean) => void) | null>(null);
 
-  const confirm = useCallback((options = {}) => {
+  const confirm = useCallback((options: ConfirmOptions = {}): Promise<boolean> => {
     return new Promise((resolve) => {
       setConfig(options);
       setIsOpen(true);

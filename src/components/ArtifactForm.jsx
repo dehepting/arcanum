@@ -2,6 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
 import { createArtifact, updateArtifact, uploadArtifactImage } from '../lib/artifacts';
 import { showError, showSuccess } from '../utils/errorHandling';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
+import FormField from './FormField';
+import FormSelect from './FormSelect';
+import FormTextarea from './FormTextarea';
 
 const CATEGORIES = [
   'Pottery & Ceramics',
@@ -157,346 +161,118 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.55)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '20px',
-      }}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 'min(700px, 100%)',
-          maxHeight: '90vh',
-          background: 'var(--panel-2)',
-          border: '1px solid var(--line)',
-          borderRadius: '8px',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div style={{ padding: '16px', borderBottom: '1px solid var(--line)' }}>
-          <h2 style={{ margin: 0, fontSize: '18px', fontFamily: 'IBM Plex Serif, serif' }}>
-            {artifact ? 'Edit Artifact' : 'Add Artifact'}
-          </h2>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="700px">
+      <ModalHeader>{artifact ? 'Edit Artifact' : 'Add Artifact'}</ModalHeader>
+      <ModalBody>
+        <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             {/* Name */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Name *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              />
-            </div>
+            <FormField
+              label="Name *"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+              containerStyle={{ gridColumn: '1 / -1' }}
+            />
 
             {/* Category */}
-            <div>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Category
-              </label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <FormSelect
+              label="Category"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              options={CATEGORIES}
+            />
 
             {/* Period */}
-            <div>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Period
-              </label>
-              <input
-                type="text"
-                value={formData.period}
-                onChange={(e) => setFormData({ ...formData, period: e.target.value })}
-                placeholder="e.g., Late Bronze Age"
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              />
-            </div>
+            <FormField
+              label="Period"
+              value={formData.period}
+              onChange={(e) => setFormData({ ...formData, period: e.target.value })}
+              placeholder="e.g., Late Bronze Age"
+            />
 
             {/* Estimated Age */}
-            <div>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Estimated Age
-              </label>
-              <input
-                type="text"
-                value={formData.estimated_age}
-                onChange={(e) => setFormData({ ...formData, estimated_age: e.target.value })}
-                placeholder="e.g., 550-540 BCE"
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              />
-            </div>
+            <FormField
+              label="Estimated Age"
+              value={formData.estimated_age}
+              onChange={(e) => setFormData({ ...formData, estimated_age: e.target.value })}
+              placeholder="e.g., 550-540 BCE"
+            />
 
             {/* Findspot */}
-            <div>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Findspot (Link to Place)
-              </label>
-              <select
-                value={formData.findspot_place_id}
-                onChange={(e) => setFormData({ ...formData, findspot_place_id: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              >
-                <option value="">None</option>
-                {places.map((place) => (
-                  <option key={place.id} value={place.id}>
-                    {place.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <FormSelect
+              label="Findspot (Link to Place)"
+              value={formData.findspot_place_id}
+              onChange={(e) => setFormData({ ...formData, findspot_place_id: e.target.value })}
+              options={[
+                { value: '', label: 'None' },
+                ...places.map((place) => ({ value: place.id, label: place.name })),
+              ]}
+            />
 
             {/* Current Owner */}
-            <div>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Current Owner
-              </label>
-              <input
-                type="text"
-                value={formData.current_owner}
-                onChange={(e) => setFormData({ ...formData, current_owner: e.target.value })}
-                placeholder="e.g., British Museum"
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              />
-            </div>
+            <FormField
+              label="Current Owner"
+              value={formData.current_owner}
+              onChange={(e) => setFormData({ ...formData, current_owner: e.target.value })}
+              placeholder="e.g., British Museum"
+            />
 
             {/* Owner Type */}
-            <div>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Owner Type
-              </label>
-              <select
-                value={formData.owner_type}
-                onChange={(e) => setFormData({ ...formData, owner_type: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              >
-                {OWNER_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <FormSelect
+              label="Owner Type"
+              value={formData.owner_type}
+              onChange={(e) => setFormData({ ...formData, owner_type: e.target.value })}
+              options={OWNER_TYPES.map((type) => ({
+                value: type,
+                label: type.charAt(0).toUpperCase() + type.slice(1),
+              }))}
+            />
 
             {/* Current Location */}
-            <div>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Current Location
-              </label>
-              <input
-                type="text"
-                value={formData.current_location}
-                onChange={(e) => setFormData({ ...formData, current_location: e.target.value })}
-                placeholder="e.g., British Museum, London"
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              />
-            </div>
+            <FormField
+              label="Current Location"
+              value={formData.current_location}
+              onChange={(e) => setFormData({ ...formData, current_location: e.target.value })}
+              placeholder="e.g., British Museum, London"
+            />
 
             {/* Material */}
-            <div>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Material
-              </label>
-              <input
-                type="text"
-                value={formData.material}
-                onChange={(e) => setFormData({ ...formData, material: e.target.value })}
-                placeholder="e.g., terracotta, bronze"
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              />
-            </div>
+            <FormField
+              label="Material"
+              value={formData.material}
+              onChange={(e) => setFormData({ ...formData, material: e.target.value })}
+              placeholder="e.g., terracotta, bronze"
+            />
 
             {/* Dimensions */}
-            <div>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Dimensions
-              </label>
-              <input
-                type="text"
-                value={formData.dimensions}
-                onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
-                placeholder="e.g., H: 45cm, W: 30cm"
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              />
-            </div>
+            <FormField
+              label="Dimensions"
+              value={formData.dimensions}
+              onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
+              placeholder="e.g., H: 45cm, W: 30cm"
+            />
 
             {/* Condition */}
-            <div>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Condition
-              </label>
-              <select
-                value={formData.condition}
-                onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              >
-                {CONDITIONS.map((cond) => (
-                  <option key={cond} value={cond}>
-                    {cond.charAt(0).toUpperCase() + cond.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <FormSelect
+              label="Condition"
+              value={formData.condition}
+              onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+              options={CONDITIONS.map((cond) => ({
+                value: cond,
+                label: cond.charAt(0).toUpperCase() + cond.slice(1),
+              }))}
+            />
 
             {/* Description */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label
-                style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-              >
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                  resize: 'vertical',
-                }}
-              />
-            </div>
+            <FormTextarea
+              label="Description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              containerStyle={{ gridColumn: '1 / -1' }}
+            />
 
             {/* Images */}
             <div style={{ gridColumn: '1 / -1' }}>
@@ -553,16 +329,9 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
             </div>
           </div>
         </form>
-
-        <div
-          style={{
-            padding: '16px',
-            borderTop: '1px solid var(--line)',
-            display: 'flex',
-            gap: '8px',
-            justifyContent: 'flex-end',
-          }}
-        >
+      </ModalBody>
+      <ModalFooter>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
           <button type="button" onClick={onClose} className="btn" disabled={uploading}>
             Cancel
           </button>
@@ -575,7 +344,7 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
             {uploading ? 'Saving...' : artifact ? 'Update' : 'Create'}
           </button>
         </div>
-      </div>
-    </div>
+      </ModalFooter>
+    </Modal>
   );
 }

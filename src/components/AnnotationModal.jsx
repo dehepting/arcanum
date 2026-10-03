@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import useStore from '../store/useStore';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
 import ArtifactLinkModal from './ArtifactLinkModal';
 import EntityPicker from './canvas/EntityPicker';
 import { getArtifactsForAnnotation } from '../lib/artifact-sources';
@@ -15,7 +16,7 @@ export default function AnnotationModal() {
   const [saving, setSaving] = useState(false);
   const [showArtifactLinkModal, setShowArtifactLinkModal] = useState(false);
   const [showEntityPicker, setShowEntityPicker] = useState(false);
-  const [linkedArtifacts, setLinkedArtifacts] = useState([]);
+  const [_linkedArtifacts, setLinkedArtifacts] = useState([]);
   const [linkedEntities, setLinkedEntities] = useState([]);
 
   const modalOpen = useStore((state) => state.annotationModalOpen);
@@ -26,6 +27,7 @@ export default function AnnotationModal() {
   const annotations = useStore((state) => state.annotations);
   const currentPage = useStore((state) => state.currentPage);
   const activeSourceId = useStore((state) => state.activeSourceId);
+  const currentProject = useStore((state) => state.currentProject);
   const startPinPlacement = useStore((state) => state.startPinPlacement);
 
   // Get entity stores for displaying linked entities
@@ -38,7 +40,7 @@ export default function AnnotationModal() {
   const loadLinkedArtifacts = useCallback(async (annotationId) => {
     const result = await getArtifactsForAnnotation(annotationId);
     if (result.success) {
-      setLinkedArtifacts(result.data);
+      setLinkedArtifacts(result.data || []);
     }
   }, []);
 
@@ -94,6 +96,7 @@ export default function AnnotationModal() {
       // Create new
       const annotationData = {
         source_id: activeSourceId,
+        project_id: currentProject?.id,
         page_number: currentPage,
         annotation_type: pendingAnnotation.type || 'text',
         rect: {
@@ -122,7 +125,9 @@ export default function AnnotationModal() {
       }
     } catch (err) {
       console.error('Failed to save annotation:', err);
-      alert(`Failed to save annotation: ${err.message}`);
+      alert(
+        `Failed to save annotation: ${typeof err === 'string' ? err : err.message || JSON.stringify(err)}`
+      );
     } finally {
       setSaving(false);
     }
@@ -157,13 +162,6 @@ export default function AnnotationModal() {
     setShowArtifactLinkModal(true);
   };
 
-  const handleArtifactLinked = async () => {
-    // Reload linked artifacts
-    if (pendingAnnotation?.id) {
-      await loadLinkedArtifacts(pendingAnnotation.id);
-    }
-  };
-
   const handleOpenEntityPicker = async () => {
     // Save annotation first if it's new
     if (!pendingAnnotation.id) {
@@ -172,7 +170,7 @@ export default function AnnotationModal() {
     setShowEntityPicker(true);
   };
 
-  const handleEntitySelected = async ({ entityId, entityType, entityName }) => {
+  const handleEntitySelected = async ({ entityId, entityType }) => {
     if (!pendingAnnotation?.id) {
       alert('Please save the annotation first');
       return;
@@ -253,43 +251,18 @@ export default function AnnotationModal() {
       }
     } catch (err) {
       console.error('Failed to save annotation:', err);
-      alert(`Failed to save annotation: ${err.message}`);
+      alert(
+        `Failed to save annotation: ${typeof err === 'string' ? err : err.message || JSON.stringify(err)}`
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  if (!modalOpen) return null;
-
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.55)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-      onClick={handleClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 'min(420px, 92vw)',
-          background: 'var(--panel-2)',
-          border: '1px solid var(--line)',
-          padding: '16px',
-          borderRadius: '8px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
-      >
-        <h2 style={{ margin: '0 0 10px', fontSize: '16px', fontFamily: 'IBM Plex Serif, serif' }}>
-          Add Note
-        </h2>
-
+    <Modal isOpen={modalOpen} onClose={handleClose} maxWidth="420px">
+      <ModalHeader>Add Note</ModalHeader>
+      <ModalBody>
         <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px' }}>
           Note (optional)
         </label>
@@ -311,30 +284,6 @@ export default function AnnotationModal() {
             resize: 'vertical',
           }}
         />
-
-        {linkedArtifacts.length > 0 && (
-          <div
-            style={{
-              marginBottom: '10px',
-              padding: '8px',
-              background: 'var(--bg)',
-              border: '1px solid var(--line)',
-              borderRadius: '4px',
-            }}
-          >
-            <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
-              Linked Artifacts:
-            </div>
-            {linkedArtifacts.map((link) => (
-              <div
-                key={link.id}
-                style={{ fontSize: '12px', padding: '4px 0', color: 'var(--text-muted)' }}
-              >
-                🏺 {link.artifacts?.name || 'Unknown'}
-              </div>
-            ))}
-          </div>
-        )}
 
         {linkedEntities.length > 0 && (
           <div
@@ -423,8 +372,12 @@ export default function AnnotationModal() {
             </button>
           </>
         )}
+      </ModalBody>
 
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between' }}>
+      <ModalFooter>
+        <div
+          style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', width: '100%' }}
+        >
           <button
             onClick={handleClose}
             style={{
@@ -471,19 +424,19 @@ export default function AnnotationModal() {
             </button>
           </div>
         </div>
-      </div>
-
-      {showArtifactLinkModal && pendingAnnotation?.id && (
-        <ArtifactLinkModal
-          annotation={pendingAnnotation}
-          onClose={() => setShowArtifactLinkModal(false)}
-          onLink={handleArtifactLinked}
-        />
-      )}
+      </ModalFooter>
 
       {showEntityPicker && (
         <EntityPicker onSelect={handleEntitySelected} onClose={() => setShowEntityPicker(false)} />
       )}
-    </div>
+
+      {showArtifactLinkModal && (
+        <ArtifactLinkModal
+          annotationId={pendingAnnotation?.id}
+          onClose={() => setShowArtifactLinkModal(false)}
+          onLinked={() => loadLinkedArtifacts(pendingAnnotation?.id)}
+        />
+      )}
+    </Modal>
   );
 }

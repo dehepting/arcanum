@@ -6,6 +6,7 @@ import useStore from '../store/useStore';
 import AnnotationOverlay from './AnnotationOverlay';
 import InkOverlay from './InkOverlay';
 import AnnotationModal from './AnnotationModal';
+import PDFThumbnailSidebar from './PDFThumbnailSidebar';
 import { loadAnnotations } from '../lib/annotations';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -117,7 +118,7 @@ export default function PDFView() {
       textLayer.style.width = `${viewport.width}px`;
       textLayer.style.height = `${viewport.height}px`;
 
-      // Simple text layer rendering
+      // Simple text layer rendering (invisible but selectable)
       textContent.items.forEach((item) => {
         const div = document.createElement('div');
         div.textContent = item.str;
@@ -126,6 +127,8 @@ export default function PDFView() {
         div.style.top = `${item.transform[5]}px`;
         div.style.fontSize = `${Math.sqrt(item.transform[0] * item.transform[0] + item.transform[1] * item.transform[1])}px`;
         div.style.fontFamily = item.fontName;
+        div.style.color = 'transparent'; // Make text invisible but still selectable
+        div.style.userSelect = 'text';
         textLayer.appendChild(div);
       });
     };
@@ -144,6 +147,27 @@ export default function PDFView() {
     document.addEventListener('selectionchange', handleSelection);
     return () => document.removeEventListener('selectionchange', handleSelection);
   }, []);
+
+  // Handle touchpad pinch-to-zoom
+  useEffect(() => {
+    const container = overlayRef.current?.parentElement;
+    if (!container) return;
+
+    const handleWheel = (e) => {
+      // Check for pinch gesture (ctrlKey + wheel on Mac trackpad)
+      if (e.ctrlKey) {
+        e.preventDefault();
+
+        // Adjust scale based on wheel delta
+        const delta = -e.deltaY * 0.01;
+        const newScale = Math.max(0.5, Math.min(3.0, pdfScale + delta));
+        setScale(newScale);
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [pdfScale, setScale]);
 
   // Add selected text to canvas
   const addToCanvas = () => {
@@ -260,53 +284,89 @@ export default function PDFView() {
         )}
       </div>
 
-      {/* PDF Canvas */}
-      <div
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          background: 'var(--bg-canvas)',
-          padding: 'var(--space-5)',
-        }}
-      >
+      {/* PDF Canvas and Thumbnails */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        {/* Main PDF Canvas */}
         <div
           style={{
-            position: 'relative',
-            margin: '0 auto',
-            width: 'fit-content',
-            boxShadow: 'var(--shadow-lg)',
+            flex: 1,
+            overflow: 'auto',
+            background: 'var(--bg-canvas)',
+            padding: 'var(--space-5)',
           }}
         >
-          <canvas ref={canvasRef} style={{ display: 'block' }} />
           <div
-            ref={textLayerRef}
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              pointerEvents: 'auto',
-              userSelect: 'text',
-            }}
-          />
-          <div
-            ref={overlayRef}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              pointerEvents: activeTool === 'select' ? 'none' : 'auto',
+              position: 'relative',
+              margin: '0 auto',
+              width: 'fit-content',
+              boxShadow: 'var(--shadow-lg)',
             }}
           >
-            <AnnotationOverlay canvasWidth={canvasSize.width} canvasHeight={canvasSize.height} />
-            <InkOverlay
-              canvasWidth={canvasSize.width}
-              canvasHeight={canvasSize.height}
-              active={activeTool === 'ink'}
+            <canvas ref={canvasRef} style={{ display: 'block' }} />
+            <div
+              ref={textLayerRef}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                pointerEvents: 'auto',
+                userSelect: 'text',
+              }}
             />
+            <div
+              ref={overlayRef}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+              }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: activeTool === 'ink' ? 'none' : 'auto',
+                  zIndex: 1,
+                }}
+              >
+                <AnnotationOverlay
+                  canvasWidth={canvasSize.width}
+                  canvasHeight={canvasSize.height}
+                />
+              </div>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: activeTool === 'ink' ? 'auto' : 'none',
+                  zIndex: 2,
+                }}
+              >
+                <InkOverlay
+                  canvasWidth={canvasSize.width}
+                  canvasHeight={canvasSize.height}
+                  active={activeTool === 'ink'}
+                />
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Thumbnail Sidebar */}
+        <PDFThumbnailSidebar
+          pdfDoc={pdfDoc}
+          currentPage={currentPage}
+          onPageClick={setCurrentPage}
+        />
       </div>
 
       {/* Annotation Modal */}

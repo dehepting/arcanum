@@ -1,8 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { createDefaultEntity, getEntityTypeConfig } from '../config/entityTypes';
+import { createDefaultEntity } from '@/config/entityTypes';
+import type { EntityType } from '@/types';
 
-// Map plural entity keys to singular entity type names
-const ENTITY_KEYS = {
+/**
+ * Plural entity keys used in the store
+ */
+export type EntityPluralKey = 'people' | 'events' | 'theories' | 'places' | 'artifacts';
+
+/**
+ * Map plural entity keys to singular entity type names
+ */
+const ENTITY_KEYS: Record<EntityPluralKey, EntityType> = {
   people: 'person',
   events: 'event',
   theories: 'theory',
@@ -11,23 +19,59 @@ const ENTITY_KEYS = {
 };
 
 /**
+ * Entity collections by plural key
+ */
+export type EntityCollections = Record<
+  EntityPluralKey,
+  Array<Record<string, string | number | null>>
+>;
+
+/**
+ * Selection indices by entity type
+ */
+export type SelectionIndices = Record<EntityPluralKey, Set<number>>;
+
+/**
+ * useEntityReviewForm hook return type
+ */
+export interface UseEntityReviewFormReturn {
+  entities: EntityCollections;
+  selectedIndices: SelectionIndices;
+  addEntity: (type: EntityPluralKey) => void;
+  removeEntity: (type: EntityPluralKey, index: number) => void;
+  updateEntity: (
+    type: EntityPluralKey,
+    index: number,
+    field: string,
+    value: string | number | null
+  ) => void;
+  toggleSelection: (type: EntityPluralKey, index: number) => void;
+  getTotalSelected: () => number;
+}
+
+/**
  * Custom hook for managing entity review form state
  * Handles entities, selection, and auto-selection of new entities
+ *
+ * @param initialEntities - Initial entities to populate the form
+ * @returns Entity review form state and control functions
  */
-export function useEntityReviewForm(initialEntities = null) {
+export function useEntityReviewForm(
+  initialEntities: Partial<EntityCollections> | null = null
+): UseEntityReviewFormReturn {
   // Entity state - initialize with provided entities or empty
-  const [entities, setEntities] = useState(() => {
-    const initial = {};
-    Object.keys(ENTITY_KEYS).forEach((key) => {
+  const [entities, setEntities] = useState<EntityCollections>(() => {
+    const initial = {} as EntityCollections;
+    (Object.keys(ENTITY_KEYS) as EntityPluralKey[]).forEach((key) => {
       initial[key] = initialEntities?.[key] || [];
     });
     return initial;
   });
 
   // Selection state - initialize with all entities selected
-  const [selectedIndices, setSelectedIndices] = useState(() => {
-    const initial = {};
-    Object.keys(ENTITY_KEYS).forEach((key) => {
+  const [selectedIndices, setSelectedIndices] = useState<SelectionIndices>(() => {
+    const initial = {} as SelectionIndices;
+    (Object.keys(ENTITY_KEYS) as EntityPluralKey[]).forEach((key) => {
       initial[key] = new Set((initialEntities?.[key] || []).map((_, i) => i));
     });
     return initial;
@@ -46,7 +90,7 @@ export function useEntityReviewForm(initialEntities = null) {
     // When entities change (new ones added), select them
     setSelectedIndices((prev) => {
       const newSelected = { ...prev };
-      Object.keys(ENTITY_KEYS).forEach((key) => {
+      (Object.keys(ENTITY_KEYS) as EntityPluralKey[]).forEach((key) => {
         const newSet = new Set(prev[key]);
         entities[key].forEach((_, i) => {
           if (!prev[key].has(i)) newSet.add(i);
@@ -60,7 +104,7 @@ export function useEntityReviewForm(initialEntities = null) {
   /**
    * Add new entity of given type (type is plural key like 'people')
    */
-  const addEntity = (type) => {
+  const addEntity = (type: EntityPluralKey) => {
     const singularType = ENTITY_KEYS[type];
     setEntities((prev) => ({
       ...prev,
@@ -71,7 +115,7 @@ export function useEntityReviewForm(initialEntities = null) {
   /**
    * Remove entity at index
    */
-  const removeEntity = (type, index) => {
+  const removeEntity = (type: EntityPluralKey, index: number) => {
     setEntities((prev) => ({
       ...prev,
       [type]: prev[type].filter((_, i) => i !== index),
@@ -87,7 +131,12 @@ export function useEntityReviewForm(initialEntities = null) {
   /**
    * Update entity field
    */
-  const updateEntity = (type, index, field, value) => {
+  const updateEntity = (
+    type: EntityPluralKey,
+    index: number,
+    field: string,
+    value: string | number | null
+  ) => {
     setEntities((prev) => ({
       ...prev,
       [type]: prev[type].map((entity, i) => (i === index ? { ...entity, [field]: value } : entity)),
@@ -97,7 +146,7 @@ export function useEntityReviewForm(initialEntities = null) {
   /**
    * Toggle entity selection
    */
-  const toggleSelection = (type, index) => {
+  const toggleSelection = (type: EntityPluralKey, index: number) => {
     setSelectedIndices((prev) => {
       const newSet = new Set(prev[type]);
       if (newSet.has(index)) {
@@ -112,8 +161,11 @@ export function useEntityReviewForm(initialEntities = null) {
   /**
    * Get total selected count across all types
    */
-  const getTotalSelected = () => {
-    return Object.keys(ENTITY_KEYS).reduce((sum, key) => sum + selectedIndices[key].size, 0);
+  const getTotalSelected = (): number => {
+    return (Object.keys(ENTITY_KEYS) as EntityPluralKey[]).reduce(
+      (sum, key) => sum + selectedIndices[key].size,
+      0
+    );
   };
 
   return {

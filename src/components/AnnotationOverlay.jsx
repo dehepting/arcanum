@@ -1,17 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import useStore from '../store/useStore';
 import { getPlaceForAnnotation } from '../lib/places';
-import { getArtifactsForAnnotation } from '../lib/artifact-sources';
-import ArtifactBadge from './ArtifactBadge';
+import AnnotationContextMenu from './AnnotationContextMenu';
 import { createAnnotation, updateAnnotation, deleteAnnotation } from '../lib/tauri';
 
 export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const [dragging, setDragging] = useState(false);
   const [draftRect, setDraftRect] = useState(null);
   const [linkedAnnotations, setLinkedAnnotations] = useState(new Set());
-  const [artifactLinks, setArtifactLinks] = useState(new Map());
   const [draggedAnnotation, setDraggedAnnotation] = useState(null);
   const [dragOffset, setDragOffset] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
   const startPos = useRef(null);
   const wrapRef = useRef(null);
 
@@ -19,6 +18,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const annotations = useStore((state) => state.annotations);
   const currentPage = useStore((state) => state.currentPage);
   const activeSourceId = useStore((state) => state.activeSourceId);
+  const currentProject = useStore((state) => state.currentProject);
   const setSelectedAnnotation = useStore((state) => state.setSelectedAnnotation);
   const setMapView = useStore((state) => state.setMapView);
   const places = useStore((state) => state.places);
@@ -40,25 +40,6 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     });
     setLinkedAnnotations(linked);
   }, [places]);
-
-  // Load artifact links for current page annotations
-  useEffect(() => {
-    const loadArtifactLinks = async () => {
-      const links = new Map();
-      for (const ann of pageAnnotations) {
-        const result = await getArtifactsForAnnotation(ann.id);
-        if (result.success && result.data.length > 0) {
-          // Store first artifact for badge display
-          links.set(ann.id, result.data[0].artifacts);
-        }
-      }
-      setArtifactLinks(links);
-    };
-
-    if (pageAnnotations.length > 0) {
-      loadArtifactLinks();
-    }
-  }, [pageAnnotations.length, activeSourceId, currentPage]);
 
   const handleMouseDown = (e) => {
     // Select tool: don't create new annotations
@@ -140,21 +121,26 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
   const handleMouseUp = async () => {
     // Handle annotation drag end
     if (draggedAnnotation) {
+      // First update store immediately to prevent snap-back
+      const currentAnnotations = useStore.getState().annotations;
+      useStore
+        .getState()
+        .setAnnotations(
+          currentAnnotations.map((a) => (a.id === draggedAnnotation.id ? draggedAnnotation : a))
+        );
+
+      // Then save to database in background
       try {
         await updateAnnotation(draggedAnnotation.id, {
           rect_x: draggedAnnotation.rect_x,
           rect_y: draggedAnnotation.rect_y,
+          rect_w: draggedAnnotation.rect_w,
+          rect_h: draggedAnnotation.rect_h,
         });
-
-        // Update in store
-        const currentAnnotations = useStore.getState().annotations;
-        useStore
-          .getState()
-          .setAnnotations(
-            currentAnnotations.map((a) => (a.id === draggedAnnotation.id ? draggedAnnotation : a))
-          );
       } catch (err) {
         console.error('Failed to update annotation position:', err);
+        // Revert on error
+        useStore.getState().setAnnotations(currentAnnotations);
       }
 
       setDraggedAnnotation(null);
@@ -174,9 +160,18 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     }
 
     // Save highlight directly (no modal for highlights)
+    if (!activeSourceId) {
+      console.error('Cannot save highlight: No active source');
+      setDragging(false);
+      setDraftRect(null);
+      startPos.current = null;
+      return;
+    }
+
     try {
       const data = await createAnnotation({
         source_id: activeSourceId,
+        project_id: currentProject?.id,
         page_number: currentPage,
         annotation_type: 'highlight',
         rect: {
@@ -191,6 +186,9 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
       useStore.getState().addAnnotation(data);
     } catch (err) {
       console.error('Failed to save highlight:', err);
+      alert(
+        `Failed to save highlight: ${typeof err === 'string' ? err : err.message || JSON.stringify(err)}`
+      );
     }
 
     // Reset
@@ -223,37 +221,45 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
     // Don't navigate if we just dragged
     if (draggedAnnotation) return;
 
-    // If linked to a place, navigate to it on the map
+    // If linked to a place, navigate to it on the map (takes priority)
     if (linkedAnnotations.has(ann.id)) {
       try {
         const place = await getPlaceForAnnotation(ann.id);
         if (place) {
-          // Switch to map view
-          setMapView('map');
+          // Switch to map view by opening the map tab
+          const mapTab = useStore.getState().tabs.find((t) => t.type === 'map');
+          if (mapTab) {
+            useStore.getState().setActiveTab(mapTab.id);
+          }
           // Store the place to fly to (MapView will pick this up)
           useStore.getState().flyToPlace = place;
+          return; // Don't open modal if navigating to map
         }
       } catch (err) {
         console.error('Failed to navigate to place:', err);
       }
     }
 
-    // Text annotations also open modal on click (only if not dragging)
+    // Text annotations also open modal on click (only if not linked to map)
     if (ann.type === 'text' && activeTool !== 'select') {
       setSelectedAnnotation(ann.id);
       useStore.getState().openAnnotationModal(ann);
     }
   };
 
-  const handleArtifactBadgeClick = (artifact) => {
-    // Navigate to artifact detail view
-    useStore.getState().setSelectedArtifact(artifact);
+  const handleAnnotationRightClick = (ann, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Show context menu at cursor position
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      annotation: ann,
+    });
   };
 
-  const handleAnnotationRightClick = async (ann, e) => {
-    e.preventDefault();
-    if (!confirm('Delete this annotation?')) return;
-
+  const handleDeleteAnnotation = async (ann) => {
     try {
       await deleteAnnotation(ann.id);
 
@@ -264,6 +270,11 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
       console.error('Failed to delete annotation:', err);
       alert('Failed to delete annotation');
     }
+  };
+
+  const handleEditAnnotation = (ann) => {
+    setSelectedAnnotation(ann.id);
+    useStore.getState().openAnnotationModal(ann);
   };
 
   return (
@@ -295,8 +306,6 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
       {/* Render existing annotations */}
       {pageAnnotations.map((ann) => {
         const isLinked = linkedAnnotations.has(ann.id);
-        const linkedArtifact = artifactLinks.get(ann.id);
-        const hasArtifactLink = !!linkedArtifact;
         const isDragging = draggedAnnotation?.id === ann.id;
         const displayAnn = isDragging ? draggedAnnotation : ann;
 
@@ -314,11 +323,9 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
               height: `${displayAnn.rect_h * 100}%`,
               border: isLinked
                 ? '2px solid var(--accent)'
-                : hasArtifactLink
-                  ? '2px solid #667eea'
-                  : ann.type === 'text'
-                    ? '1px solid var(--accent)'
-                    : '1px solid rgba(212, 163, 115, 0.7)',
+                : ann.type === 'text'
+                  ? '1px solid var(--accent)'
+                  : '1px solid rgba(212, 163, 115, 0.7)',
               background: ann.type === 'text' ? 'var(--panel-2)' : 'rgba(212, 163, 115, 0.28)',
               cursor: activeTool === 'select' ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
               pointerEvents: 'auto',
@@ -327,7 +334,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
               color: ann.type === 'text' ? 'var(--text)' : 'inherit',
               whiteSpace: ann.type === 'text' ? 'pre-wrap' : 'normal',
               overflow: ann.type === 'text' ? 'auto' : 'hidden',
-              boxShadow: isLinked || hasArtifactLink ? '0 0 0 1px currentColor' : 'none',
+              boxShadow: isLinked ? '0 0 0 1px currentColor' : 'none',
               opacity: isDragging ? 0.7 : 1,
             }}
             title={
@@ -362,9 +369,6 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
                 📍
               </div>
             )}
-            {hasArtifactLink && (
-              <ArtifactBadge artifact={linkedArtifact} onClick={handleArtifactBadgeClick} />
-            )}
           </div>
         );
       })}
@@ -382,6 +386,22 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }) {
             background: 'rgba(196, 92, 74, 0.15)',
             pointerEvents: 'none',
           }}
+        />
+      )}
+
+      {/* Context menu */}
+      {contextMenu && (
+        <AnnotationContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          annotation={contextMenu.annotation}
+          onDelete={() => handleDeleteAnnotation(contextMenu.annotation)}
+          onEdit={
+            contextMenu.annotation.type === 'text'
+              ? () => handleEditAnnotation(contextMenu.annotation)
+              : null
+          }
+          onClose={() => setContextMenu(null)}
         />
       )}
     </div>
