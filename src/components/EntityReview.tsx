@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { createPerson } from '../lib/people';
 import { createEvent } from '../lib/events';
 import { createTheory } from '../lib/theories';
@@ -6,6 +6,61 @@ import { createPlace } from '../lib/places';
 import useStore from '../store/useStore';
 import EntityReviewSection from './EntityReviewSection';
 import '../styles/entity.css';
+
+interface PersonDraft {
+  name: string;
+  role: string;
+  birth_year: number | null;
+  death_year?: number | null;
+  bio?: string;
+  relationship_type: string;
+}
+
+interface EventDraft {
+  name: string;
+  date_year: number | null;
+  date_precision: string;
+  event_type: string;
+  description: string;
+  relationship_type: string;
+}
+
+interface TheoryDraft {
+  name: string;
+  description: string;
+  status: string;
+  confidence_level: number;
+  relationship_type: string;
+}
+
+interface PlaceDraft {
+  name: string;
+  lng: number;
+  lat: number;
+  note?: string;
+}
+
+interface InitialEntities {
+  people?: PersonDraft[];
+  events?: EventDraft[];
+  theories?: TheoryDraft[];
+  places?: PlaceDraft[];
+}
+
+interface CreatedEntities {
+  people: any[];
+  events: any[];
+  theories: any[];
+  places: any[];
+}
+
+interface EntityReviewProps {
+  annotationId?: string;
+  annotationText?: string;
+  initialEntities?: InitialEntities | null;
+  onClose: () => void;
+  onApproved?: (entities: CreatedEntities) => void;
+}
 
 /**
  * EntityReview - Review and approve entities before adding to knowledge graph
@@ -17,7 +72,7 @@ export default function EntityReview({
   initialEntities = null,
   onClose,
   onApproved,
-}) {
+}: EntityReviewProps) {
   const currentProject = useStore((state) => state.currentProject);
   const addPerson = useStore((state) => state.addPerson);
   const addEvent = useStore((state) => state.addEvent);
@@ -33,15 +88,15 @@ export default function EntityReview({
   });
 
   // Selection state
-  const [selectedPeople, setSelectedPeople] = useState(new Set());
-  const [selectedEvents, setSelectedEvents] = useState(new Set());
-  const [selectedTheories, setSelectedTheories] = useState(new Set());
-  const [selectedPlaces, setSelectedPlaces] = useState(new Set());
+  const [selectedPeople, setSelectedPeople] = useState(new Set<number>());
+  const [selectedEvents, setSelectedEvents] = useState(new Set<number>());
+  const [selectedTheories, setSelectedTheories] = useState(new Set<number>());
+  const [selectedPlaces, setSelectedPlaces] = useState(new Set<number>());
 
   // Editing state
-  const [editingEntity, setEditingEntity] = useState(null);
+  const [editingEntity, setEditingEntity] = useState<any>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Auto-select all entities on load
   useEffect(() => {
@@ -116,10 +171,10 @@ export default function EntityReview({
     }));
   };
 
-  const handleRemoveEntity = (type, index) => {
+  const handleRemoveEntity = (type: string, index: number) => {
     setEntities((prev) => ({
       ...prev,
-      [type]: prev[type].filter((_, i) => i !== index),
+      [type]: (prev as any)[type].filter((_: any, i: number) => i !== index),
     }));
 
     // Remove from selection
@@ -133,15 +188,17 @@ export default function EntityReview({
       setSelectedPlaces((prev) => new Set([...prev].filter((i) => i !== index)));
   };
 
-  const handleUpdateEntity = (type, index, field, value) => {
+  const handleUpdateEntity = (type: string, index: number, field: string, value: any) => {
     setEntities((prev) => ({
       ...prev,
-      [type]: prev[type].map((entity, i) => (i === index ? { ...entity, [field]: value } : entity)),
+      [type]: (prev as any)[type].map((entity: any, i: number) =>
+        i === index ? { ...entity, [field]: value } : entity
+      ),
     }));
   };
 
-  const toggleSelection = (type, index) => {
-    const setters = {
+  const toggleSelection = (type: string, index: number) => {
+    const setters: Record<string, any> = {
       people: setSelectedPeople,
       events: setSelectedEvents,
       theories: setSelectedTheories,
@@ -149,7 +206,7 @@ export default function EntityReview({
     };
 
     const setter = setters[type];
-    setter((prev) => {
+    setter((prev: Set<number>) => {
       const newSet = new Set(prev);
       if (newSet.has(index)) {
         newSet.delete(index);
@@ -170,7 +227,7 @@ export default function EntityReview({
     setError(null);
 
     try {
-      const createdEntities = {
+      const createdEntities: CreatedEntities = {
         people: [],
         events: [],
         theories: [],
@@ -264,7 +321,7 @@ export default function EntityReview({
 
       onClose();
     } catch (err) {
-      setError(err.message);
+      setError((err as Error).message);
     } finally {
       setIsCreating(false);
     }
@@ -302,7 +359,7 @@ export default function EntityReview({
             onUpdate={handleUpdateEntity}
             onRemove={handleRemoveEntity}
             entityType="people"
-            renderFields={(person, index) => (
+            renderFields={(person: PersonDraft, index: number): ReactNode => (
               <>
                 <input
                   type="text"
@@ -358,7 +415,7 @@ export default function EntityReview({
             onUpdate={handleUpdateEntity}
             onRemove={handleRemoveEntity}
             entityType="events"
-            renderFields={(event, index) => (
+            renderFields={(event: EventDraft, index: number): ReactNode => (
               <>
                 <input
                   type="text"
@@ -416,7 +473,7 @@ export default function EntityReview({
             onUpdate={handleUpdateEntity}
             onRemove={handleRemoveEntity}
             entityType="theories"
-            renderFields={(theory, index) => (
+            renderFields={(theory: TheoryDraft, index: number): ReactNode => (
               <>
                 <input
                   type="text"
@@ -475,7 +532,7 @@ export default function EntityReview({
             onUpdate={handleUpdateEntity}
             onRemove={handleRemoveEntity}
             entityType="places"
-            renderFields={(place, index) => (
+            renderFields={(place: PlaceDraft, index: number): ReactNode => (
               <>
                 <input
                   type="text"
