@@ -37,6 +37,7 @@ export default function EntityTypeSection({
   totalCount = 0,
   limit = 10,
   hasMore = false,
+  showCreate = true,
 }) {
   const config = getEntityType(type);
   const inputRef = useRef(null);
@@ -58,23 +59,18 @@ export default function EntityTypeSection({
   };
 
   return (
-    <div className="explorer-section">
-      {/* Section Header */}
-      <div className="section-header" onClick={onToggle}>
+    <div>
+      {/* Entity Type Header - Always visible with count */}
+      <div className="entity-type-item" onClick={onToggle}>
         <span className="section-icon">{isExpanded ? '▾' : '▸'}</span>
-        <span className="section-title">{config.labelPlural}</span>
+        <span className="entity-icon">{config.icon}</span>
+        <span className="entity-label">{config.labelPlural}</span>
+        <span className="entity-count">({totalCount})</span>
       </div>
 
-      {/* Section Content */}
+      {/* Entity List Content */}
       {isExpanded && (
         <div className="section-content">
-          {/* Entity Type Toggle */}
-          <div className="entity-type-item">
-            <span className="entity-icon">{config.icon}</span>
-            <span className="entity-label">{config.labelPlural}</span>
-            <span className="entity-count">{totalCount}</span>
-          </div>
-
           {/* Entity List */}
           {entities.length === 0 ? (
             <div className="placeholder-text">No {config.labelPlural.toLowerCase()} yet</div>
@@ -113,9 +109,11 @@ export default function EntityTypeSection({
           )}
 
           {/* Create New Button */}
-          <button className="create-entity-btn" onClick={() => onCreateNew(type)}>
-            + New {config.label}
-          </button>
+          {showCreate && (
+            <button className="create-entity-btn" onClick={() => onCreateNew(type)}>
+              + Create {config.label}
+            </button>
+          )}
         </div>
       )}
     </div>

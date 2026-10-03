@@ -503,6 +503,7 @@ export default function EntityExplorer() {
                   totalCount={searchQuery ? filtered.length : entities.length}
                   limit={entityDisplayLimits[pluralKey]}
                   hasMore={!searchQuery && filtered.length > entityDisplayLimits[pluralKey]}
+                  showCreate={!searchQuery}
                 />
               );
             })}
