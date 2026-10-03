@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 /**
  * Debounces a value - only updates after the value stops changing for a delay period
  *
- * @param {*} value - The value to debounce
- * @param {number} delay - Delay in milliseconds (default: 500)
- * @returns {*} The debounced value
+ * @param value - The value to debounce
+ * @param delay - Delay in milliseconds (default: 500)
+ * @returns The debounced value
  *
  * @example
  * const [searchTerm, setSearchTerm] = useState('');
@@ -16,8 +16,8 @@ import { useState, useEffect } from 'react';
  *   performSearch(debouncedSearch);
  * }, [debouncedSearch]);
  */
-export function useDebounce(value, delay = 500) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
+export function useDebounce<T>(value: T, delay = 500): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
   useEffect(() => {
     // Set up the timeout
