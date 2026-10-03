@@ -4,6 +4,8 @@ import { uploadPDF } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readFile } from '@tauri-apps/plugin-fs';
+import { getAllEntityTypes, getEntityType, invokeEntityCommand } from '../lib/entityTypes';
+import EntityTypeSection from './EntityTypeSection';
 import '../styles/entity.css';
 
 /**
@@ -30,11 +32,6 @@ export default function EntityExplorer() {
   const addSource = useStore((state) => state.addSource);
   const setActiveSource = useStore((state) => state.setActiveSource);
   const currentProject = useStore((state) => state.currentProject);
-  const updatePerson = useStore((state) => state.updatePerson);
-  const updateEvent = useStore((state) => state.updateEvent);
-  const updateTheory = useStore((state) => state.updateTheory);
-  const updatePlace = useStore((state) => state.updatePlace);
-  const updateArtifact = useStore((state) => state.updateArtifact);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -195,39 +192,16 @@ export default function EntityExplorer() {
     }
 
     try {
-      const commandMap = {
-        person: 'update_person',
-        event: 'update_event',
-        theory: 'update_theory',
-        place: 'update_place',
-        artifact: 'update_artifact',
-      };
+      const config = getEntityType(entityType);
+      const updateFn = useStore.getState()[config.store.updater];
 
-      const idParamMap = {
-        person: 'personId',
-        event: 'eventId',
-        theory: 'theoryId',
-        place: 'placeId',
-        artifact: 'artifactId',
-      };
-
-      const updateFnMap = {
-        person: updatePerson,
-        event: updateEvent,
-        theory: updateTheory,
-        place: updatePlace,
-        artifact: updateArtifact,
-      };
-
-      await invoke(commandMap[entityType], {
-        [idParamMap[entityType]]: entityId,
-        input: {
-          name: editingEntityName.trim(),
-        },
+      await invokeEntityCommand(invoke, entityType, 'update', {
+        id: entityId,
+        input: { name: editingEntityName.trim() },
       });
 
       // Update the store
-      updateFnMap[entityType](entityId, { name: editingEntityName.trim() });
+      updateFn(entityId, { name: editingEntityName.trim() });
 
       setEditingEntityId(null);
     } catch (error) {
@@ -324,6 +298,54 @@ export default function EntityExplorer() {
     [filteredPeople, filteredEvents, filteredTheories, filteredPlaces, filteredArtifacts]
   );
 
+  // Entity type configurations for rendering
+  const entityTypeConfigs = useMemo(
+    () => [
+      {
+        type: 'person',
+        pluralKey: 'people',
+        entities: people,
+        filtered: filteredPeople,
+      },
+      {
+        type: 'event',
+        pluralKey: 'events',
+        entities: events,
+        filtered: filteredEvents,
+      },
+      {
+        type: 'theory',
+        pluralKey: 'theories',
+        entities: theories,
+        filtered: filteredTheories,
+      },
+      {
+        type: 'place',
+        pluralKey: 'places',
+        entities: places,
+        filtered: filteredPlaces,
+      },
+      {
+        type: 'artifact',
+        pluralKey: 'artifacts',
+        entities: artifacts,
+        filtered: filteredArtifacts,
+      },
+    ],
+    [
+      people,
+      events,
+      theories,
+      places,
+      artifacts,
+      filteredPeople,
+      filteredEvents,
+      filteredTheories,
+      filteredPlaces,
+      filteredArtifacts,
+    ]
+  );
+
   // Handle entity click - opens entity in tab or switches to existing tab
   const handleEntityClick = (entity, entityType) => {
     // Check if tab already exists for this entity
@@ -364,17 +386,11 @@ export default function EntityExplorer() {
 
   // Handle create new entity
   const handleCreateEntity = (entityType) => {
-    const titles = {
-      person: 'New Person',
-      event: 'New Event',
-      theory: 'New Theory',
-      place: 'New Place',
-      artifact: 'New Artifact',
-    };
+    const config = getEntityType(entityType);
 
     addTab({
       type: entityType,
-      title: titles[entityType],
+      title: `New ${config.label}`,
       data: {
         entityId: null, // Will be created on first save
         entityType,
@@ -464,334 +480,32 @@ export default function EntityExplorer() {
         </div>
         {expandedSections.entities && (
           <div className="section-content">
-            {/* People */}
-            <div
-              className="entity-type-item"
-              onClick={() => !searchQuery && toggleEntityType('people')}
-            >
-              <span className="section-icon">{expandedEntityTypes.people ? '▼' : '▶'}</span>
-              <span className="entity-icon">👤</span>
-              <span className="entity-label">People</span>
-              <span className="entity-count">
-                ({searchQuery ? filteredPeople.length : people.length})
-              </span>
-            </div>
-            {(searchQuery || expandedEntityTypes.people) && (
-              <>
-                {(searchQuery
-                  ? filteredPeople.slice(0, 10)
-                  : filteredPeople.slice(0, entityDisplayLimits.people)
-                ).map((person) => (
-                  <div
-                    key={person.id}
-                    className="entity-result"
-                    onClick={() => handleEntityClick(person, 'person')}
-                    onDoubleClick={(e) => handleEntityDoubleClick(person, 'person', e)}
-                    title="Click: open | Double-click: rename"
-                  >
-                    <span className="entity-result-icon">👤</span>
-                    {editingEntityId === person.id && editingEntityType === 'person' ? (
-                      <input
-                        type="text"
-                        className="rename-input"
-                        value={editingEntityName}
-                        onChange={(e) => setEditingEntityName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleEntityRename(person.id, 'person');
-                          if (e.key === 'Escape') setEditingEntityId(null);
-                        }}
-                        onBlur={() => handleEntityRename(person.id, 'person')}
-                        onClick={(e) => e.stopPropagation()}
-                        autoFocus
-                      />
-                    ) : (
-                      <span className="entity-result-name">{person.name}</span>
-                    )}
-                  </div>
-                ))}
-                {!searchQuery && filteredPeople.length > entityDisplayLimits.people && (
-                  <button
-                    className="load-more-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      loadMoreEntities('people');
-                    }}
-                  >
-                    Load more ({filteredPeople.length - entityDisplayLimits.people} remaining)
-                  </button>
-                )}
-                {!searchQuery && (
-                  <button
-                    className="create-entity-btn"
-                    onClick={() => handleCreateEntity('person')}
-                  >
-                    + Create Person
-                  </button>
-                )}
-              </>
-            )}
+            {entityTypeConfigs.map(({ type, pluralKey, entities, filtered }) => {
+              const displayEntities = searchQuery
+                ? filtered.slice(0, 10)
+                : filtered.slice(0, entityDisplayLimits[pluralKey]);
 
-            {/* Events */}
-            <div
-              className="entity-type-item"
-              onClick={() => !searchQuery && toggleEntityType('events')}
-            >
-              <span className="section-icon">{expandedEntityTypes.events ? '▼' : '▶'}</span>
-              <span className="entity-icon">📅</span>
-              <span className="entity-label">Events</span>
-              <span className="entity-count">
-                ({searchQuery ? filteredEvents.length : events.length})
-              </span>
-            </div>
-            {(searchQuery || expandedEntityTypes.events) && (
-              <>
-                {(searchQuery
-                  ? filteredEvents.slice(0, 10)
-                  : filteredEvents.slice(0, entityDisplayLimits.events)
-                ).map((event) => (
-                  <div
-                    key={event.id}
-                    className="entity-result"
-                    onClick={() => handleEntityClick(event, 'event')}
-                    onDoubleClick={(e) => handleEntityDoubleClick(event, 'event', e)}
-                    title="Click: open | Double-click: rename"
-                  >
-                    <span className="entity-result-icon">📅</span>
-                    {editingEntityId === event.id && editingEntityType === 'event' ? (
-                      <input
-                        type="text"
-                        className="rename-input"
-                        value={editingEntityName}
-                        onChange={(e) => setEditingEntityName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleEntityRename(event.id, 'event');
-                          if (e.key === 'Escape') setEditingEntityId(null);
-                        }}
-                        onBlur={() => handleEntityRename(event.id, 'event')}
-                        onClick={(e) => e.stopPropagation()}
-                        autoFocus
-                      />
-                    ) : (
-                      <span className="entity-result-name">{event.name}</span>
-                    )}
-                  </div>
-                ))}
-                {!searchQuery && filteredEvents.length > entityDisplayLimits.events && (
-                  <button
-                    className="load-more-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      loadMoreEntities('events');
-                    }}
-                  >
-                    Load more ({filteredEvents.length - entityDisplayLimits.events} remaining)
-                  </button>
-                )}
-                {!searchQuery && (
-                  <button className="create-entity-btn" onClick={() => handleCreateEntity('event')}>
-                    + Create Event
-                  </button>
-                )}
-              </>
-            )}
-
-            {/* Theories */}
-            <div
-              className="entity-type-item"
-              onClick={() => !searchQuery && toggleEntityType('theories')}
-            >
-              <span className="section-icon">{expandedEntityTypes.theories ? '▼' : '▶'}</span>
-              <span className="entity-icon">💡</span>
-              <span className="entity-label">Theories</span>
-              <span className="entity-count">
-                ({searchQuery ? filteredTheories.length : theories.length})
-              </span>
-            </div>
-            {(searchQuery || expandedEntityTypes.theories) && (
-              <>
-                {(searchQuery
-                  ? filteredTheories.slice(0, 10)
-                  : filteredTheories.slice(0, entityDisplayLimits.theories)
-                ).map((theory) => (
-                  <div
-                    key={theory.id}
-                    className="entity-result"
-                    onClick={() => handleEntityClick(theory, 'theory')}
-                    onDoubleClick={(e) => handleEntityDoubleClick(theory, 'theory', e)}
-                    title="Click: open | Double-click: rename"
-                  >
-                    <span className="entity-result-icon">💡</span>
-                    {editingEntityId === theory.id && editingEntityType === 'theory' ? (
-                      <input
-                        type="text"
-                        className="rename-input"
-                        value={editingEntityName}
-                        onChange={(e) => setEditingEntityName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleEntityRename(theory.id, 'theory');
-                          if (e.key === 'Escape') setEditingEntityId(null);
-                        }}
-                        onBlur={() => handleEntityRename(theory.id, 'theory')}
-                        onClick={(e) => e.stopPropagation()}
-                        autoFocus
-                      />
-                    ) : (
-                      <span className="entity-result-name">{theory.name}</span>
-                    )}
-                  </div>
-                ))}
-                {!searchQuery && filteredTheories.length > entityDisplayLimits.theories && (
-                  <button
-                    className="load-more-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      loadMoreEntities('theories');
-                    }}
-                  >
-                    Load more ({filteredTheories.length - entityDisplayLimits.theories} remaining)
-                  </button>
-                )}
-                {!searchQuery && (
-                  <button
-                    className="create-entity-btn"
-                    onClick={() => handleCreateEntity('theory')}
-                  >
-                    + Create Theory
-                  </button>
-                )}
-              </>
-            )}
-
-            {/* Places */}
-            <div
-              className="entity-type-item"
-              onClick={() => !searchQuery && toggleEntityType('places')}
-            >
-              <span className="section-icon">{expandedEntityTypes.places ? '▼' : '▶'}</span>
-              <span className="entity-icon">📍</span>
-              <span className="entity-label">Places</span>
-              <span className="entity-count">
-                ({searchQuery ? filteredPlaces.length : places.length})
-              </span>
-            </div>
-            {(searchQuery || expandedEntityTypes.places) && (
-              <>
-                {(searchQuery
-                  ? filteredPlaces.slice(0, 10)
-                  : filteredPlaces.slice(0, entityDisplayLimits.places)
-                ).map((place) => (
-                  <div
-                    key={place.id}
-                    className="entity-result"
-                    onClick={() => handleEntityClick(place, 'place')}
-                    onDoubleClick={(e) => handleEntityDoubleClick(place, 'place', e)}
-                    title="Click: open | Double-click: rename"
-                  >
-                    <span className="entity-result-icon">📍</span>
-                    {editingEntityId === place.id && editingEntityType === 'place' ? (
-                      <input
-                        type="text"
-                        className="rename-input"
-                        value={editingEntityName}
-                        onChange={(e) => setEditingEntityName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleEntityRename(place.id, 'place');
-                          if (e.key === 'Escape') setEditingEntityId(null);
-                        }}
-                        onBlur={() => handleEntityRename(place.id, 'place')}
-                        onClick={(e) => e.stopPropagation()}
-                        autoFocus
-                      />
-                    ) : (
-                      <span className="entity-result-name">{place.name}</span>
-                    )}
-                  </div>
-                ))}
-                {!searchQuery && filteredPlaces.length > entityDisplayLimits.places && (
-                  <button
-                    className="load-more-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      loadMoreEntities('places');
-                    }}
-                  >
-                    Load more ({filteredPlaces.length - entityDisplayLimits.places} remaining)
-                  </button>
-                )}
-                {!searchQuery && (
-                  <button className="create-entity-btn" onClick={() => handleCreateEntity('place')}>
-                    + Create Place
-                  </button>
-                )}
-              </>
-            )}
-
-            {/* Artifacts */}
-            <div
-              className="entity-type-item"
-              onClick={() => !searchQuery && toggleEntityType('artifacts')}
-            >
-              <span className="section-icon">{expandedEntityTypes.artifacts ? '▼' : '▶'}</span>
-              <span className="entity-icon">🏺</span>
-              <span className="entity-label">Artifacts</span>
-              <span className="entity-count">
-                ({searchQuery ? filteredArtifacts.length : artifacts.length})
-              </span>
-            </div>
-            {(searchQuery || expandedEntityTypes.artifacts) && (
-              <>
-                {(searchQuery
-                  ? filteredArtifacts.slice(0, 10)
-                  : filteredArtifacts.slice(0, entityDisplayLimits.artifacts)
-                ).map((artifact) => (
-                  <div
-                    key={artifact.id}
-                    className="entity-result"
-                    onClick={() => handleEntityClick(artifact, 'artifact')}
-                    onDoubleClick={(e) => handleEntityDoubleClick(artifact, 'artifact', e)}
-                    title="Click: open | Double-click: rename"
-                  >
-                    <span className="entity-result-icon">🏺</span>
-                    {editingEntityId === artifact.id && editingEntityType === 'artifact' ? (
-                      <input
-                        type="text"
-                        className="rename-input"
-                        value={editingEntityName}
-                        onChange={(e) => setEditingEntityName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleEntityRename(artifact.id, 'artifact');
-                          if (e.key === 'Escape') setEditingEntityId(null);
-                        }}
-                        onBlur={() => handleEntityRename(artifact.id, 'artifact')}
-                        onClick={(e) => e.stopPropagation()}
-                        autoFocus
-                      />
-                    ) : (
-                      <span className="entity-result-name">{artifact.name}</span>
-                    )}
-                  </div>
-                ))}
-                {!searchQuery && filteredArtifacts.length > entityDisplayLimits.artifacts && (
-                  <button
-                    className="load-more-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      loadMoreEntities('artifacts');
-                    }}
-                  >
-                    Load more ({filteredArtifacts.length - entityDisplayLimits.artifacts} remaining)
-                  </button>
-                )}
-                {!searchQuery && (
-                  <button
-                    className="create-entity-btn"
-                    onClick={() => handleCreateEntity('artifact')}
-                  >
-                    + Create Artifact
-                  </button>
-                )}
-              </>
-            )}
+              return (
+                <EntityTypeSection
+                  key={type}
+                  type={type}
+                  entities={displayEntities}
+                  isExpanded={searchQuery || expandedEntityTypes[pluralKey]}
+                  onToggle={() => !searchQuery && toggleEntityType(pluralKey)}
+                  onEntityClick={(_, entity) => handleEntityClick(entity, type)}
+                  onEntityDoubleClick={(entity, e) => handleEntityDoubleClick(entity, type, e)}
+                  onEntityRename={(entityId) => handleEntityRename(entityId, type)}
+                  onLoadMore={() => loadMoreEntities(pluralKey)}
+                  onCreateNew={() => handleCreateEntity(type)}
+                  editingEntityId={editingEntityType === type ? editingEntityId : null}
+                  editingEntityName={editingEntityName}
+                  onEditingNameChange={setEditingEntityName}
+                  totalCount={searchQuery ? filtered.length : entities.length}
+                  limit={entityDisplayLimits[pluralKey]}
+                  hasMore={!searchQuery && filtered.length > entityDisplayLimits[pluralKey]}
+                />
+              );
+            })}
           </div>
         )}
       </div>
