@@ -1,17 +1,172 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { get, set, del } from 'idb-keyval';
+import { get, set as idbSet, del } from 'idb-keyval';
 import { createEntitySlice } from './entitySlice';
+import type {
+  Project,
+  Source,
+  Annotation,
+  Tab,
+  CreateTabInput,
+  Person,
+  Event,
+  Theory,
+  Place,
+  Artifact,
+  EntityPage,
+  EntityLink,
+  MapOverlay,
+  PendingLocationEntity,
+} from '@/types';
 
 // IndexedDB storage adapter
 const storage = {
-  getItem: async (name) => get(name),
-  setItem: async (name, value) => set(name, value),
-  removeItem: async (name) => del(name),
+  getItem: async (name: string) => get(name),
+  setItem: async (name: string, value: unknown) => idbSet(name, value),
+  removeItem: async (name: string) => del(name),
 };
 
+/**
+ * Zustand Store State and Actions
+ *
+ * Central state management for Arcanum.
+ * Now fully typed for better DX and type safety!
+ */
+interface StoreState {
+  // Project
+  currentProject: Project | null;
+  setCurrentProject: (project: Project | null) => void;
+
+  // Sources (PDFs)
+  sources: Source[];
+  activeSourceId: string | null;
+  setSources: (sources: Source[]) => void;
+  addSource: (source: Source) => void;
+  removeSource: (id: string) => void;
+  setActiveSource: (id: string | null) => void;
+
+  // PDF viewer state
+  currentPage: number;
+  pdfScale: number;
+  setCurrentPage: (page: number) => void;
+  setScale: (scale: number) => void;
+
+  // Annotation tool
+  activeTool: 'select' | 'highlight' | 'ink' | 'text';
+  setActiveTool: (tool: 'select' | 'highlight' | 'ink' | 'text') => void;
+
+  // Annotations
+  annotations: Annotation[];
+  setAnnotations: (annotations: Annotation[]) => void;
+  addAnnotation: (annotation: Annotation) => void;
+
+  // Map view (deprecated but kept for compatibility)
+  mapView: 'map' | 'source';
+  setMapView: (view: 'map' | 'source') => void;
+
+  // Tabs
+  tabs: Tab[];
+  activeTabId: string;
+  addTab: (tab: CreateTabInput) => void;
+  removeTab: (tabId: string) => void;
+  setActiveTab: (tabId: string) => void;
+  updateTab: (tabId: string, updates: Partial<Tab>) => void;
+
+  // Places
+  places: Place[];
+  setPlaces: (places: Place[]) => void;
+  addPlace: (place: Place) => void;
+  updatePlace: (id: string, updates: Partial<Place>) => void;
+  removePlace: (id: string) => void;
+
+  // Selected annotation
+  selectedAnnotationId: string | null;
+  setSelectedAnnotation: (id: string | null) => void;
+
+  // Annotation modal
+  annotationModalOpen: boolean;
+  pendingAnnotation: Annotation | null;
+  openAnnotationModal: (annotation: Annotation) => void;
+  closeAnnotationModal: () => void;
+
+  // Advanced search modal
+  advancedSearchModalOpen: boolean;
+  openAdvancedSearch: () => void;
+  closeAdvancedSearch: () => void;
+
+  // Pin placement mode
+  pinPlacementMode: boolean;
+  pendingPinAnnotationId: string | null;
+  startPinPlacement: (annotationId: string) => void;
+  cancelPinPlacement: () => void;
+
+  // Location placement mode
+  locationPlacementMode: boolean;
+  pendingLocationEntity: PendingLocationEntity | null;
+  startLocationPlacement: (entityId: string, entityType: string, entityName: string) => void;
+  cancelLocationPlacement: () => void;
+
+  // Artifacts
+  artifacts: Artifact[];
+  selectedArtifact: Artifact | null;
+  setArtifacts: (artifacts: Artifact[]) => void;
+  addArtifact: (artifact: Artifact) => void;
+  updateArtifact: (id: string, updates: Partial<Artifact>) => void;
+  removeArtifact: (id: string) => void;
+  setSelectedArtifact: (artifact: Artifact | null) => void;
+
+  // Map overlays
+  mapOverlays: MapOverlay[];
+  setMapOverlays: (overlays: MapOverlay[]) => void;
+  addMapOverlay: (overlay: MapOverlay) => void;
+
+  // Overlay mode
+  overlayMode: boolean;
+  openOverlayMode: () => void;
+  closeOverlayMode: () => void;
+  onOverlayMapClick: ((e: unknown) => void) | null;
+
+  // People
+  people: Person[];
+  setPeople: (people: Person[]) => void;
+  addPerson: (person: Person) => void;
+  updatePerson: (id: string, updates: Partial<Person>) => void;
+  removePerson: (id: string) => void;
+
+  // Events
+  events: Event[];
+  setEvents: (events: Event[]) => void;
+  addEvent: (event: Event) => void;
+  updateEvent: (id: string, updates: Partial<Event>) => void;
+  removeEvent: (id: string) => void;
+
+  // Theories
+  theories: Theory[];
+  setTheories: (theories: Theory[]) => void;
+  addTheory: (theory: Theory) => void;
+  updateTheory: (id: string, updates: Partial<Theory>) => void;
+  removeTheory: (id: string) => void;
+
+  // Entity Pages
+  entityPages: EntityPage[];
+  setEntityPages: (pages: EntityPage[]) => void;
+  addEntityPage: (page: EntityPage) => void;
+  updateEntityPageInStore: (entityId: string, updates: Partial<EntityPage>) => void;
+  removeEntityPage: (entityId: string) => void;
+
+  // Entity Links
+  entityLinks: EntityLink[];
+  setEntityLinks: (links: EntityLink[]) => void;
+  addEntityLink: (link: EntityLink) => void;
+  removeEntityLink: (linkId: string) => void;
+
+  // Reset
+  resetProjectState: () => void;
+}
+
 // Store configuration - conditionally enable persistence based on environment
-const storeConfig = (set) => ({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const storeConfig = (set: any) => ({
   // Current project
   currentProject: null,
   setCurrentProject: (project) => set({ currentProject: project }),
@@ -39,7 +194,7 @@ const storeConfig = (set) => ({
   setScale: (scale) => set({ pdfScale: scale }),
 
   // Annotation tool
-  activeTool: 'select', // 'select', 'highlight', 'ink', 'text'
+  activeTool: 'select',
   setActiveTool: (tool) => set({ activeTool: tool }),
 
   // Annotations for current source
@@ -51,7 +206,7 @@ const storeConfig = (set) => ({
     })),
 
   // Map state (deprecated - kept for backward compatibility)
-  mapView: 'map', // 'map' or 'source'
+  mapView: 'map',
   setMapView: (view) => set({ mapView: view }),
 
   // Dynamic Tabs
@@ -66,13 +221,14 @@ const storeConfig = (set) => ({
   ],
   activeTabId: 'default-map',
   addTab: (tab) =>
-    set((state) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    set((state: any) => {
       const newTab = {
-        id: tab.id || `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: tab.id || `tab-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         type: tab.type,
         title: tab.title,
         data: tab.data || null,
-        isDirty: false,
+        isDirty: tab.isDirty || false,
       };
       return {
         tabs: [...state.tabs, newTab],
@@ -82,7 +238,7 @@ const storeConfig = (set) => ({
   removeTab: (tabId) =>
     set((state) => {
       // Don't allow removing the last tab
-      if (state.tabs.length <= 1) return state;
+      if (state.tabs.length <= 1) return {};
 
       const newTabs = state.tabs.filter((t) => t.id !== tabId);
       let newActiveTabId = state.activeTabId;
@@ -103,7 +259,7 @@ const storeConfig = (set) => ({
     set((state) => {
       const tab = state.tabs.find((t) => t.id === tabId);
       // If switching to a PDF tab, also update activeSourceId
-      const updates = { activeTabId: tabId };
+      const updates: Partial<StoreState> = { activeTabId: tabId };
       if (tab?.type === 'pdf' && tab.data?.source?.id) {
         updates.activeSourceId = tab.data.source.id;
       }
@@ -115,7 +271,7 @@ const storeConfig = (set) => ({
     })),
 
   // Places (pins) - generated by entitySlice factory
-  ...createEntitySlice('place')(set),
+  ...createEntitySlice<Place>('place')(set),
 
   // Selected annotation (for linking to map)
   selectedAnnotationId: null,
@@ -157,7 +313,7 @@ const storeConfig = (set) => ({
 
   // Location placement mode (for setting entity coordinates)
   locationPlacementMode: false,
-  pendingLocationEntity: null, // { entityId, entityType, entityName }
+  pendingLocationEntity: null,
   startLocationPlacement: (entityId, entityType, entityName) =>
     set({
       locationPlacementMode: true,
@@ -170,7 +326,7 @@ const storeConfig = (set) => ({
     }),
 
   // Artifacts - generated by entitySlice factory
-  ...createEntitySlice('artifact')(set),
+  ...createEntitySlice<Artifact>('artifact')(set),
   selectedArtifact: null,
   setSelectedArtifact: (artifact) => set({ selectedArtifact: artifact }),
 
@@ -189,16 +345,16 @@ const storeConfig = (set) => ({
   onOverlayMapClick: null,
 
   // People (knowledge graph entities) - generated by entitySlice factory
-  ...createEntitySlice('person', 'people')(set),
+  ...createEntitySlice<Person>('person', 'people')(set),
 
   // Events (knowledge graph entities) - generated by entitySlice factory
-  ...createEntitySlice('event')(set),
+  ...createEntitySlice<Event>('event')(set),
 
   // Theories (knowledge graph entities) - generated by entitySlice factory
-  ...createEntitySlice('theory', 'theories')(set),
+  ...createEntitySlice<Theory>('theory', 'theories')(set),
 
   // Entity Pages (hybrid storage: metadata in DB, content in Storage)
-  entityPages: [], // Array of entity page metadata
+  entityPages: [],
   setEntityPages: (pages) => set({ entityPages: pages }),
   addEntityPage: (page) =>
     set((state) => ({
@@ -265,7 +421,7 @@ const storeConfig = (set) => ({
 const persistConfig = {
   name: 'arcanum-storage',
   storage: createJSONStorage(() => storage),
-  partialize: (state) => ({
+  partialize: (state: StoreState) => ({
     // Persist essential user data
     currentProject: state.currentProject,
     tabs: state.tabs,
@@ -291,21 +447,24 @@ const persistConfig = {
     // - selection/placement modes
   }),
   version: 1, // For future data migrations
-  migrate: (persistedState, version) => {
+  migrate: (persistedState: unknown, version: number) => {
     // Handle future schema changes
     if (version === 0) {
       // Migration example for v0 to v1
-      // persistedState.newField = 'default';
+      // (persistedState as any).newField = 'default';
     }
-    return persistedState;
+    return persistedState as StoreState;
   },
 };
 
 // Create store with conditional persistence
 // In test environment, skip persistence to avoid async hydration issues
-const useStore =
-  import.meta.env.MODE === 'test'
-    ? create(storeConfig)
-    : create(persist(storeConfig, persistConfig));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isTestEnv = (import.meta as any).env?.MODE === 'test';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const useStore = isTestEnv
+  ? create<StoreState>(storeConfig as any)
+  : create<StoreState>()(persist(storeConfig as any, persistConfig));
 
 export default useStore;
