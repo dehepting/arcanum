@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import useStore from '../store/useStore';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
 import EntityPicker from './canvas/EntityPicker';
 import {
   getEntitiesForAnnotation,
@@ -235,37 +236,10 @@ export default function AnnotationModal() {
     }
   };
 
-  if (!modalOpen) return null;
-
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.55)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-      onClick={handleClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 'min(420px, 92vw)',
-          background: 'var(--panel-2)',
-          border: '1px solid var(--line)',
-          padding: '16px',
-          borderRadius: '8px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
-      >
-        <h2 style={{ margin: '0 0 10px', fontSize: '16px', fontFamily: 'IBM Plex Serif, serif' }}>
-          Add Note
-        </h2>
-
+    <Modal isOpen={modalOpen} onClose={handleClose} maxWidth="420px">
+      <ModalHeader>Add Note</ModalHeader>
+      <ModalBody>
         <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px' }}>
           Note (optional)
         </label>
@@ -356,8 +330,12 @@ export default function AnnotationModal() {
             🔗 Link to Entity
           </button>
         )}
+      </ModalBody>
 
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between' }}>
+      <ModalFooter>
+        <div
+          style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', width: '100%' }}
+        >
           <button
             onClick={handleClose}
             style={{
@@ -404,11 +382,11 @@ export default function AnnotationModal() {
             </button>
           </div>
         </div>
-      </div>
+      </ModalFooter>
 
       {showEntityPicker && (
         <EntityPicker onSelect={handleEntitySelected} onClose={() => setShowEntityPicker(false)} />
       )}
-    </div>
+    </Modal>
   );
 }
