@@ -20,17 +20,29 @@ export default function LoadingScreen({ children }) {
       return;
     }
 
-    // Wait for Zustand persist middleware to finish hydrating from IndexedDB
+    // Set a timeout fallback in case hydration hangs
+    const timeout = setTimeout(() => {
+      console.warn('Hydration timeout - proceeding anyway');
+      setIsHydrated(true);
+    }, 2000); // 2 second timeout
+
+    // Check if already hydrated (might be synchronous)
+    if (useStore.persist.hasHydrated()) {
+      clearTimeout(timeout);
+      setIsHydrated(true);
+      return;
+    }
+
+    // Wait for hydration to complete
     const unsubscribe = useStore.persist.onFinishHydration(() => {
+      clearTimeout(timeout);
       setIsHydrated(true);
     });
 
-    // Check if already hydrated (synchronous hydration)
-    if (useStore.persist.hasHydrated()) {
-      setIsHydrated(true);
-    }
-
-    return unsubscribe;
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe?.();
+    };
   }, []);
 
   if (!isHydrated) {
