@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { logger } from '../utils/logger';
 import { createProvenanceEntry, updateProvenanceEntry } from '../lib/provenance';
 import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
+import FormField from './FormField';
+import FormSelect from './FormSelect';
+import FormTextarea from './FormTextarea';
 
 const TRANSFER_METHODS = [
   'excavation',
@@ -115,150 +118,51 @@ export default function ProvenanceForm({ artifactId, entry, isOpen, onClose, onS
           style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
         >
           {/* Owner Name */}
-          <div>
-            <label
-              style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-            >
-              Owner Name *
-            </label>
-            <input
-              type="text"
-              value={formData.owner_name}
-              onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
-              placeholder="e.g., British Museum"
-              required
-              style={{
-                width: '100%',
-                background: 'var(--bg)',
-                color: 'var(--text)',
-                border: '1px solid var(--line)',
-                padding: '8px',
-                borderRadius: '4px',
-                font: 'inherit',
-              }}
-            />
-          </div>
+          <FormField
+            label="Owner Name *"
+            value={formData.owner_name}
+            onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
+            placeholder="e.g., British Museum"
+            required
+          />
 
           {/* Owner Type & Location */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '4px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                }}
-              >
-                Owner Type
-              </label>
-              <select
-                value={formData.owner_type}
-                onChange={(e) => setFormData({ ...formData, owner_type: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              >
-                {OWNER_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <FormSelect
+              label="Owner Type"
+              value={formData.owner_type}
+              onChange={(e) => setFormData({ ...formData, owner_type: e.target.value })}
+              options={OWNER_TYPES.map((type) => ({
+                value: type,
+                label: type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' '),
+              }))}
+            />
 
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '4px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                }}
-              >
-                Location
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="e.g., London, UK"
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              />
-            </div>
+            <FormField
+              label="Location"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              placeholder="e.g., London, UK"
+            />
           </div>
 
           {/* Date Range */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '4px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                }}
-              >
-                From Date
-              </label>
-              <input
-                type="date"
-                value={formData.date_from}
-                onChange={(e) => setFormData({ ...formData, date_from: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              />
-            </div>
+            <FormField
+              label="From Date"
+              type="date"
+              value={formData.date_from}
+              onChange={(e) => setFormData({ ...formData, date_from: e.target.value })}
+            />
 
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '4px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                }}
-              >
-                To Date
-              </label>
-              <input
-                type="date"
-                value={formData.date_to}
-                onChange={(e) => setFormData({ ...formData, date_to: e.target.value })}
-                disabled={formData.is_current}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                  opacity: formData.is_current ? 0.5 : 1,
-                }}
-              />
-            </div>
+            <FormField
+              label="To Date"
+              type="date"
+              value={formData.date_to}
+              onChange={(e) => setFormData({ ...formData, date_to: e.target.value })}
+              disabled={formData.is_current}
+              inputStyle={{ opacity: formData.is_current ? 0.5 : 1 }}
+            />
           </div>
 
           {/* Is Current */}
@@ -281,88 +185,34 @@ export default function ProvenanceForm({ artifactId, entry, isOpen, onClose, onS
           </label>
 
           {/* Transfer Method */}
-          <div>
-            <label
-              style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-            >
-              Transfer Method
-            </label>
-            <select
-              value={formData.transfer_method}
-              onChange={(e) => setFormData({ ...formData, transfer_method: e.target.value })}
-              style={{
-                width: '100%',
-                background: 'var(--bg)',
-                color: 'var(--text)',
-                border: '1px solid var(--line)',
-                padding: '8px',
-                borderRadius: '4px',
-                font: 'inherit',
-              }}
-            >
-              {TRANSFER_METHODS.map((method) => (
-                <option key={method} value={method}>
-                  {method.charAt(0).toUpperCase() + method.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
+          <FormSelect
+            label="Transfer Method"
+            value={formData.transfer_method}
+            onChange={(e) => setFormData({ ...formData, transfer_method: e.target.value })}
+            options={TRANSFER_METHODS.map((method) => ({
+              value: method,
+              label: method.charAt(0).toUpperCase() + method.slice(1),
+            }))}
+          />
 
           {/* Purchase Price */}
           {formData.transfer_method === 'purchase' && (
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '4px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                }}
-              >
-                Purchase Price
-              </label>
-              <input
-                type="text"
-                value={formData.purchase_price}
-                onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value })}
-                placeholder="e.g., £500, $1,000,000"
-                style={{
-                  width: '100%',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--line)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  font: 'inherit',
-                }}
-              />
-            </div>
+            <FormField
+              label="Purchase Price"
+              value={formData.purchase_price}
+              onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value })}
+              placeholder="e.g., £500, $1,000,000"
+            />
           )}
 
           {/* Transfer Details */}
-          <div>
-            <label
-              style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 500 }}
-            >
-              Transfer Details
-            </label>
-            <textarea
-              value={formData.transfer_details}
-              onChange={(e) => setFormData({ ...formData, transfer_details: e.target.value })}
-              rows={3}
-              placeholder="Additional details about the transfer..."
-              style={{
-                width: '100%',
-                background: 'var(--bg)',
-                color: 'var(--text)',
-                border: '1px solid var(--line)',
-                padding: '8px',
-                borderRadius: '4px',
-                font: 'inherit',
-                resize: 'vertical',
-              }}
-            />
-          </div>
+          <FormTextarea
+            label="Transfer Details"
+            value={formData.transfer_details}
+            onChange={(e) => setFormData({ ...formData, transfer_details: e.target.value })}
+            rows={3}
+            placeholder="Additional details about the transfer..."
+          />
 
           {/* Verified */}
           <label

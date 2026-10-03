@@ -6,6 +6,7 @@ import { getAnnotationsForEntity } from '../lib/annotationLinks';
 import { entityMetadataSchemas } from '../lib/entityMetadataSchemas';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
+import { GET_COMMANDS, UPDATE_COMMANDS } from '../config/entityCommands';
 import '../styles/entity.css';
 
 /**
@@ -51,13 +52,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
         setError(null);
 
         // Load entity metadata based on type
-        const commandMap = {
-          person: { command: 'get_person', param: 'person_id' },
-          event: { command: 'get_event', param: 'event_id' },
-          theory: { command: 'get_theory', param: 'theory_id' },
-          place: { command: 'get_place', param: 'place_id' },
-          artifact: { command: 'get_artifact', param: 'artifact_id' },
-        };
+        const commandMap = GET_COMMANDS;
 
         const config = commandMap[entityType];
         if (config) {
@@ -201,13 +196,7 @@ export default function EntityPage({ entityId, entityType, title, projectId, tab
       try {
         setSaving(true);
         setSaveSuccess(false);
-        const updateCommandMap = {
-          person: { command: 'update_person', param: 'person_id' },
-          event: { command: 'update_event', param: 'event_id' },
-          theory: { command: 'update_theory', param: 'theory_id' },
-          place: { command: 'update_place', param: 'place_id' },
-          artifact: { command: 'update_artifact', param: 'artifact_id' },
-        };
+        const updateCommandMap = UPDATE_COMMANDS;
 
         const config = updateCommandMap[entityType];
         if (config) {

@@ -1,9 +1,59 @@
 import { invoke } from '@tauri-apps/api/core';
+import {
+  createPerson,
+  updatePerson,
+  loadPeople,
+  deletePerson,
+  linkPersonToAnnotation,
+  createEvent,
+  updateEvent,
+  loadEvents,
+  deleteEvent,
+  createTheory,
+  updateTheory,
+  loadTheories,
+  deleteTheory,
+  linkTheoryToAnnotation,
+  createPlace,
+  updatePlace,
+  loadPlaces,
+  deletePlace,
+  createArtifact,
+  updateArtifact,
+  loadArtifacts,
+  deleteArtifact,
+} from './entityCrud';
 
 /**
  * Tauri API Client
  * Replaces Supabase with local Tauri commands
  */
+
+// Re-export entity CRUD operations for backward compatibility
+export {
+  createPerson,
+  updatePerson,
+  loadPeople,
+  deletePerson,
+  linkPersonToAnnotation,
+  createEvent,
+  updateEvent,
+  loadEvents,
+  deleteEvent,
+  createTheory,
+  updateTheory,
+  loadTheories,
+  deleteTheory,
+  linkTheoryToAnnotation,
+  createPlace,
+  updatePlace,
+  loadPlaces,
+  deletePlace,
+  createArtifact,
+  updateArtifact,
+  loadArtifacts,
+  deleteArtifact,
+};
 
 // Projects
 export async function createProject(projectData) {
@@ -26,25 +76,9 @@ export async function deleteProject(projectId) {
   return await invoke('delete_project', { projectId });
 }
 
-// Artifacts
-export async function createArtifact(artifactData) {
-  return await invoke('create_artifact', { input: artifactData });
-}
-
+// Artifacts (CRUD imported from entityCrud.js)
 export async function getArtifact(artifactId) {
   return await invoke('get_artifact', { artifactId });
-}
-
-export async function loadArtifacts(projectId) {
-  return await invoke('list_artifacts', { projectId });
-}
-
-export async function updateArtifact(artifactId, updates) {
-  return await invoke('update_artifact', { artifactId, input: updates });
-}
-
-export async function deleteArtifact(artifactId) {
-  return await invoke('delete_artifact', { artifactId });
 }
 
 export async function getArtifactsByFindspot(placeId) {
@@ -62,113 +96,20 @@ export async function searchArtifacts(projectId, query, filters = {}) {
   });
 }
 
-// Places
-export async function createPlace(placeData, annotationId = null) {
-  return await invoke('create_place', {
-    input: {
-      ...placeData,
-      annotation_id: annotationId,
-    },
-  });
-}
-
-export async function updatePlace(placeId, updates) {
-  return await invoke('update_place', { placeId, input: updates });
-}
-
-export async function loadPlaces(projectId) {
-  return await invoke('list_places', { projectId });
-}
-
+// Places (CRUD imported from entityCrud.js)
 export async function getPlaceForAnnotation(annotationId) {
   return await invoke('get_place_for_annotation', { annotationId });
-}
-
-export async function deletePlace(placeId) {
-  return await invoke('delete_place', { placeId });
 }
 
 export async function unlinkAnnotationFromPlace(annotationId, placeId) {
   return await invoke('unlink_annotation_from_place', { annotationId, placeId });
 }
 
-// People
-export async function createPerson(personData, annotationId = null, relationshipType = 'mentions') {
-  return await invoke('create_person', {
-    input: {
-      ...personData,
-      annotation_id: annotationId,
-      relationship_type: relationshipType,
-    },
-  });
-}
+// People (CRUD imported from entityCrud.js)
 
-export async function updatePerson(personId, updates) {
-  return await invoke('update_person', { personId, input: updates });
-}
+// Events (CRUD imported from entityCrud.js)
 
-export async function loadPeople(projectId) {
-  return await invoke('list_people', { projectId });
-}
-
-export async function deletePerson(personId) {
-  return await invoke('delete_person', { personId });
-}
-
-export async function linkPersonToAnnotation(
-  annotationId,
-  personId,
-  relationshipType = 'mentions'
-) {
-  return await invoke('link_annotation_to_person', {
-    annotationId,
-    personId,
-    relationshipType,
-  });
-}
-
-// Events
-export async function createEvent(eventData) {
-  return await invoke('create_event', { input: eventData });
-}
-
-export async function updateEvent(eventId, updates) {
-  return await invoke('update_event', { eventId, input: updates });
-}
-
-export async function loadEvents(projectId) {
-  return await invoke('list_events', { projectId });
-}
-
-export async function deleteEvent(eventId) {
-  return await invoke('delete_event', { eventId });
-}
-
-// Theories
-export async function createTheory(theoryData, annotationId = null) {
-  return await invoke('create_theory', {
-    input: {
-      ...theoryData,
-      annotation_id: annotationId,
-    },
-  });
-}
-
-export async function updateTheory(theoryId, updates) {
-  return await invoke('update_theory', { theoryId, input: updates });
-}
-
-export async function loadTheories(projectId) {
-  return await invoke('list_theories', { projectId });
-}
-
-export async function deleteTheory(theoryId) {
-  return await invoke('delete_theory', { theoryId });
-}
-
-export async function linkTheoryToAnnotation(annotationId, theoryId) {
-  return await invoke('link_annotation_to_theory', { annotationId, theoryId });
-}
+// Theories (CRUD imported from entityCrud.js)
 
 // Sources
 export async function createSource(sourceData) {

@@ -4,9 +4,12 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
+import { UPDATE_COMMANDS_CAMEL } from '../config/entityCommands';
 import { createPlace, loadPlaces, getAnnotationsForPlace } from '../lib/places';
 import { loadOverlays } from '../lib/overlays';
 import OverlayGeoreference from './OverlayGeoreference';
+import ModeBanner from './ModeBanner';
+import EntityTypeFilterPanel from './EntityTypeFilterPanel';
 
 // Configure MapLibre GL worker for Vite compatibility
 // Using ?worker&url ensures proper bundling in both dev and production
@@ -120,13 +123,7 @@ export default function MapView() {
 
           try {
             // Update entity coordinates based on type
-            const updateCommandMap = {
-              person: { command: 'update_person', param: 'personId' },
-              event: { command: 'update_event', param: 'eventId' },
-              theory: { command: 'update_theory', param: 'theoryId' },
-              place: { command: 'update_place', param: 'placeId' },
-              artifact: { command: 'update_artifact', param: 'artifactId' },
-            };
+            const updateCommandMap = UPDATE_COMMANDS_CAMEL;
 
             const config = updateCommandMap[entityType];
             if (config) {
@@ -452,169 +449,41 @@ export default function MapView() {
     >
       {/* Location placement mode banner */}
       {locationPlacementMode && pendingLocationEntity && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '10px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000,
-            background: 'var(--accent)',
-            color: '#fff',
-            padding: '10px 16px',
-            borderRadius: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            display: 'flex',
-            gap: '12px',
-            alignItems: 'center',
-          }}
-        >
-          <span>📍 Click on the map to set location for {pendingLocationEntity.entityName}</span>
-          <button
-            onClick={cancelLocationPlacement}
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none',
-              color: '#fff',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-          >
-            Cancel
-          </button>
-        </div>
+        <ModeBanner
+          message={`📍 Click on the map to set location for ${pendingLocationEntity.entityName}`}
+          variant="primary"
+          onCancel={cancelLocationPlacement}
+        />
       )}
 
       {/* Pin placement mode banner */}
       {!locationPlacementMode && pinPlacementMode && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '10px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000,
-            background: 'var(--accent)',
-            color: '#fff',
-            padding: '10px 16px',
-            borderRadius: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            display: 'flex',
-            gap: '12px',
-            alignItems: 'center',
-          }}
-        >
-          <span>📍 Click on the map to place a pin</span>
-          <button
-            onClick={cancelPinPlacement}
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none',
-              color: '#fff',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-          >
-            Cancel
-          </button>
-        </div>
+        <ModeBanner
+          message="📍 Click on the map to place a pin"
+          variant="primary"
+          onCancel={cancelPinPlacement}
+        />
       )}
 
       {/* Overlay mode banner */}
       {overlayMode && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '10px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000,
-            background: 'var(--accent-2)',
-            color: '#0e0f12',
-            padding: '10px 16px',
-            borderRadius: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            fontWeight: 500,
-          }}
-        >
-          🗺️ Georeferencing Mode: Click on the map to place corner markers
-        </div>
+        <ModeBanner
+          message="🗺️ Georeferencing Mode: Click on the map to place corner markers"
+          variant="secondary"
+        />
       )}
 
       {/* Entity type filters */}
       {!pinPlacementMode && !overlayMode && !locationPlacementMode && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            zIndex: 1000,
-            background: 'var(--panel)',
-            border: '1px solid var(--line)',
-            padding: '12px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            minWidth: '180px',
-          }}
-        >
-          <div
-            style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              marginBottom: '8px',
-              color: 'var(--text)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-            }}
-          >
-            Show on Map
-          </div>
-          {[
-            { type: 'place', icon: '📍', label: 'Places', color: '#e8b86d' },
-            { type: 'person', icon: '👤', label: 'People', color: '#60a5fa' },
-            { type: 'event', icon: '📅', label: 'Events', color: '#f87171' },
-            { type: 'theory', icon: '💡', label: 'Theories', color: '#c084fc' },
-            { type: 'artifact', icon: '🏺', label: 'Artifacts', color: '#34d399' },
-          ].map(({ type, icon, label, color }) => (
-            <label
-              key={type}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 4px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                color: 'var(--text)',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={entityTypeFilters[type]}
-                onChange={(e) =>
-                  setEntityTypeFilters((prev) => ({
-                    ...prev,
-                    [type]: e.target.checked,
-                  }))
-                }
-                style={{ cursor: 'pointer' }}
-              />
-              <span style={{ fontSize: '14px' }}>{icon}</span>
-              <span style={{ flex: 1 }}>{label}</span>
-              <div
-                style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  background: color,
-                  border: '1px solid #0e0f12',
-                }}
-              />
-            </label>
-          ))}
-        </div>
+        <EntityTypeFilterPanel
+          filters={entityTypeFilters}
+          onFilterChange={(type, checked) =>
+            setEntityTypeFilters((prev) => ({
+              ...prev,
+              [type]: checked,
+            }))
+          }
+        />
       )}
 
       {/* Add overlay button */}
