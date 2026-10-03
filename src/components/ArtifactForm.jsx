@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
 import { createArtifact, updateArtifact, uploadArtifactImage } from '../lib/artifacts';
 import { showError, showSuccess } from '../utils/errorHandling';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
 
 const CATEGORIES = [
   'Pottery & Ceramics',
@@ -157,41 +158,11 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.55)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '20px',
-      }}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 'min(700px, 100%)',
-          maxHeight: '90vh',
-          background: 'var(--panel-2)',
-          border: '1px solid var(--line)',
-          borderRadius: '8px',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div style={{ padding: '16px', borderBottom: '1px solid var(--line)' }}>
-          <h2 style={{ margin: 0, fontSize: '18px', fontFamily: 'IBM Plex Serif, serif' }}>
-            {artifact ? 'Edit Artifact' : 'Add Artifact'}
-          </h2>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="700px">
+      <ModalHeader>{artifact ? 'Edit Artifact' : 'Add Artifact'}</ModalHeader>
+      <ModalBody>
+        <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             {/* Name */}
             <div style={{ gridColumn: '1 / -1' }}>
@@ -553,16 +524,9 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
             </div>
           </div>
         </form>
-
-        <div
-          style={{
-            padding: '16px',
-            borderTop: '1px solid var(--line)',
-            display: 'flex',
-            gap: '8px',
-            justifyContent: 'flex-end',
-          }}
-        >
+      </ModalBody>
+      <ModalFooter>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
           <button type="button" onClick={onClose} className="btn" disabled={uploading}>
             Cancel
           </button>
@@ -575,7 +539,7 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
             {uploading ? 'Saving...' : artifact ? 'Update' : 'Create'}
           </button>
         </div>
-      </div>
-    </div>
+      </ModalFooter>
+    </Modal>
   );
 }

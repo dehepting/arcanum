@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { getClaims, createClaim, updateClaim, deleteClaim } from '../lib/provenance';
 import { useAsync } from '../hooks/useAsync';
 import { showError, showSuccess } from '../utils/errorHandling';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
 
 const CLAIM_STATUSES = [
   { value: 'pending', label: 'Pending', color: '#e8b86d' },
@@ -268,115 +269,95 @@ export default function ClaimsList({ artifactId }) {
       )}
 
       {/* Simple inline form */}
-      {showForm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.55)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-          onClick={() => setShowForm(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: 'min(400px, 90%)',
-              background: 'var(--panel-2)',
-              border: '1px solid var(--line)',
-              borderRadius: '8px',
-              padding: '16px',
+      <Modal isOpen={showForm} onClose={() => setShowForm(false)} maxWidth="400px">
+        <ModalHeader>Add Ownership Claim</ModalHeader>
+        <ModalBody>
+          <form
+            id="claim-form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target);
+              try {
+                const newClaim = await createClaim({
+                  artifact_id: artifactId,
+                  claimant_name: formData.get('claimant_name'),
+                  claimant_type: formData.get('claimant_type'),
+                  claim_basis: formData.get('claim_basis'),
+                  details: formData.get('details'),
+                  claim_date: formData.get('claim_date') || new Date().toISOString().split('T')[0],
+                  status: 'pending',
+                });
+                setClaims([newClaim, ...claims]);
+                setShowForm(false);
+                showSuccess('Claim added successfully');
+              } catch (err) {
+                showError(`Failed to add claim: ${err.message || 'Unknown error'}`);
+              }
             }}
           >
-            <h3 style={{ margin: '0 0 12px', fontSize: '16px' }}>Add Ownership Claim</h3>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                try {
-                  const newClaim = await createClaim({
-                    artifact_id: artifactId,
-                    claimant_name: formData.get('claimant_name'),
-                    claimant_type: formData.get('claimant_type'),
-                    claim_basis: formData.get('claim_basis'),
-                    details: formData.get('details'),
-                    claim_date:
-                      formData.get('claim_date') || new Date().toISOString().split('T')[0],
-                    status: 'pending',
-                  });
-                  setClaims([newClaim, ...claims]);
-                  setShowForm(false);
-                  showSuccess('Claim added successfully');
-                } catch (err) {
-                  showError(`Failed to add claim: ${err.message || 'Unknown error'}`);
-                }
-              }}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input
+                name="claimant_name"
+                required
+                placeholder="Claimant name *"
+                style={{
+                  background: 'var(--bg)',
+                  border: '1px solid var(--line)',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  color: 'var(--text)',
+                  font: 'inherit',
+                }}
+              />
+              <select
+                name="claim_basis"
+                style={{
+                  background: 'var(--bg)',
+                  border: '1px solid var(--line)',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  color: 'var(--text)',
+                  font: 'inherit',
+                }}
+              >
+                <option value="cultural_heritage">Cultural Heritage</option>
+                <option value="illegal_export">Illegal Export</option>
+                <option value="looted">Looted</option>
+                <option value="stolen">Stolen</option>
+                <option value="sacred_object">Sacred Object</option>
+              </select>
+              <textarea
+                name="details"
+                rows={3}
+                placeholder="Details..."
+                style={{
+                  background: 'var(--bg)',
+                  border: '1px solid var(--line)',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  color: 'var(--text)',
+                  font: 'inherit',
+                }}
+              />
+            </div>
+          </form>
+        </ModalBody>
+        <ModalFooter>
+          <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="btn"
+              style={{ flex: 1 }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <input
-                  name="claimant_name"
-                  required
-                  placeholder="Claimant name *"
-                  style={{
-                    background: 'var(--bg)',
-                    border: '1px solid var(--line)',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    color: 'var(--text)',
-                    font: 'inherit',
-                  }}
-                />
-                <select
-                  name="claim_basis"
-                  style={{
-                    background: 'var(--bg)',
-                    border: '1px solid var(--line)',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    color: 'var(--text)',
-                    font: 'inherit',
-                  }}
-                >
-                  <option value="cultural_heritage">Cultural Heritage</option>
-                  <option value="illegal_export">Illegal Export</option>
-                  <option value="looted">Looted</option>
-                  <option value="stolen">Stolen</option>
-                  <option value="sacred_object">Sacred Object</option>
-                </select>
-                <textarea
-                  name="details"
-                  rows={3}
-                  placeholder="Details..."
-                  style={{
-                    background: 'var(--bg)',
-                    border: '1px solid var(--line)',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    color: 'var(--text)',
-                    font: 'inherit',
-                  }}
-                />
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowForm(false)}
-                    className="btn"
-                    style={{ flex: 1 }}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                    Add
-                  </button>
-                </div>
-              </div>
-            </form>
+              Cancel
+            </button>
+            <button type="submit" form="claim-form" className="btn btn-primary" style={{ flex: 1 }}>
+              Add
+            </button>
           </div>
-        </div>
-      )}
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }
