@@ -7,7 +7,32 @@ import { readFile } from '@tauri-apps/plugin-fs';
 import { getAllEntityTypes, getEntityType, invokeEntityCommand } from '../lib/entityTypes';
 import EntityTypeSection from './EntityTypeSection';
 import { useEntitySearch } from '../hooks/useEntitySearch';
+import type { Person, Event, Theory, Place, Artifact, Source, EntityType, Entity } from '@/types';
 import '../styles/entity.css';
+
+// Canvas type from backend
+interface Canvas {
+  id: string;
+  project_id: string;
+  name: string;
+  is_dashboard: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Entity type config for rendering (using any to allow mixed entity types)
+interface EntityTypeConfig {
+  type: EntityType;
+  pluralKey: 'people' | 'events' | 'theories' | 'places' | 'artifacts';
+  entities: Person[] | Event[] | Theory[] | Place[] | Artifact[];
+  filtered: Person[] | Event[] | Theory[] | Place[] | Artifact[];
+}
+
+// Section keys for expanded state
+type SectionKey = 'entities' | 'sources' | 'canvases' | 'visualizations';
+
+// Entity type plural keys
+type EntityTypePluralKey = 'people' | 'events' | 'theories' | 'places' | 'artifacts';
 
 /**
  * EntityExplorer - Left panel showing all entities in the knowledge graph
@@ -34,30 +59,34 @@ export default function EntityExplorer() {
   const setActiveSource = useStore((state) => state.setActiveSource);
   const currentProject = useStore((state) => state.currentProject);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [canvases, setCanvases] = useState([]);
-  const [editingCanvasId, setEditingCanvasId] = useState(null);
-  const [editingCanvasName, setEditingCanvasName] = useState('');
-  const [editingEntityId, setEditingEntityId] = useState(null);
-  const [editingEntityName, setEditingEntityName] = useState('');
-  const [editingEntityType, setEditingEntityType] = useState(null);
-  const [editingSourceId, setEditingSourceId] = useState(null);
-  const [editingSourceTitle, setEditingSourceTitle] = useState('');
-  const [expandedSections, setExpandedSections] = useState({
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [canvases, setCanvases] = useState<Canvas[]>([]);
+  const [editingCanvasId, setEditingCanvasId] = useState<string | null>(null);
+  const [editingCanvasName, setEditingCanvasName] = useState<string>('');
+  const [editingEntityId, setEditingEntityId] = useState<string | null>(null);
+  const [editingEntityName, setEditingEntityName] = useState<string>('');
+  const [editingEntityType, setEditingEntityType] = useState<EntityType | null>(null);
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const [editingSourceTitle, setEditingSourceTitle] = useState<string>('');
+  const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
     entities: true,
     sources: true,
     canvases: true,
     visualizations: true,
   });
-  const [expandedEntityTypes, setExpandedEntityTypes] = useState({
+  const [expandedEntityTypes, setExpandedEntityTypes] = useState<
+    Record<EntityTypePluralKey, boolean>
+  >({
     people: false,
     events: false,
     theories: false,
     places: false,
     artifacts: false,
   });
-  const [entityDisplayLimits, setEntityDisplayLimits] = useState({
+  const [entityDisplayLimits, setEntityDisplayLimits] = useState<
+    Record<EntityTypePluralKey, number>
+  >({
     people: 50,
     events: 50,
     theories: 50,
@@ -65,21 +94,21 @@ export default function EntityExplorer() {
     artifacts: 50,
   });
 
-  const toggleSection = (section) => {
+  const toggleSection = (section: SectionKey) => {
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
   };
 
-  const toggleEntityType = (type) => {
+  const toggleEntityType = (type: EntityTypePluralKey) => {
     setExpandedEntityTypes((prev) => ({
       ...prev,
       [type]: !prev[type],
     }));
   };
 
-  const loadMoreEntities = (type) => {
+  const loadMoreEntities = (type: EntityTypePluralKey) => {
     setEntityDisplayLimits((prev) => ({
       ...prev,
       [type]: prev[type] + 50,
@@ -92,7 +121,7 @@ export default function EntityExplorer() {
 
     const loadCanvases = async () => {
       try {
-        const projectCanvases = await invoke('list_canvases', {
+        const projectCanvases = await invoke<Canvas[]>('list_canvases', {
           projectId: currentProject.id,
         });
         setCanvases(projectCanvases);
@@ -105,7 +134,7 @@ export default function EntityExplorer() {
   }, [currentProject]);
 
   // Handle canvas click - opens canvas in tab or switches to existing tab
-  const handleCanvasClick = (canvas) => {
+  const handleCanvasClick = (canvas: Canvas) => {
     const existingTab = tabs.find(
       (tab) => tab.type === 'canvas' && tab.data?.canvasId === canvas.id
     );
@@ -116,10 +145,8 @@ export default function EntityExplorer() {
       addTab({
         type: 'canvas',
         title: canvas.name,
-        canvasId: canvas.id,
         data: {
           canvasId: canvas.id,
-          canvasName: canvas.name,
         },
       });
     }
@@ -130,7 +157,7 @@ export default function EntityExplorer() {
     if (!currentProject) return;
 
     try {
-      const newCanvas = await invoke('create_canvas', {
+      const newCanvas = await invoke<Canvas>('create_canvas', {
         input: {
           project_id: currentProject.id,
           name: `Canvas ${canvases.length + 1}`,
@@ -146,14 +173,14 @@ export default function EntityExplorer() {
   };
 
   // Handle canvas double-click to rename
-  const handleCanvasDoubleClick = (canvas, e) => {
+  const handleCanvasDoubleClick = (canvas: Canvas, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingCanvasId(canvas.id);
     setEditingCanvasName(canvas.name);
   };
 
   // Handle canvas rename
-  const handleCanvasRename = async (canvasId) => {
+  const handleCanvasRename = async (canvasId: string) => {
     if (!editingCanvasName.trim()) {
       setEditingCanvasId(null);
       return;
@@ -178,7 +205,7 @@ export default function EntityExplorer() {
   };
 
   // Handle entity double-click to rename
-  const handleEntityDoubleClick = (entity, entityType, e) => {
+  const handleEntityDoubleClick = (entity: Entity, entityType: EntityType, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingEntityId(entity.id);
     setEditingEntityName(entity.name);
@@ -186,7 +213,7 @@ export default function EntityExplorer() {
   };
 
   // Handle entity rename
-  const handleEntityRename = async (entityId, entityType) => {
+  const handleEntityRename = async (entityId: string, entityType: EntityType) => {
     if (!editingEntityName.trim()) {
       setEditingEntityId(null);
       return;
@@ -194,7 +221,9 @@ export default function EntityExplorer() {
 
     try {
       const config = getEntityType(entityType);
-      const updateFn = useStore.getState()[config.store.updater];
+      const updateFn = useStore.getState()[
+        config.store.updater as keyof typeof useStore.getState
+      ] as (id: string, updates: Partial<Entity>) => void;
 
       await invokeEntityCommand(invoke, entityType, 'update', {
         id: entityId,
@@ -211,14 +240,14 @@ export default function EntityExplorer() {
   };
 
   // Handle source double-click to rename
-  const handleSourceDoubleClick = (source, e) => {
+  const handleSourceDoubleClick = (source: Source, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingSourceId(source.id);
-    setEditingSourceTitle(source.title);
+    setEditingSourceTitle(source.name);
   };
 
   // Handle source rename
-  const handleSourceRename = async (sourceId) => {
+  const handleSourceRename = async (sourceId: string) => {
     if (!editingSourceTitle.trim()) {
       setEditingSourceId(null);
       return;
@@ -234,25 +263,16 @@ export default function EntityExplorer() {
 
       // Update the source in store
       const updatedSources = sources.map((s) =>
-        s.id === sourceId ? { ...s, title: editingSourceTitle.trim() } : s
+        s.id === sourceId ? { ...s, name: editingSourceTitle.trim() } : s
       );
       useStore.getState().setSources(updatedSources);
 
       // Also update any open tabs with this source
-      const updatedTabs = tabs.map((t) =>
-        t.data?.source?.id === sourceId
-          ? {
-              ...t,
-              title: editingSourceTitle.trim(),
-              data: { ...t.data, source: { ...t.data.source, title: editingSourceTitle.trim() } },
-            }
-          : t
-      );
-      tabs.forEach((t, idx) => {
-        if (t.data?.source?.id === sourceId) {
+      tabs.forEach((t) => {
+        if (t.type === 'pdf' && t.data?.source?.id === sourceId) {
           useStore.getState().updateTab(t.id, {
             title: editingSourceTitle.trim(),
-            data: { ...t.data, source: { ...t.data.source, title: editingSourceTitle.trim() } },
+            data: { source: { ...t.data.source, name: editingSourceTitle.trim() } },
           });
         }
       });
@@ -264,11 +284,12 @@ export default function EntityExplorer() {
   };
 
   // Filter entities using fuzzy search (searches name, description, bio, notes)
-  const filteredPeople = useEntitySearch(people, searchQuery);
-  const filteredEvents = useEntitySearch(events, searchQuery);
-  const filteredTheories = useEntitySearch(theories, searchQuery);
-  const filteredPlaces = useEntitySearch(places, searchQuery);
-  const filteredArtifacts = useEntitySearch(artifacts, searchQuery);
+  // Cast to any to satisfy SearchableEntity constraint (entities have all required fields)
+  const filteredPeople = useEntitySearch(people as any, searchQuery) as unknown as Person[];
+  const filteredEvents = useEntitySearch(events as any, searchQuery) as unknown as Event[];
+  const filteredTheories = useEntitySearch(theories as any, searchQuery) as unknown as Theory[];
+  const filteredPlaces = useEntitySearch(places as any, searchQuery) as unknown as Place[];
+  const filteredArtifacts = useEntitySearch(artifacts as any, searchQuery) as unknown as Artifact[];
 
   const totalResults = useMemo(
     () =>
@@ -281,7 +302,7 @@ export default function EntityExplorer() {
   );
 
   // Entity type configurations for rendering
-  const entityTypeConfigs = useMemo(
+  const entityTypeConfigs = useMemo<EntityTypeConfig[]>(
     () => [
       {
         type: 'person',
@@ -329,11 +350,12 @@ export default function EntityExplorer() {
   );
 
   // Handle entity click - opens entity in tab or switches to existing tab
-  const handleEntityClick = (entity, entityType) => {
+  const handleEntityClick = (entity: Entity, entityType: EntityType) => {
     // Check if tab already exists for this entity
-    const existingTab = tabs.find(
-      (tab) => tab.type === entityType && tab.data?.entityId === entity.id
-    );
+    const existingTab = tabs.find((tab) => {
+      if (tab.type !== 'entity') return false;
+      return tab.data?.entityId === entity.id && tab.data?.entityType === entityType;
+    });
 
     if (existingTab) {
       // Switch to existing tab instead of creating duplicate
@@ -341,7 +363,7 @@ export default function EntityExplorer() {
     } else {
       // Create new tab
       addTab({
-        type: entityType,
+        type: 'entity',
         title: entity.name,
         data: {
           entityId: entity.id,
@@ -354,7 +376,7 @@ export default function EntityExplorer() {
   // Handle double-click - adds entity to canvas if canvas tab is active
 
   // Handle entity drag start - for dragging to canvas
-  const handleEntityDragStart = (e, entity, entityType) => {
+  const handleEntityDragStart = (e: React.DragEvent, entity: Entity, entityType: EntityType) => {
     console.log('🔵 DRAG START:', { name: entity.name, type: entityType });
     e.dataTransfer.effectAllowed = 'copy';
     const data = {
@@ -367,14 +389,14 @@ export default function EntityExplorer() {
   };
 
   // Handle create new entity
-  const handleCreateEntity = (entityType) => {
+  const handleCreateEntity = (entityType: EntityType) => {
     const config = getEntityType(entityType);
 
     addTab({
-      type: entityType,
+      type: 'entity',
       title: `New ${config.label}`,
       data: {
-        entityId: null, // Will be created on first save
+        entityId: null as any, // Will be created on first save
         entityType,
       },
     });
@@ -406,8 +428,8 @@ export default function EntityExplorer() {
       setUploading(true);
 
       // Read file using Tauri fs plugin
-      const fileData = await readFile(selectedPath);
-      const fileName = selectedPath.split('/').pop() || 'document.pdf';
+      const fileData = await readFile(selectedPath as string);
+      const fileName = (selectedPath as string).split('/').pop() || 'document.pdf';
 
       console.log('Starting upload for project:', currentProject.id);
 
@@ -422,19 +444,19 @@ export default function EntityExplorer() {
         type: 'application/pdf',
         size: fileData.length,
         arrayBuffer: async () => arrayBuffer,
-      };
+      } as File;
 
       const source = await uploadPDF(file, currentProject.id);
       console.log('Upload successful:', source);
       addSource(source);
       addTab({
         type: 'pdf',
-        title: source.title,
+        title: source.name,
         data: { source },
       });
     } catch (err) {
       console.error('Upload error:', err);
-      alert(`Failed to upload PDF: ${err.message}`);
+      alert(`Failed to upload PDF: ${(err as Error).message}`);
     } finally {
       setUploading(false);
     }
@@ -472,11 +494,15 @@ export default function EntityExplorer() {
                   key={type}
                   type={type}
                   entities={displayEntities}
-                  isExpanded={searchQuery || expandedEntityTypes[pluralKey]}
+                  isExpanded={Boolean(searchQuery || expandedEntityTypes[pluralKey])}
                   onToggle={() => !searchQuery && toggleEntityType(pluralKey)}
-                  onEntityClick={(_, entity) => handleEntityClick(entity, type)}
-                  onEntityDoubleClick={(entity, e) => handleEntityDoubleClick(entity, type, e)}
-                  onEntityRename={(entityId) => handleEntityRename(entityId, type)}
+                  onEntityClick={(_, entity) => handleEntityClick(entity as Entity, type)}
+                  onEntityDoubleClick={(entity, e) =>
+                    handleEntityDoubleClick(entity as Entity, type, e)
+                  }
+                  onEntityRename={(entityId) =>
+                    entityId ? handleEntityRename(entityId, type) : setEditingEntityId(null)
+                  }
                   onLoadMore={() => loadMoreEntities(pluralKey)}
                   onCreateNew={() => handleCreateEntity(type)}
                   editingEntityId={editingEntityType === type ? editingEntityId : null}
@@ -507,24 +533,26 @@ export default function EntityExplorer() {
               sources.map((source) => (
                 <div
                   key={source.id}
-                  className={`entity-result ${tabs.find((t) => t.data?.source?.id === source.id) ? 'active' : ''}`}
+                  className={`entity-result ${tabs.find((t) => t.type === 'pdf' && t.data?.source?.id === source.id) ? 'active' : ''}`}
                   onClick={() => {
                     if (editingSourceId === source.id) return; // Don't open if editing
                     // Open source in tab
-                    const existingTab = tabs.find((t) => t.data?.source?.id === source.id);
+                    const existingTab = tabs.find(
+                      (t) => t.type === 'pdf' && t.data?.source?.id === source.id
+                    );
                     if (existingTab) {
                       setActiveTab(existingTab.id);
                     } else {
                       addTab({
                         type: 'pdf',
-                        title: source.title,
+                        title: source.name,
                         data: { source },
                       });
                       setActiveSource(source.id);
                     }
                   }}
                   onDoubleClick={(e) => handleSourceDoubleClick(source, e)}
-                  title={source.title}
+                  title={source.name}
                 >
                   <span className="entity-result-icon">📄</span>
                   {editingSourceId === source.id ? (
@@ -545,7 +573,7 @@ export default function EntityExplorer() {
                       autoFocus
                     />
                   ) : (
-                    <span className="entity-result-name">{source.title}</span>
+                    <span className="entity-result-name">{source.name}</span>
                   )}
                 </div>
               ))
@@ -612,7 +640,7 @@ export default function EntityExplorer() {
               className="viz-item"
               onClick={() =>
                 addTab({
-                  type: 'graph',
+                  type: 'map',
                   title: 'Network Graph',
                   data: null,
                 })
