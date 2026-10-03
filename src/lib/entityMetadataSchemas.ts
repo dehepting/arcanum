@@ -3,33 +3,89 @@
  * Defines what fields to show, their types, validation, and grouping
  */
 
+import type { EntityType } from '@/types';
+
+/**
+ * Field type for metadata schemas
+ */
+export type MetadataFieldType = 'text' | 'date' | 'number' | 'select';
+
+/**
+ * Select option for metadata fields
+ */
+export interface MetadataSelectOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Validation function type
+ */
+export type ValidationFunction = (value: string | number | null) => string | null;
+
+/**
+ * Metadata field schema
+ */
+export interface MetadataFieldSchema {
+  key: string;
+  label: string;
+  type: MetadataFieldType;
+  icon?: string;
+  placeholder?: string;
+  multiline?: boolean;
+  validation?: ValidationFunction;
+  clearable?: boolean;
+  options?: MetadataSelectOption[];
+}
+
+/**
+ * Metadata field group
+ */
+export interface MetadataFieldGroup {
+  title: string;
+  icon: string;
+  fields: MetadataFieldSchema[];
+}
+
+/**
+ * Entity metadata schema
+ */
+export interface EntityMetadataSchema {
+  groups: MetadataFieldGroup[];
+}
+
+/**
+ * All entity metadata schemas
+ */
+export type EntityMetadataSchemas = Record<EntityType, EntityMetadataSchema>;
+
 // Validation functions
-const validateDate = (value) => {
+const validateDate: ValidationFunction = (value) => {
   if (!value) return null;
-  const date = new Date(value);
+  const date = new Date(value as string);
   if (isNaN(date.getTime())) {
     return 'Invalid date format';
   }
   return null;
 };
 
-const validateLatitude = (value) => {
+const validateLatitude: ValidationFunction = (value) => {
   if (value === '' || value === null) return null;
-  const num = parseFloat(value);
+  const num = parseFloat(value as string);
   if (isNaN(num)) return 'Must be a number';
   if (num < -90 || num > 90) return 'Latitude must be between -90 and 90';
   return null;
 };
 
-const validateLongitude = (value) => {
+const validateLongitude: ValidationFunction = (value) => {
   if (value === '' || value === null) return null;
-  const num = parseFloat(value);
+  const num = parseFloat(value as string);
   if (isNaN(num)) return 'Must be a number';
   if (num < -180 || num > 180) return 'Longitude must be between -180 and 180';
   return null;
 };
 
-export const entityMetadataSchemas = {
+export const entityMetadataSchemas: EntityMetadataSchemas = {
   person: {
     groups: [
       {

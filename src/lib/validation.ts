@@ -5,12 +5,20 @@
  */
 
 /**
+ * Validation result
+ */
+export interface ValidationResult {
+  valid: boolean;
+  error: string | null;
+}
+
+/**
  * Validates an entity name
  *
- * @param {string} name - The name to validate
- * @returns {Object} { valid: boolean, error: string }
+ * @param name - The name to validate
+ * @returns Validation result
  */
-export function validateEntityName(name) {
+export function validateEntityName(name: string): ValidationResult {
   if (!name || !name.trim()) {
     return { valid: false, error: 'Name is required' };
   }
@@ -23,13 +31,24 @@ export function validateEntityName(name) {
 }
 
 /**
+ * Description validation options
+ */
+export interface DescriptionValidationOptions {
+  maxLength?: number;
+  required?: boolean;
+}
+
+/**
  * Validates a description
  *
- * @param {string} description - The description to validate
- * @param {Object} options - Validation options
- * @returns {Object} { valid: boolean, error: string }
+ * @param description - The description to validate
+ * @param options - Validation options
+ * @returns Validation result
  */
-export function validateDescription(description, options = {}) {
+export function validateDescription(
+  description: string,
+  options: DescriptionValidationOptions = {}
+): ValidationResult {
   const { maxLength = 5000, required = false } = options;
 
   if (required && (!description || !description.trim())) {
@@ -46,11 +65,14 @@ export function validateDescription(description, options = {}) {
 /**
  * Validates coordinates (latitude/longitude)
  *
- * @param {number} lat - Latitude
- * @param {number} lng - Longitude
- * @returns {Object} { valid: boolean, error: string }
+ * @param lat - Latitude
+ * @param lng - Longitude
+ * @returns Validation result
  */
-export function validateCoordinates(lat, lng) {
+export function validateCoordinates(
+  lat: number | null | undefined,
+  lng: number | null | undefined
+): ValidationResult {
   if (lat === undefined || lat === null || lng === undefined || lng === null) {
     return { valid: false, error: 'Coordinates are required' };
   }
@@ -71,13 +93,24 @@ export function validateCoordinates(lat, lng) {
 }
 
 /**
+ * Date validation options
+ */
+export interface DateValidationOptions {
+  required?: boolean;
+  allowBC?: boolean;
+}
+
+/**
  * Validates a date string
  *
- * @param {string} dateStr - Date string to validate
- * @param {Object} options - Validation options
- * @returns {Object} { valid: boolean, error: string }
+ * @param dateStr - Date string to validate
+ * @param options - Validation options
+ * @returns Validation result
  */
-export function validateDate(dateStr, options = {}) {
+export function validateDate(
+  dateStr: string,
+  options: DateValidationOptions = {}
+): ValidationResult {
   const { required = false, allowBC = true } = options;
 
   if (!dateStr || !dateStr.trim()) {
@@ -103,10 +136,12 @@ export function validateDate(dateStr, options = {}) {
 /**
  * Sanitizes user input to prevent XSS
  *
- * @param {string} input - User input to sanitize
- * @returns {string} Sanitized input
+ * @param input - User input to sanitize
+ * @returns Sanitized input
  */
-export function sanitizeInput(input) {
+export function sanitizeInput(input: string): string;
+export function sanitizeInput<T>(input: T): T;
+export function sanitizeInput<T>(input: T): T | string {
   if (typeof input !== 'string') return input;
 
   return input
@@ -118,13 +153,24 @@ export function sanitizeInput(input) {
 }
 
 /**
+ * File upload validation options
+ */
+export interface FileUploadValidationOptions {
+  maxSizeMB?: number;
+  allowedTypes?: string[];
+}
+
+/**
  * Validates a file upload
  *
- * @param {File} file - The file to validate
- * @param {Object} options - Validation options
- * @returns {Object} { valid: boolean, error: string }
+ * @param file - The file to validate
+ * @param options - Validation options
+ * @returns Validation result
  */
-export function validateFileUpload(file, options = {}) {
+export function validateFileUpload(
+  file: File | null,
+  options: FileUploadValidationOptions = {}
+): ValidationResult {
   const { maxSizeMB = 100, allowedTypes = ['application/pdf', 'image/png', 'image/jpeg'] } =
     options;
 
@@ -152,10 +198,10 @@ export function validateFileUpload(file, options = {}) {
 /**
  * Validates an email address (basic validation)
  *
- * @param {string} email - Email to validate
- * @returns {Object} { valid: boolean, error: string }
+ * @param email - Email to validate
+ * @returns Validation result
  */
-export function validateEmail(email) {
+export function validateEmail(email: string): ValidationResult {
   if (!email || !email.trim()) {
     return { valid: false, error: 'Email is required' };
   }
@@ -169,13 +215,20 @@ export function validateEmail(email) {
 }
 
 /**
+ * URL validation options
+ */
+export interface URLValidationOptions {
+  required?: boolean;
+}
+
+/**
  * Validates a URL
  *
- * @param {string} url - URL to validate
- * @param {Object} options - Validation options
- * @returns {Object} { valid: boolean, error: string }
+ * @param url - URL to validate
+ * @param options - Validation options
+ * @returns Validation result
  */
-export function validateURL(url, options = {}) {
+export function validateURL(url: string, options: URLValidationOptions = {}): ValidationResult {
   const { required = false } = options;
 
   if (!url || !url.trim()) {
