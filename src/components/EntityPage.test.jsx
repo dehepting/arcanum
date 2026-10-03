@@ -207,8 +207,7 @@ describe('EntityPage', () => {
     );
   }, 10000);
 
-  // TODO: Fix metadata display tests after TypeScript migration
-  describe.skip('Metadata Loading', () => {
+  describe('Metadata Loading', () => {
     beforeEach(() => {
       entityPagesLib.getEntityPage.mockResolvedValue({
         data: { content: '<p>Content</p>' },
@@ -501,8 +500,7 @@ describe('EntityPage', () => {
       });
     });
 
-    // TODO: Fix close button test after TypeScript migration
-    it.skip('calls onClose when close button is clicked', async () => {
+    it('calls onClose when close button is clicked', async () => {
       const handleClose = vi.fn();
 
       render(
@@ -526,8 +524,7 @@ describe('EntityPage', () => {
       expect(handleClose).toHaveBeenCalledTimes(1);
     });
 
-    // TODO: Fix RichTextEditor tests after TypeScript migration
-    it.skip('does not render close button when onClose is not provided', async () => {
+    it('does not render close button when onClose is not provided', async () => {
       render(
         <EntityPage
           entityId="entity-1"
@@ -546,8 +543,7 @@ describe('EntityPage', () => {
     });
   });
 
-  // TODO: Fix RichTextEditor tests after TypeScript migration
-  describe.skip('Auto-save and Tab State', () => {
+  describe('Auto-save and Tab State', () => {
     beforeEach(() => {
       entityPagesLib.getEntityPage.mockResolvedValue({
         data: { content: '<p>Initial content</p>' },
@@ -599,8 +595,7 @@ describe('EntityPage', () => {
     });
   });
 
-  // TODO: Fix RichTextEditor tests after TypeScript migration
-  describe.skip('Default Template', () => {
+  describe('Default Template', () => {
     beforeEach(() => {
       entityPagesLib.getEntityPage.mockResolvedValue({
         data: null, // No existing content
@@ -628,8 +623,7 @@ describe('EntityPage', () => {
     });
   });
 
-  // TODO: Fix RichTextEditor tests after TypeScript migration
-  describe.skip('RichTextEditor Integration', () => {
+  describe('RichTextEditor Integration', () => {
     beforeEach(() => {
       entityPagesLib.getEntityPage.mockResolvedValue({
         data: { content: '<p>Test content</p>' },
