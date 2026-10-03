@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import useStore from '../store/useStore';
+import SettingsModal from './SettingsModal';
 
 export default function Topbar() {
   const currentProject = useStore((state) => state.currentProject);
   const setCurrentProject = useStore((state) => state.setCurrentProject);
   const openAdvancedSearch = useStore((state) => state.openAdvancedSearch);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleHomeClick = () => {
     setCurrentProject(null);
@@ -23,6 +26,10 @@ export default function Topbar() {
             <span className="topbar-icon">🔍</span>
             Search
           </button>
+          <button onClick={() => setSettingsOpen(true)} className="topbar-link" title="Settings">
+            <span className="topbar-icon">⚙️</span>
+            Settings
+          </button>
           <button
             onClick={handleHomeClick}
             className="topbar-link"
@@ -34,6 +41,7 @@ export default function Topbar() {
           <div className="project-name">{currentProject.name}</div>
         </>
       )}
+      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

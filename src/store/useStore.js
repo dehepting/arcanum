@@ -1,7 +1,17 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { get, set, del } from 'idb-keyval';
 import { createEntitySlice } from './entitySlice';
 
-const useStore = create((set) => ({
+// IndexedDB storage adapter
+const storage = {
+  getItem: async (name) => get(name),
+  setItem: async (name, value) => set(name, value),
+  removeItem: async (name) => del(name),
+};
+
+// Store configuration - conditionally enable persistence based on environment
+const storeConfig = (set) => ({
   // Current project
   currentProject: null,
   setCurrentProject: (project) => set({ currentProject: project }),
@@ -249,6 +259,53 @@ const useStore = create((set) => ({
       locationPlacementMode: false,
       pendingLocationEntity: null,
     }),
-}));
+});
+
+// Persistence configuration
+const persistConfig = {
+  name: 'arcanum-storage',
+  storage: createJSONStorage(() => storage),
+  partialize: (state) => ({
+    // Persist essential user data
+    currentProject: state.currentProject,
+    tabs: state.tabs,
+    activeTabId: state.activeTabId,
+    places: state.places,
+    people: state.people,
+    events: state.events,
+    theories: state.theories,
+    artifacts: state.artifacts,
+    entityPages: state.entityPages,
+    entityLinks: state.entityLinks,
+    mapOverlays: state.mapOverlays,
+
+    // Persist UI preferences
+    currentPage: state.currentPage,
+    pdfScale: state.pdfScale,
+
+    // DON'T persist heavy/temporary data:
+    // - sources (large PDF data)
+    // - annotations (loaded from DB per source)
+    // - canvases (large binary data)
+    // - modal states
+    // - selection/placement modes
+  }),
+  version: 1, // For future data migrations
+  migrate: (persistedState, version) => {
+    // Handle future schema changes
+    if (version === 0) {
+      // Migration example for v0 to v1
+      // persistedState.newField = 'default';
+    }
+    return persistedState;
+  },
+};
+
+// Create store with conditional persistence
+// In test environment, skip persistence to avoid async hydration issues
+const useStore =
+  import.meta.env.MODE === 'test'
+    ? create(storeConfig)
+    : create(persist(storeConfig, persistConfig));
 
 export default useStore;
