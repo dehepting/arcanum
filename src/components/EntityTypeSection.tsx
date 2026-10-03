@@ -1,25 +1,34 @@
 import { useState, useRef, useEffect } from 'react';
 import { getEntityType } from '../lib/entityTypes';
 
+interface Entity {
+  id: string;
+  name: string;
+  [key: string]: any;
+}
+
+interface EntityTypeSectionProps {
+  type: string;
+  entities?: Entity[];
+  isExpanded: boolean;
+  onToggle: () => void;
+  onEntityClick: (type: string, entity: Entity) => void;
+  onEntityDoubleClick: (entity: Entity, e: React.MouseEvent) => void;
+  onEntityRename: (entityId: string | null) => void;
+  onLoadMore: (type: string) => void;
+  onCreateNew: (type: string) => void;
+  editingEntityId: string | null | undefined;
+  editingEntityName: string;
+  onEditingNameChange: (name: string) => void;
+  totalCount?: number;
+  limit?: number;
+  hasMore?: boolean;
+  showCreate?: boolean;
+}
+
 /**
  * Reusable entity type section for EntityExplorer sidebar
  * Eliminates duplication of People, Events, Theories, Places, Artifacts sections
- *
- * @param {string} type - Entity type ('person', 'event', etc.)
- * @param {Array} entities - Filtered entities to display
- * @param {boolean} isExpanded - Whether section is expanded
- * @param {Function} onToggle - Toggle expand/collapse
- * @param {Function} onEntityClick - Handle entity click
- * @param {Function} onEntityDoubleClick - Handle entity double-click for rename
- * @param {Function} onEntityRename - Handle entity rename save
- * @param {Function} onLoadMore - Handle load more button click
- * @param {Function} onCreateNew - Handle create new entity button click
- * @param {string} editingEntityId - ID of entity currently being renamed
- * @param {string} editingEntityName - Current value of rename input
- * @param {Function} onEditingNameChange - Handle rename input change
- * @param {number} totalCount - Total count (for display in header)
- * @param {number} limit - Current limit (for "Load More" logic)
- * @param {boolean} hasMore - Whether there are more entities to load
  */
 export default function EntityTypeSection({
   type,
@@ -38,9 +47,9 @@ export default function EntityTypeSection({
   limit = 10,
   hasMore = false,
   showCreate = true,
-}) {
+}: EntityTypeSectionProps) {
   const config = getEntityType(type);
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus rename input
   useEffect(() => {
@@ -50,7 +59,7 @@ export default function EntityTypeSection({
     }
   }, [editingEntityId]);
 
-  const handleKeyDown = (e, entityId) => {
+  const handleKeyDown = (e: React.KeyboardEvent, entityId: string) => {
     if (e.key === 'Enter') {
       onEntityRename(entityId);
     } else if (e.key === 'Escape') {

@@ -1,5 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, ReactNode } from 'react';
 import '../styles/modal.css';
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  maxWidth?: string;
+  closeOnEscape?: boolean;
+  closeOnOutsideClick?: boolean;
+}
 
 /**
  * Reusable modal wrapper component
@@ -12,12 +21,12 @@ export default function Modal({
   maxWidth = '700px',
   closeOnEscape = true,
   closeOnOutsideClick = true,
-}) {
+}: ModalProps) {
   // Handle escape key
   useEffect(() => {
     if (!isOpen || !closeOnEscape) return;
 
-    const handleEscape = (e) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
       }
@@ -43,7 +52,12 @@ export default function Modal({
   );
 }
 
-export function ModalHeader({ children, onClose }) {
+interface ModalHeaderProps {
+  children: ReactNode;
+  onClose?: () => void;
+}
+
+export function ModalHeader({ children, onClose }: ModalHeaderProps) {
   return (
     <div className="modal-header">
       <h2>{children}</h2>
@@ -56,10 +70,18 @@ export function ModalHeader({ children, onClose }) {
   );
 }
 
-export function ModalBody({ children }) {
+interface ModalBodyProps {
+  children: ReactNode;
+}
+
+export function ModalBody({ children }: ModalBodyProps) {
   return <div className="modal-body">{children}</div>;
 }
 
-export function ModalFooter({ children }) {
+interface ModalFooterProps {
+  children: ReactNode;
+}
+
+export function ModalFooter({ children }: ModalFooterProps) {
   return <div className="modal-footer">{children}</div>;
 }
