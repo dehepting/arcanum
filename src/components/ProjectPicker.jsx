@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { logger } from '../utils/logger';
 import useStore from '../store/useStore';
 import * as tauri from '../lib/tauri';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
 
 export default function ProjectPicker() {
   const [projects, setProjects] = useState([]);
@@ -242,97 +243,83 @@ export default function ProjectPicker() {
       </div>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && projectToDelete && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-          onClick={cancelDelete}
-        >
-          <div
-            style={{
-              background: 'var(--panel-2)',
-              border: '1px solid var(--red-7)',
-              borderRadius: '8px',
-              padding: '24px',
-              maxWidth: '500px',
-              width: '90%',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ margin: '0 0 16px 0', color: 'var(--red-9)', fontSize: '18px' }}>
-              ⚠️ Delete Project
-            </h3>
-            <p style={{ margin: '0 0 16px 0', lineHeight: 1.5 }}>
-              This will permanently delete <strong>{projectToDelete.name}</strong> and all its data:
-            </p>
-            <ul style={{ margin: '0 0 16px 0', paddingLeft: '20px', lineHeight: 1.5 }}>
-              <li>All entities (people, places, events, theories, artifacts)</li>
-              <li>All entity pages and content</li>
-              <li>All sources and annotations</li>
-              <li>This action cannot be undone</li>
-            </ul>
-            <p style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 500 }}>
-              Type{' '}
-              <code style={{ background: 'var(--panel)', padding: '2px 6px', borderRadius: '3px' }}>
-                {projectToDelete.name}
-              </code>{' '}
-              to confirm:
-            </p>
-            <input
-              type="text"
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder={`Type "${projectToDelete.name}" to confirm`}
-              style={{
-                width: '100%',
-                padding: '10px',
-                background: 'var(--bg)',
-                border: '1px solid var(--line)',
-                borderRadius: '4px',
-                color: 'var(--text)',
-                fontSize: '14px',
-                marginBottom: '16px',
-              }}
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && deleteConfirmText === projectToDelete.name) {
-                  confirmDelete();
-                }
-                if (e.key === 'Escape') cancelDelete();
-              }}
-            />
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn" onClick={cancelDelete} style={{ flex: 1 }}>
-                Cancel
-              </button>
-              <button
-                className="btn"
-                onClick={confirmDelete}
-                disabled={deleteConfirmText !== projectToDelete.name || loading}
+      <Modal
+        isOpen={showDeleteConfirm && !!projectToDelete}
+        onClose={cancelDelete}
+        maxWidth="500px"
+      >
+        <ModalHeader>
+          <span style={{ color: 'var(--red-9)' }}>⚠️ Delete Project</span>
+        </ModalHeader>
+        <ModalBody>
+          {projectToDelete && (
+            <>
+              <p style={{ margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                This will permanently delete <strong>{projectToDelete.name}</strong> and all its
+                data:
+              </p>
+              <ul style={{ margin: '0 0 16px 0', paddingLeft: '20px', lineHeight: 1.5 }}>
+                <li>All entities (people, places, events, theories, artifacts)</li>
+                <li>All entity pages and content</li>
+                <li>All sources and annotations</li>
+                <li>This action cannot be undone</li>
+              </ul>
+              <p style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 500 }}>
+                Type{' '}
+                <code
+                  style={{ background: 'var(--panel)', padding: '2px 6px', borderRadius: '3px' }}
+                >
+                  {projectToDelete.name}
+                </code>{' '}
+                to confirm:
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={`Type "${projectToDelete.name}" to confirm`}
                 style={{
-                  flex: 1,
-                  background:
-                    deleteConfirmText === projectToDelete.name ? 'var(--red-9)' : 'var(--panel)',
-                  color: deleteConfirmText === projectToDelete.name ? 'white' : 'var(--text-muted)',
-                  cursor: deleteConfirmText === projectToDelete.name ? 'pointer' : 'not-allowed',
+                  width: '100%',
+                  padding: '10px',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--line)',
+                  borderRadius: '4px',
+                  color: 'var(--text)',
+                  fontSize: '14px',
                 }}
-              >
-                {loading ? 'Deleting...' : 'Delete Project'}
-              </button>
-            </div>
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && deleteConfirmText === projectToDelete.name) {
+                    confirmDelete();
+                  }
+                  if (e.key === 'Escape') cancelDelete();
+                }}
+              />
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+            <button className="btn" onClick={cancelDelete} style={{ flex: 1 }}>
+              Cancel
+            </button>
+            <button
+              className="btn"
+              onClick={confirmDelete}
+              disabled={deleteConfirmText !== projectToDelete?.name || loading}
+              style={{
+                flex: 1,
+                background:
+                  deleteConfirmText === projectToDelete?.name ? 'var(--red-9)' : 'var(--panel)',
+                color: deleteConfirmText === projectToDelete?.name ? 'white' : 'var(--text-muted)',
+                cursor: deleteConfirmText === projectToDelete?.name ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {loading ? 'Deleting...' : 'Delete Project'}
+            </button>
           </div>
-        </div>
-      )}
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }
