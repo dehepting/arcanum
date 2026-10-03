@@ -3,14 +3,15 @@ import { logger } from '../utils/logger';
 import useStore from '../store/useStore';
 import * as tauri from '../lib/tauri';
 import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
+import { Project } from '../types/store';
 
 export default function ProjectPicker() {
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const setCurrentProject = useStore((state) => state.setCurrentProject);
 
@@ -21,7 +22,7 @@ export default function ProjectPicker() {
       setProjects(data || []);
     } catch (err) {
       logger.error('Error loading projects:', err);
-      alert('Error loading projects: ' + err.message);
+      alert('Error loading projects: ' + (err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -40,18 +41,18 @@ export default function ProjectPicker() {
       localStorage.setItem('arcanum_last_project_id', data.id);
     } catch (err) {
       logger.error('Error creating project:', err);
-      alert('Error creating project: ' + err.message);
+      alert('Error creating project: ' + (err as Error).message);
     } finally {
       setLoading(false);
     }
   };
 
-  const openProject = (project) => {
+  const openProject = (project: Project) => {
     setCurrentProject(project);
     localStorage.setItem('arcanum_last_project_id', project.id);
   };
 
-  const handleDeleteClick = (project, e) => {
+  const handleDeleteClick = (project: Project, e: React.MouseEvent) => {
     e.stopPropagation();
     setProjectToDelete(project);
     setShowDeleteConfirm(true);
@@ -72,7 +73,7 @@ export default function ProjectPicker() {
       setDeleteConfirmText('');
     } catch (err) {
       logger.error('Error deleting project:', err);
-      alert('Error deleting project: ' + err.message);
+      alert('Error deleting project: ' + (err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -93,7 +94,7 @@ export default function ProjectPicker() {
         setProjects(data || []);
       } catch (err) {
         logger.error('Error loading projects:', err);
-        alert('Error loading projects: ' + err.message);
+        alert('Error loading projects: ' + (err as Error).message);
       } finally {
         setLoading(false);
       }
