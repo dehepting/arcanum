@@ -16,7 +16,7 @@ export default function AnnotationModal() {
   const [saving, setSaving] = useState(false);
   const [showArtifactLinkModal, setShowArtifactLinkModal] = useState(false);
   const [showEntityPicker, setShowEntityPicker] = useState(false);
-  const [linkedArtifacts, setLinkedArtifacts] = useState([]);
+  const [_linkedArtifacts, setLinkedArtifacts] = useState([]);
   const [linkedEntities, setLinkedEntities] = useState([]);
 
   const modalOpen = useStore((state) => state.annotationModalOpen);
@@ -170,7 +170,7 @@ export default function AnnotationModal() {
     setShowEntityPicker(true);
   };
 
-  const handleEntitySelected = async ({ entityId, entityType, entityName }) => {
+  const handleEntitySelected = async ({ entityId, entityType }) => {
     if (!pendingAnnotation?.id) {
       alert('Please save the annotation first');
       return;
