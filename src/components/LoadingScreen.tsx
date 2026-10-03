@@ -1,21 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import useStore from '../store/useStore';
+
+interface LoadingScreenProps {
+  children: ReactNode;
+}
 
 /**
  * LoadingScreen - Waits for Zustand store to hydrate from IndexedDB
  *
  * Displays loading message while state is being restored from persistent storage.
  * Prevents rendering the app before state is fully loaded to avoid flash of empty state.
- *
- * @param {Object} props
- * @param {React.ReactNode} props.children - App to render after hydration completes
  */
-export default function LoadingScreen({ children }) {
+export default function LoadingScreen({ children }: LoadingScreenProps) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     // If persist is not available (test mode), skip hydration
-    if (!useStore.persist) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(useStore as any).persist) {
       setIsHydrated(true);
       return;
     }
@@ -27,14 +29,16 @@ export default function LoadingScreen({ children }) {
     }, 2000); // 2 second timeout
 
     // Check if already hydrated (might be synchronous)
-    if (useStore.persist.hasHydrated()) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((useStore as any).persist.hasHydrated()) {
       clearTimeout(timeout);
       setIsHydrated(true);
       return;
     }
 
     // Wait for hydration to complete
-    const unsubscribe = useStore.persist.onFinishHydration(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unsubscribe = (useStore as any).persist.onFinishHydration(() => {
       clearTimeout(timeout);
       setIsHydrated(true);
     });

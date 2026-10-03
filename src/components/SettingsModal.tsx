@@ -2,6 +2,11 @@ import { useState } from 'react';
 import useStore from '../store/useStore';
 import Modal from './Modal';
 
+interface SettingsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 /**
  * SettingsModal - Application settings and preferences
  *
@@ -9,11 +14,12 @@ import Modal from './Modal';
  * - Clear cached data (IndexedDB state persistence)
  * - Future: Theme settings, keyboard shortcuts, etc.
  */
-export default function SettingsModal({ isOpen, onClose }) {
+export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isClearing, setIsClearing] = useState(false);
 
   const handleClearCache = async () => {
-    if (!useStore.persist) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(useStore as any).persist) {
       alert('Persistence is not enabled in this environment.');
       return;
     }
@@ -33,7 +39,8 @@ export default function SettingsModal({ isOpen, onClose }) {
 
     try {
       // Clear Zustand persisted state
-      await useStore.persist.clearStorage();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (useStore as any).persist.clearStorage();
 
       // Also clear any other localStorage items
       localStorage.removeItem('arcanum_last_project_id');
@@ -50,7 +57,7 @@ export default function SettingsModal({ isOpen, onClose }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Settings">
+    <Modal isOpen={isOpen} onClose={onClose}>
       <div style={{ padding: 'var(--space-4)' }}>
         <section style={{ marginBottom: 'var(--space-6)' }}>
           <h3

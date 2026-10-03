@@ -1,6 +1,16 @@
 import { getEntityTypeConfig } from '../config/entityTypes';
 import './EntityFormItem.css';
 
+interface EntityFormItemProps {
+  entityType: string;
+  entity: Record<string, any>;
+  index: number;
+  selected: boolean;
+  onToggleSelection: (index: number) => void;
+  onUpdate: (index: number, fieldKey: string, value: any) => void;
+  onRemove: (index: number) => void;
+}
+
 /**
  * EntityFormItem - Generic form item for any entity type
  * Renders form fields based on entity type configuration
@@ -13,14 +23,15 @@ export default function EntityFormItem({
   onToggleSelection,
   onUpdate,
   onRemove,
-}) {
-  const config = getEntityTypeConfig(entityType);
+}: EntityFormItemProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const config = getEntityTypeConfig(entityType as any);
 
-  const handleFieldChange = (fieldKey, value) => {
+  const handleFieldChange = (fieldKey: string, value: any) => {
     onUpdate(index, fieldKey, value);
   };
 
-  const renderField = (field) => {
+  const renderField = (field: any) => {
     const value = entity[field.key] ?? '';
 
     switch (field.type) {
@@ -75,7 +86,7 @@ export default function EntityFormItem({
               handleFieldChange(field.key, val);
             }}
           >
-            {field.options.map((opt) => (
+            {field.options.map((opt: any) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>

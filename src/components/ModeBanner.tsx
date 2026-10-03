@@ -1,12 +1,14 @@
+interface ModeBannerProps {
+  message: string;
+  variant?: 'primary' | 'secondary';
+  onCancel?: () => void;
+}
+
 /**
  * ModeBanner - Reusable banner for map mode indicators
  * Used for location placement, pin placement, and overlay/georeferencing modes
- *
- * @param {string} message - Banner message to display
- * @param {string} variant - 'primary' (accent) or 'secondary' (accent-2)
- * @param {Function} onCancel - Optional cancel handler (shows cancel button if provided)
  */
-export default function ModeBanner({ message, variant = 'primary', onCancel }) {
+export default function ModeBanner({ message, variant = 'primary', onCancel }: ModeBannerProps) {
   const isPrimary = variant === 'primary';
 
   return (
