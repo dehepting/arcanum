@@ -5,22 +5,19 @@
  */
 
 import type { Entity, EntityType } from './entities';
+import type { Source } from './store';
 
 /**
  * Tab type discriminator
  * Includes generic tab types and specific entity types
  */
-export type TabType = 'map' | 'pdf' | 'canvas' | 'review' | EntityType;
+export type TabType = 'map' | 'pdf' | 'canvas' | 'review' | 'graph' | EntityType;
 
 /**
  * PDF tab data
  */
 export interface PDFTabData {
-  source: {
-    id: string;
-    name: string;
-    file_path: string;
-  };
+  source: Source;
 }
 
 /**
@@ -85,10 +82,15 @@ export interface ReviewTab extends BaseTab {
   data: ReviewTabData;
 }
 
+export interface GraphTab extends BaseTab {
+  type: 'graph';
+  data: null;
+}
+
 /**
  * Union type of all tab types
  */
-export type Tab = MapTab | PDFTab | EntityTab | CanvasTab | ReviewTab;
+export type Tab = MapTab | PDFTab | EntityTab | CanvasTab | ReviewTab | GraphTab;
 
 /**
  * Create tab input (for useStore.addTab)
