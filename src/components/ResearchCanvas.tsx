@@ -5,6 +5,33 @@ import 'tldraw/tldraw.css';
 import useStore from '../store/useStore';
 import EntityPicker from './canvas/EntityPicker';
 import { invoke } from '@tauri-apps/api/core';
+import type { CanvasTab } from '../types/tabs';
+
+interface CanvasInnerProps {
+  canvasId: string;
+  onShowEntityPicker: () => void;
+}
+
+interface ResearchCanvasProps {
+  tab: CanvasTab;
+}
+
+interface EntityEventDetail {
+  entityId: string;
+  entityType: string;
+  entityName: string;
+}
+
+interface PDFExcerptEventDetail {
+  text: string;
+  sourceId: string;
+  sourceTitle: string;
+  pageNumber: number;
+}
+
+interface CanvasData {
+  canvas_data?: string;
+}
 
 // Dark theme override to match Arcanum
 const ARCANUM_THEME = {
@@ -17,11 +44,11 @@ const ARCANUM_THEME = {
   '--color-selected': 'var(--accent-9)',
 };
 
-function CanvasInner({ canvasId, onShowEntityPicker }) {
+function CanvasInner({ canvasId, onShowEntityPicker }: CanvasInnerProps) {
   const editor = useEditor();
   const currentProject = useStore((state) => state.currentProject);
-  const saveTimeoutRef = useRef(null);
-  const hasLoadedRef = useRef(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasLoadedRef = useRef<boolean>(false);
 
   // Log for debugging
   useEffect(() => {
@@ -32,7 +59,7 @@ function CanvasInner({ canvasId, onShowEntityPicker }) {
   useEffect(() => {
     if (!editor) return;
 
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
         e.preventDefault();
         onShowEntityPicker();
@@ -47,8 +74,8 @@ function CanvasInner({ canvasId, onShowEntityPicker }) {
   useEffect(() => {
     if (!editor) return;
 
-    const handleEntityAdd = (event) => {
-      const { entityId, entityType, entityName } = event.detail;
+    const handleEntityAdd = (event: Event) => {
+      const { entityId, entityType, entityName } = (event as CustomEvent<EntityEventDetail>).detail;
 
       // Add to center of viewport
       const viewportCenter = editor.getViewportPageBounds().center;
@@ -82,8 +109,10 @@ function CanvasInner({ canvasId, onShowEntityPicker }) {
   useEffect(() => {
     if (!editor) return;
 
-    const handlePDFExcerptAdd = (event) => {
-      const { text, sourceId, sourceTitle, pageNumber } = event.detail;
+    const handlePDFExcerptAdd = (event: Event) => {
+      const { text, sourceId, sourceTitle, pageNumber } = (
+        event as CustomEvent<PDFExcerptEventDetail>
+      ).detail;
 
       // Add to center of viewport
       const viewportCenter = editor.getViewportPageBounds().center;
@@ -127,7 +156,7 @@ function CanvasInner({ canvasId, onShowEntityPicker }) {
     const loadCanvas = async () => {
       try {
         logger.debug('Loading canvas data for:', canvasId);
-        const canvas = await invoke('get_canvas', { canvasId });
+        const canvas = await invoke<CanvasData>('get_canvas', { canvasId });
         if (canvas && canvas.canvas_data) {
           const snapshot = JSON.parse(canvas.canvas_data);
           editor.loadSnapshot(snapshot);
@@ -202,9 +231,9 @@ function CanvasInner({ canvasId, onShowEntityPicker }) {
   return null;
 }
 
-export default function ResearchCanvas({ tab }) {
-  const [showEntityPicker, setShowEntityPicker] = useState(false);
-  const canvasId = tab.data?.canvasId || tab.canvasId;
+export default function ResearchCanvas({ tab }: ResearchCanvasProps) {
+  const [showEntityPicker, setShowEntityPicker] = useState<boolean>(false);
+  const canvasId = tab.data?.canvasId || (tab as any).canvasId;
 
   const handleShowEntityPicker = useCallback(() => {
     setShowEntityPicker(true);
@@ -214,7 +243,7 @@ export default function ResearchCanvas({ tab }) {
     setShowEntityPicker(false);
   }, []);
 
-  const handleAddEntity = useCallback((entityData) => {
+  const handleAddEntity = useCallback((entityData: EntityEventDetail) => {
     // Dispatch event to add entity to canvas
     window.dispatchEvent(
       new CustomEvent('addEntityToCanvas', {
