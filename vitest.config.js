@@ -64,7 +64,12 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
 
     // Exclude patterns
-    exclude: ['node_modules', 'dist', 'mcp-server'],
+    exclude: [
+      'node_modules',
+      'dist',
+      'mcp-server',
+      'src/**/*.integration.test.{ts,tsx}', // Integration tests have separate config
+    ],
 
     // Reporter
     reporters: ['verbose'],
