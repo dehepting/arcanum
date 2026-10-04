@@ -245,7 +245,7 @@ export default function EntityExplorer() {
   const handleSourceDoubleClick = (source: Source, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingSourceId(source.id);
-    setEditingSourceTitle(source.name);
+    setEditingSourceTitle(source.title);
   };
 
   // Handle source rename
@@ -265,7 +265,7 @@ export default function EntityExplorer() {
 
       // Update the source in store
       const updatedSources = sources.map((s) =>
-        s.id === sourceId ? { ...s, name: editingSourceTitle.trim() } : s
+        s.id === sourceId ? { ...s, title: editingSourceTitle.trim() } : s
       );
       useStore.getState().setSources(updatedSources);
 
@@ -274,7 +274,7 @@ export default function EntityExplorer() {
         if (t.type === 'pdf' && t.data?.source?.id === sourceId) {
           useStore.getState().updateTab(t.id, {
             title: editingSourceTitle.trim(),
-            data: { source: { ...t.data.source, name: editingSourceTitle.trim() } },
+            data: { source: { ...t.data.source, title: editingSourceTitle.trim() } },
           });
         }
       });
@@ -452,7 +452,7 @@ export default function EntityExplorer() {
       addSource(source);
       addTab({
         type: 'pdf',
-        title: source.name,
+        title: source.title,
         data: { source },
       });
     } catch (err) {
@@ -546,14 +546,14 @@ export default function EntityExplorer() {
                     } else {
                       addTab({
                         type: 'pdf',
-                        title: source.name,
+                        title: source.title,
                         data: { source },
                       });
                       setActiveSource(source.id);
                     }
                   }}
                   onDoubleClick={(e) => handleSourceDoubleClick(source, e)}
-                  title={source.name}
+                  title={source.title}
                 >
                   <span className="entity-result-icon">📄</span>
                   {editingSourceId === source.id ? (
@@ -574,7 +574,7 @@ export default function EntityExplorer() {
                       autoFocus
                     />
                   ) : (
-                    <span className="entity-result-name">{source.name}</span>
+                    <span className="entity-result-name">{source.title}</span>
                   )}
                 </div>
               ))

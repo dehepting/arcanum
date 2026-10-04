@@ -323,7 +323,7 @@ export default function EntityPage({
       if (!pdfTab) {
         addTab({
           type: 'pdf',
-          title: source.name,
+          title: source.title,
           data: { source },
         });
 
@@ -527,7 +527,7 @@ export default function EntityPage({
                       <div className="annotation-icon">{annotationTypeIcon}</div>
                       <div className="annotation-details">
                         <div className="annotation-source">
-                          {source?.name || 'Unknown Source'} · Page {annotation.page_number}
+                          {source?.title || 'Unknown Source'} · Page {annotation.page_number}
                         </div>
                         {annotation.content && (
                           <div className="annotation-content">

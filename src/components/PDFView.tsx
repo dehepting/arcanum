@@ -59,20 +59,20 @@ export default function PDFView() {
   // Load PDF
   useEffect(() => {
     logger.debug('Active source:', activeSource);
-    logger.debug('File URL:', (activeSource as any)?.file_url);
+    logger.debug('File URL:', activeSource?.file_url);
 
-    if (!(activeSource as any)?.file_url) {
+    if (!activeSource?.file_url) {
       logger.warn('No file_url found in source');
       return;
     }
 
     const loadPDF = async () => {
       try {
-        logger.debug('Reading PDF file from:', (activeSource as any).file_url);
+        logger.debug('Reading PDF file from:', activeSource.file_url);
 
         // Read file as binary data using Tauri command
         const fileData = await invoke<number[]>('read_file_bytes', {
-          filePath: (activeSource as any).file_url,
+          filePath: activeSource.file_url,
         });
         logger.debug('File read successfully, size:', fileData.length, 'bytes');
 
@@ -85,7 +85,7 @@ export default function PDFView() {
         setCurrentPage(1);
       } catch (err) {
         logger.error('Error loading PDF:', err);
-        logger.error('Failed to load from:', (activeSource as any).file_url);
+        logger.error('Failed to load from:', activeSource.file_url);
       }
     };
 
@@ -191,7 +191,7 @@ export default function PDFView() {
         detail: {
           text: selectedText,
           sourceId: activeSource.id,
-          sourceTitle: (activeSource as any).title,
+          sourceTitle: activeSource.title,
           pageNumber: currentPage,
         },
       })
