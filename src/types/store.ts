@@ -25,8 +25,13 @@ export interface Project {
 export interface Source {
   id: string;
   project_id: string;
-  name: string;
-  file_path: string;
+  title: string;
+  file_name: string;
+  storage_path: string;
+  file_url: string;
+  file_size?: number | null;
+  mime_type?: string | null;
+  metadata?: string | null;
   created_at: string;
   updated_at: string;
 }

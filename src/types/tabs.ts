@@ -5,6 +5,7 @@
  */
 
 import type { Entity, EntityType } from './entities';
+import type { Source } from './store';
 
 /**
  * Tab type discriminator
@@ -16,11 +17,7 @@ export type TabType = 'map' | 'pdf' | 'canvas' | 'review' | EntityType;
  * PDF tab data
  */
 export interface PDFTabData {
-  source: {
-    id: string;
-    name: string;
-    file_path: string;
-  };
+  source: Source;
 }
 
 /**

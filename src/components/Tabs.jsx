@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import useStore from '../store/useStore';
 import { updateSource } from '../lib/tauri';
+import { invoke } from '@tauri-apps/api/core';
 
 const TAB_ICONS = {
   map: '🗺️',
@@ -72,6 +73,23 @@ export default function Tabs() {
         setSources(updatedSources);
       } catch (err) {
         console.error('Failed to update source:', err);
+      }
+    }
+
+    // If it's a canvas tab, also update the canvas
+    if (tab.type === 'canvas' && tab.data?.canvasId) {
+      try {
+        await invoke('update_canvas', {
+          canvasId: tab.data.canvasId,
+          input: {
+            name: editingTitle.trim(),
+          },
+        });
+
+        // Dispatch event so EntityExplorer can reload canvases
+        window.dispatchEvent(new CustomEvent('canvas-updated'));
+      } catch (err) {
+        console.error('Failed to update canvas:', err);
       }
     }
 

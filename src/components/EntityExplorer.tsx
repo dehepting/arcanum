@@ -131,6 +131,14 @@ export default function EntityExplorer() {
     };
 
     loadCanvases();
+
+    // Listen for canvas updates from other components (e.g., tab renames)
+    const handleCanvasUpdate = () => loadCanvases();
+    window.addEventListener('canvas-updated', handleCanvasUpdate);
+
+    return () => {
+      window.removeEventListener('canvas-updated', handleCanvasUpdate);
+    };
   }, [currentProject]);
 
   // Handle canvas click - opens canvas in tab or switches to existing tab
@@ -200,6 +208,17 @@ export default function EntityExplorer() {
       setCanvases(
         canvases.map((c) => (c.id === canvasId ? { ...c, name: editingCanvasName.trim() } : c))
       );
+
+      // Also update any open tabs with this canvas
+      tabs.forEach((t) => {
+        if (t.type === 'canvas' && t.data?.canvasId === canvasId) {
+          useStore.getState().updateTab(t.id, {
+            title: editingCanvasName.trim(),
+            data: { ...t.data, canvasName: editingCanvasName.trim() },
+          });
+        }
+      });
+
       setEditingCanvasId(null);
     } catch (error) {
       console.error('Failed to rename canvas:', error);
@@ -245,7 +264,7 @@ export default function EntityExplorer() {
   const handleSourceDoubleClick = (source: Source, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingSourceId(source.id);
-    setEditingSourceTitle(source.name);
+    setEditingSourceTitle(source.title);
   };
 
   // Handle source rename
@@ -274,7 +293,7 @@ export default function EntityExplorer() {
         if (t.type === 'pdf' && t.data?.source?.id === sourceId) {
           useStore.getState().updateTab(t.id, {
             title: editingSourceTitle.trim(),
-            data: { source: { ...t.data.source, name: editingSourceTitle.trim() } },
+            data: { source: { ...t.data.source, title: editingSourceTitle.trim() } },
           });
         }
       });
@@ -452,7 +471,7 @@ export default function EntityExplorer() {
       addSource(source);
       addTab({
         type: 'pdf',
-        title: source.name,
+        title: source.title,
         data: { source },
       });
     } catch (err) {
@@ -546,14 +565,14 @@ export default function EntityExplorer() {
                     } else {
                       addTab({
                         type: 'pdf',
-                        title: source.name,
+                        title: source.title,
                         data: { source },
                       });
                       setActiveSource(source.id);
                     }
                   }}
                   onDoubleClick={(e) => handleSourceDoubleClick(source, e)}
-                  title={source.name}
+                  title={source.title}
                 >
                   <span className="entity-result-icon">📄</span>
                   {editingSourceId === source.id ? (
@@ -574,7 +593,7 @@ export default function EntityExplorer() {
                       autoFocus
                     />
                   ) : (
-                    <span className="entity-result-name">{source.name}</span>
+                    <span className="entity-result-name">{source.title}</span>
                   )}
                 </div>
               ))
