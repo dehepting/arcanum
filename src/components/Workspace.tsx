@@ -59,7 +59,7 @@ export default function Workspace() {
       case 'pdf':
         return activeTab.data?.source ? (
           <Suspense fallback={<LoadingFallback message="Loading PDF viewer..." />}>
-            <PDFView source={activeTab.data.source} />
+            <PDFView />
           </Suspense>
         ) : (
           <div className="tab-empty">No PDF loaded</div>

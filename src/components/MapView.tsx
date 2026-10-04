@@ -83,9 +83,9 @@ export default function MapView() {
       return;
     }
 
-    const centerLng = currentProject?.map_center_lng || -20;
-    const centerLat = currentProject?.map_center_lat || 36;
-    const zoom = currentProject?.map_zoom || 3.4;
+    const centerLng = (currentProject as any)?.map_center_lng || -20;
+    const centerLat = (currentProject as any)?.map_center_lat || 36;
+    const zoom = (currentProject as any)?.map_zoom || 3.4;
 
     try {
       map.current = new Map({
@@ -432,8 +432,8 @@ export default function MapView() {
 
     // Add overlay sources and layers
     mapOverlays
-      .filter((overlay) => overlay.visible)
-      .forEach((overlay) => {
+      .filter((overlay: any) => overlay.visible)
+      .forEach((overlay: any) => {
         const layerId = `overlay-${overlay.id}`;
 
         // Add image source with corner coordinates

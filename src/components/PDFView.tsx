@@ -59,20 +59,20 @@ export default function PDFView() {
   // Load PDF
   useEffect(() => {
     logger.debug('Active source:', activeSource);
-    logger.debug('File URL:', activeSource?.file_url);
+    logger.debug('File URL:', activeSource?.file_path);
 
-    if (!activeSource?.file_url) {
-      logger.warn('No file_url found in source');
+    if (!activeSource?.file_path) {
+      logger.warn('No file_path found in source');
       return;
     }
 
     const loadPDF = async () => {
       try {
-        logger.debug('Reading PDF file from:', activeSource.file_url);
+        logger.debug('Reading PDF file from:', activeSource.file_path);
 
         // Read file as binary data using Tauri command
         const fileData = await invoke<number[]>('read_file_bytes', {
-          filePath: activeSource.file_url,
+          filePath: activeSource.file_path,
         });
         logger.debug('File read successfully, size:', fileData.length, 'bytes');
 
@@ -85,7 +85,7 @@ export default function PDFView() {
         setCurrentPage(1);
       } catch (err) {
         logger.error('Error loading PDF:', err);
-        logger.error('Failed to load from:', activeSource.file_url);
+        logger.error('Failed to load from:', activeSource.file_path);
       }
     };
 
@@ -115,7 +115,10 @@ export default function PDFView() {
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      await page.render({
+        canvasContext: ctx,
+        viewport,
+      } as any).promise;
 
       // Render text layer for selection
       const textContent = await page.getTextContent();
@@ -188,7 +191,7 @@ export default function PDFView() {
         detail: {
           text: selectedText,
           sourceId: activeSource.id,
-          sourceTitle: activeSource.title,
+          sourceTitle: activeSource.name,
           pageNumber: currentPage,
         },
       })

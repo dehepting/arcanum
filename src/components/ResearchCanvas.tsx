@@ -47,7 +47,7 @@ const ARCANUM_THEME = {
 function CanvasInner({ canvasId, onShowEntityPicker }: CanvasInnerProps) {
   const editor = useEditor();
   const currentProject = useStore((state) => state.currentProject);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<number | null>(null);
   const hasLoadedRef = useRef<boolean>(false);
 
   // Log for debugging
@@ -128,7 +128,7 @@ function CanvasInner({ canvasId, onShowEntityPicker }: CanvasInnerProps) {
           text,
           color: 'yellow',
           size: 'm',
-        },
+        } as any,
         meta: {
           isPDFExcerpt: true,
           sourceId,
