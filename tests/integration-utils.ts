@@ -87,7 +87,7 @@ export async function createTestSource(
 ): Promise<any> {
   // For integration tests, you'd need a real test PDF file
   // For now, this is a placeholder
-  const source = await invoke('create_source', {
+  const source = await invoke<any>('create_source', {
     input: {
       project_id: projectId,
       title,

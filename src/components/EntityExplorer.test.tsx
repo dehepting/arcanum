@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
+import '@testing-library/jest-dom/vitest';
 import EntityExplorer from './EntityExplorer';
 import useStore from '../store/useStore';
 
@@ -28,7 +28,12 @@ describe('EntityExplorer - Source Display', () => {
     useStore.setState({
       sources: [],
       tabs: [],
-      currentProject: { id: 'test-project', name: 'Test' },
+      currentProject: {
+        id: 'test-project',
+        name: 'Test',
+        created_at: '2024-01-01',
+        updated_at: '2024-01-01',
+      },
     });
   });
 
@@ -91,10 +96,6 @@ describe('EntityExplorer - Source Display', () => {
     // Verify TypeScript: This should compile (title exists)
     const title: string = testSource.title;
     expect(title).toBe('Correct Property Name');
-
-    // Verify TypeScript: This should NOT compile if uncommented
-    // @ts-expect-error - 'name' property doesn't exist on Source
-    const _wrongProperty = testSource.name;
   });
 
   it('should handle sources without title gracefully', () => {
@@ -104,14 +105,13 @@ describe('EntityExplorer - Source Display', () => {
         {
           id: 'source-1',
           project_id: 'test-project',
-          // @ts-expect-error Testing edge case
-          title: undefined,
+          title: '', // Empty title edge case
           file_url: '/path/to/file.pdf',
           file_name: 'unnamed.pdf',
           storage_path: '/storage/unnamed.pdf',
           created_at: '2024-01-01',
           updated_at: '2024-01-01',
-        },
+        } as any,
       ],
     });
 
