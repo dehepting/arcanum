@@ -1,0 +1,452 @@
+import { useState, useRef, useEffect } from 'react';
+import useStore from '../store/useStore';
+import { getPlaceForAnnotation } from '../lib/places';
+import AnnotationContextMenu from './AnnotationContextMenu';
+import { createAnnotation, updateAnnotation, deleteAnnotation } from '../lib/tauri';
+import type { Place } from '../types/entities';
+
+interface AnnotationOverlayProps {
+  canvasWidth: number;
+  canvasHeight: number;
+}
+
+interface DraftRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+interface DragOffset {
+  x: number;
+  y: number;
+}
+
+interface ContextMenuState {
+  x: number;
+  y: number;
+  annotation: any; // Using any for now due to mixed annotation structure
+}
+
+// Extended annotation type used in this component (flattened geometry)
+interface DisplayAnnotation {
+  id: string;
+  source_id: string;
+  page_number: number;
+  type: string; // Will be 'highlight' | 'text' | 'ink'
+  text?: string;
+  rect_x: number;
+  rect_y: number;
+  rect_w: number;
+  rect_h: number;
+}
+
+export default function AnnotationOverlay({ canvasWidth, canvasHeight }: AnnotationOverlayProps) {
+  const [dragging, setDragging] = useState(false);
+  const [draftRect, setDraftRect] = useState<DraftRect | null>(null);
+  const [linkedAnnotations, setLinkedAnnotations] = useState(new Set<string>());
+  const [draggedAnnotation, setDraggedAnnotation] = useState<DisplayAnnotation | null>(null);
+  const [dragOffset, setDragOffset] = useState<DragOffset | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const startPos = useRef<{ x: number; y: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  const activeTool = useStore((state) => state.activeTool);
+  const annotations = useStore((state) => state.annotations);
+  const currentPage = useStore((state) => state.currentPage);
+  const activeSourceId = useStore((state) => state.activeSourceId);
+  const currentProject = useStore((state) => state.currentProject);
+  const setSelectedAnnotation = useStore((state) => state.setSelectedAnnotation);
+  const places = useStore((state) => state.places);
+
+  // Get annotations for current page (cast to any for now due to type mismatch)
+  const pageAnnotations = (annotations as any[]).filter(
+    (ann) => ann.source_id === activeSourceId && ann.page_number === currentPage
+  );
+
+  // Track which annotations are linked to places
+  useEffect(() => {
+    const linked = new Set<string>();
+    places.forEach((place) => {
+      if ((place as any).annotation_place_links) {
+        (place as any).annotation_place_links.forEach((link: any) => {
+          linked.add(link.annotation_id);
+        });
+      }
+    });
+    setLinkedAnnotations(linked);
+  }, [places]);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Select tool: don't create new annotations
+    if (activeTool === 'select') return;
+
+    // Text tool: click to place text box
+    if (activeTool === 'text') {
+      if (!wrapRef.current) return;
+      const rect = wrapRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+
+      // Create a small text box at click location
+      const textAnnotation = {
+        rect: {
+          x: x,
+          y: y,
+          w: 0.15, // Fixed width for text boxes
+          h: 0.05, // Will expand based on content
+        },
+        page: currentPage,
+        sourceId: activeSourceId,
+        type: 'text',
+      };
+
+      // Open modal to add text
+      (useStore.getState() as any).openAnnotationModal(textAnnotation);
+      return;
+    }
+
+    // Highlight tool: drag to create rectangle
+    if (activeTool !== 'highlight') return;
+
+    if (!wrapRef.current) return;
+    const rect = wrapRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+
+    startPos.current = { x, y };
+    setDragging(true);
+    setDraftRect({ x, y, w: 0, h: 0 });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Handle annotation dragging in select mode
+    if (draggedAnnotation && dragOffset && wrapRef.current) {
+      const rect = wrapRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+
+      // Update annotation position (clamped to canvas bounds)
+      const newX = Math.max(0, Math.min(1 - draggedAnnotation.rect_w, x - dragOffset.x));
+      const newY = Math.max(0, Math.min(1 - draggedAnnotation.rect_h, y - dragOffset.y));
+
+      // Update in-memory annotation
+      setDraggedAnnotation({
+        ...draggedAnnotation,
+        rect_x: newX,
+        rect_y: newY,
+      });
+      return;
+    }
+
+    // Handle highlight creation
+    if (!dragging || !startPos.current || !wrapRef.current) return;
+
+    const rect = wrapRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+
+    const newRect = {
+      x: Math.min(startPos.current.x, x),
+      y: Math.min(startPos.current.y, y),
+      w: Math.abs(x - startPos.current.x),
+      h: Math.abs(y - startPos.current.y),
+    };
+
+    setDraftRect(newRect);
+  };
+
+  const handleMouseUp = async () => {
+    // Handle annotation drag end
+    if (draggedAnnotation) {
+      // First update store immediately to prevent snap-back
+      const currentAnnotations = useStore.getState().annotations;
+      useStore
+        .getState()
+        .setAnnotations(
+          currentAnnotations.map((a: any) =>
+            a.id === draggedAnnotation.id ? draggedAnnotation : a
+          ) as any
+        );
+
+      // Then save to database in background
+      try {
+        await updateAnnotation(draggedAnnotation.id, {
+          rect_x: draggedAnnotation.rect_x,
+          rect_y: draggedAnnotation.rect_y,
+          rect_w: draggedAnnotation.rect_w,
+          rect_h: draggedAnnotation.rect_h,
+        } as any);
+      } catch (err) {
+        console.error('Failed to update annotation position:', err);
+        // Revert on error
+        useStore.getState().setAnnotations(currentAnnotations as any);
+      }
+
+      setDraggedAnnotation(null);
+      setDragOffset(null);
+      return;
+    }
+
+    // Handle highlight creation end
+    if (!dragging || !draftRect) return;
+
+    // Minimum size check (avoid tiny accidental highlights)
+    if (draftRect.w < 0.01 || draftRect.h < 0.008) {
+      setDragging(false);
+      setDraftRect(null);
+      startPos.current = null;
+      return;
+    }
+
+    // Save highlight directly (no modal for highlights)
+    if (!activeSourceId) {
+      console.error('Cannot save highlight: No active source');
+      setDragging(false);
+      setDraftRect(null);
+      startPos.current = null;
+      return;
+    }
+
+    try {
+      const data = await createAnnotation({
+        source_id: activeSourceId,
+        project_id: currentProject?.id,
+        page_number: currentPage,
+        annotation_type: 'highlight',
+        rect: {
+          x: draftRect.x,
+          y: draftRect.y,
+          w: draftRect.w,
+          h: draftRect.h,
+        },
+        text: null,
+      } as any);
+
+      (useStore.getState() as any).addAnnotation(data);
+    } catch (err) {
+      console.error('Failed to save highlight:', err);
+      alert(
+        `Failed to save highlight: ${typeof err === 'string' ? err : (err as Error).message || JSON.stringify(err)}`
+      );
+    }
+
+    // Reset
+    setDragging(false);
+    setDraftRect(null);
+    startPos.current = null;
+  };
+
+  const handleAnnotationMouseDown = (ann: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // Only handle dragging in select mode
+    if (activeTool !== 'select') return;
+
+    if (!wrapRef.current) return;
+    const rect = wrapRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+
+    // Calculate offset from annotation's top-left corner
+    const offsetX = x - ann.rect_x;
+    const offsetY = y - ann.rect_y;
+
+    setDraggedAnnotation(ann);
+    setDragOffset({ x: offsetX, y: offsetY });
+  };
+
+  const handleAnnotationClick = async (ann: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // Don't navigate if we just dragged
+    if (draggedAnnotation) return;
+
+    // If linked to a place, navigate to it on the map (takes priority)
+    if (linkedAnnotations.has(ann.id)) {
+      try {
+        const place = await getPlaceForAnnotation(ann.id);
+        if (place) {
+          // Switch to map view by opening the map tab
+          const mapTab = useStore.getState().tabs.find((t) => t.type === 'map');
+          if (mapTab) {
+            useStore.getState().setActiveTab(mapTab.id);
+          }
+          // Store the place to fly to (MapView will pick this up)
+          (useStore.getState() as any).flyToPlace = place;
+          return; // Don't open modal if navigating to map
+        }
+      } catch (err) {
+        console.error('Failed to navigate to place:', err);
+      }
+    }
+
+    // Text annotations also open modal on click (only if not linked to map)
+    if (ann.type === 'text' && activeTool !== 'select') {
+      (useStore.getState() as any).setSelectedAnnotation(ann.id);
+      (useStore.getState() as any).openAnnotationModal(ann);
+    }
+  };
+
+  const handleAnnotationRightClick = (ann: any, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Show context menu at cursor position
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      annotation: ann,
+    });
+  };
+
+  const handleDeleteAnnotation = async (ann: any) => {
+    try {
+      await deleteAnnotation(ann.id);
+
+      // Remove from store
+      const currentAnnotations = useStore.getState().annotations;
+      useStore
+        .getState()
+        .setAnnotations(currentAnnotations.filter((a: any) => a.id !== ann.id) as any);
+    } catch (err) {
+      console.error('Failed to delete annotation:', err);
+      alert('Failed to delete annotation');
+    }
+  };
+
+  const handleEditAnnotation = (ann: any) => {
+    (useStore.getState() as any).setSelectedAnnotation(ann.id);
+    (useStore.getState() as any).openAnnotationModal(ann);
+  };
+
+  return (
+    <div
+      ref={wrapRef}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: canvasWidth,
+        height: canvasHeight,
+        cursor:
+          activeTool === 'select'
+            ? draggedAnnotation
+              ? 'grabbing'
+              : 'default'
+            : activeTool === 'highlight'
+              ? 'crosshair'
+              : activeTool === 'text'
+                ? 'text'
+                : 'default',
+        pointerEvents: 'auto',
+      }}
+    >
+      {/* Render existing annotations */}
+      {pageAnnotations.map((ann: any) => {
+        const isLinked = linkedAnnotations.has(ann.id);
+        const isDragging = draggedAnnotation?.id === ann.id;
+        const displayAnn = isDragging ? draggedAnnotation : ann;
+
+        return (
+          <div
+            key={ann.id}
+            onMouseDown={(e) => handleAnnotationMouseDown(ann, e)}
+            onClick={(e) => handleAnnotationClick(ann, e)}
+            onContextMenu={(e) => handleAnnotationRightClick(ann, e)}
+            style={{
+              position: 'absolute',
+              left: `${displayAnn.rect_x * 100}%`,
+              top: `${displayAnn.rect_y * 100}%`,
+              width: `${displayAnn.rect_w * 100}%`,
+              height: `${displayAnn.rect_h * 100}%`,
+              border: isLinked
+                ? '2px solid var(--accent)'
+                : ann.type === 'text'
+                  ? '1px solid var(--accent)'
+                  : '1px solid rgba(212, 163, 115, 0.7)',
+              background: ann.type === 'text' ? 'var(--panel-2)' : 'rgba(212, 163, 115, 0.28)',
+              cursor: activeTool === 'select' ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+              pointerEvents: 'auto',
+              padding: ann.type === 'text' ? '4px 6px' : '0',
+              fontSize: ann.type === 'text' ? '11px' : 'inherit',
+              color: ann.type === 'text' ? 'var(--text)' : 'inherit',
+              whiteSpace: ann.type === 'text' ? 'pre-wrap' : 'normal',
+              overflow: ann.type === 'text' ? 'auto' : 'hidden',
+              boxShadow: isLinked ? '0 0 0 1px currentColor' : 'none',
+              opacity: isDragging ? 0.7 : 1,
+            }}
+            title={
+              activeTool === 'select'
+                ? 'Drag to move · Right-click to delete'
+                : isLinked
+                  ? 'Click to view on map · Right-click to delete'
+                  : ann.type === 'highlight'
+                    ? 'Right-click to delete'
+                    : 'Click to edit'
+            }
+          >
+            {ann.type === 'text' && ann.text}
+            {isLinked && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '-20px',
+                  right: '-8px',
+                  background: 'var(--accent)',
+                  borderRadius: '50%',
+                  width: '18px',
+                  height: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  border: '2px solid var(--bg)',
+                  pointerEvents: 'none',
+                }}
+              >
+                📍
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Draft rectangle while dragging */}
+      {dragging && draftRect && (
+        <div
+          style={{
+            position: 'absolute',
+            left: `${draftRect.x * 100}%`,
+            top: `${draftRect.y * 100}%`,
+            width: `${draftRect.w * 100}%`,
+            height: `${draftRect.h * 100}%`,
+            border: '1px dashed var(--accent-2)',
+            background: 'rgba(196, 92, 74, 0.15)',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
+      {/* Context menu */}
+      {contextMenu && (
+        <AnnotationContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          annotation={contextMenu.annotation}
+          onDelete={() => handleDeleteAnnotation(contextMenu.annotation)}
+          onEdit={
+            contextMenu.annotation.type === 'text'
+              ? () => handleEditAnnotation(contextMenu.annotation)
+              : null
+          }
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+    </div>
+  );
+}

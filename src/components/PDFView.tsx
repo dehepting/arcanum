@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { logger } from '../utils/logger';
 import * as pdfjsLib from 'pdfjs-dist';
+import type { PDFDocumentProxy, TextItem } from 'pdfjs-dist/types/src/display/api';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import useStore from '../store/useStore';
 import AnnotationOverlay from './AnnotationOverlay';
@@ -10,17 +11,22 @@ import PDFThumbnailSidebar from './PDFThumbnailSidebar';
 import { loadAnnotations } from '../lib/annotations';
 import { invoke } from '@tauri-apps/api/core';
 
+interface CanvasSize {
+  width: number;
+  height: number;
+}
+
 // Set worker path from npm package (ensures version match)
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export default function PDFView() {
-  const canvasRef = useRef(null);
-  const overlayRef = useRef(null);
-  const textLayerRef = useRef(null);
-  const [pdfDoc, setPdfDoc] = useState(null);
-  const [numPages, setNumPages] = useState(0);
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-  const [selectedText, setSelectedText] = useState('');
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const textLayerRef = useRef<HTMLDivElement | null>(null);
+  const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
+  const [numPages, setNumPages] = useState<number>(0);
+  const [canvasSize, setCanvasSize] = useState<CanvasSize>({ width: 0, height: 0 });
+  const [selectedText, setSelectedText] = useState<string>('');
 
   const activeSourceId = useStore((state) => state.activeSourceId);
   const sources = useStore((state) => state.sources);
@@ -65,7 +71,7 @@ export default function PDFView() {
         logger.debug('Reading PDF file from:', activeSource.file_url);
 
         // Read file as binary data using Tauri command
-        const fileData = await invoke('read_file_bytes', {
+        const fileData = await invoke<number[]>('read_file_bytes', {
           filePath: activeSource.file_url,
         });
         logger.debug('File read successfully, size:', fileData.length, 'bytes');
@@ -93,8 +99,8 @@ export default function PDFView() {
     const renderPage = async () => {
       const page = await pdfDoc.getPage(currentPage);
       const viewport = page.getViewport({ scale: pdfScale });
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
+      const canvas = canvasRef.current!;
+      const ctx = canvas.getContext('2d')!;
 
       // Clear the canvas before rendering new page
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -109,24 +115,31 @@ export default function PDFView() {
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      await page.render({
+        canvasContext: ctx,
+        viewport,
+      } as any).promise;
 
       // Render text layer for selection
       const textContent = await page.getTextContent();
-      const textLayer = textLayerRef.current;
+      const textLayer = textLayerRef.current!;
       textLayer.innerHTML = '';
       textLayer.style.width = `${viewport.width}px`;
       textLayer.style.height = `${viewport.height}px`;
 
       // Simple text layer rendering (invisible but selectable)
       textContent.items.forEach((item) => {
+        // Filter out marked content (only process TextItem)
+        if (!('str' in item)) return;
+
+        const textItem = item as TextItem;
         const div = document.createElement('div');
-        div.textContent = item.str;
+        div.textContent = textItem.str;
         div.style.position = 'absolute';
-        div.style.left = `${item.transform[4]}px`;
-        div.style.top = `${item.transform[5]}px`;
-        div.style.fontSize = `${Math.sqrt(item.transform[0] * item.transform[0] + item.transform[1] * item.transform[1])}px`;
-        div.style.fontFamily = item.fontName;
+        div.style.left = `${textItem.transform[4]}px`;
+        div.style.top = `${textItem.transform[5]}px`;
+        div.style.fontSize = `${Math.sqrt(textItem.transform[0] * textItem.transform[0] + textItem.transform[1] * textItem.transform[1])}px`;
+        div.style.fontFamily = textItem.fontName;
         div.style.color = 'transparent'; // Make text invisible but still selectable
         div.style.userSelect = 'text';
         textLayer.appendChild(div);
@@ -140,7 +153,7 @@ export default function PDFView() {
   useEffect(() => {
     const handleSelection = () => {
       const selection = window.getSelection();
-      const text = selection.toString().trim();
+      const text = selection?.toString().trim() || '';
       setSelectedText(text);
     };
 
@@ -153,7 +166,7 @@ export default function PDFView() {
     const container = overlayRef.current?.parentElement;
     if (!container) return;
 
-    const handleWheel = (e) => {
+    const handleWheel = (e: WheelEvent) => {
       // Check for pinch gesture (ctrlKey + wheel on Mac trackpad)
       if (e.ctrlKey) {
         e.preventDefault();
@@ -185,7 +198,7 @@ export default function PDFView() {
     );
 
     setSelectedText('');
-    window.getSelection().removeAllRanges();
+    window.getSelection()?.removeAllRanges();
   };
 
   if (!activeSource) {

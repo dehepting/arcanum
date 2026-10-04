@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Map, NavigationControl, Marker, Popup, setWorkerUrl } from 'maplibre-gl';
+import {
+  Map,
+  NavigationControl,
+  Marker,
+  Popup,
+  setWorkerUrl,
+  type MapMouseEvent,
+} from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { invoke } from '@tauri-apps/api/core';
@@ -10,6 +17,24 @@ import { loadOverlays } from '../lib/overlays';
 import OverlayGeoreference from './OverlayGeoreference';
 import ModeBanner from './ModeBanner';
 import EntityTypeFilterPanel from './EntityTypeFilterPanel';
+import type {
+  EntityType,
+  Person,
+  Event,
+  Theory,
+  Place as PlaceEntity,
+  Artifact,
+} from '../types/entities';
+
+interface EntityTypeFilters {
+  place: boolean;
+  person: boolean;
+  event: boolean;
+  theory: boolean;
+  artifact: boolean;
+}
+
+type EntityWithLocation = Person | Event | Theory | PlaceEntity | Artifact;
 
 // Configure MapLibre GL worker for Vite compatibility
 // Using ?worker&url ensures proper bundling in both dev and production
@@ -17,11 +42,11 @@ import EntityTypeFilterPanel from './EntityTypeFilterPanel';
 setWorkerUrl(workerUrl);
 
 export default function MapView() {
-  const mapContainer = useRef(null);
-  const map = useRef(null);
-  const markersRef = useRef([]);
-  const [mapReady, setMapReady] = useState(false);
-  const [entityTypeFilters, setEntityTypeFilters] = useState({
+  const mapContainer = useRef<HTMLDivElement | null>(null);
+  const map = useRef<Map | null>(null);
+  const markersRef = useRef<Marker[]>([]);
+  const [mapReady, setMapReady] = useState<boolean>(false);
+  const [entityTypeFilters, setEntityTypeFilters] = useState<EntityTypeFilters>({
     place: true,
     person: true,
     event: true,
@@ -58,9 +83,9 @@ export default function MapView() {
       return;
     }
 
-    const centerLng = currentProject?.map_center_lng || -20;
-    const centerLat = currentProject?.map_center_lat || 36;
-    const zoom = currentProject?.map_zoom || 3.4;
+    const centerLng = (currentProject as any)?.map_center_lng || -20;
+    const centerLat = (currentProject as any)?.map_center_lat || 36;
+    const zoom = (currentProject as any)?.map_zoom || 3.4;
 
     try {
       map.current = new Map({
@@ -93,7 +118,7 @@ export default function MapView() {
         setMapReady(true);
         // Force resize after load to ensure proper rendering
         setTimeout(() => {
-          map.current.resize();
+          map.current?.resize();
         }, 100);
       });
 
@@ -102,7 +127,7 @@ export default function MapView() {
       });
 
       // Click handler for adding pins and georeferencing overlays
-      map.current.on('click', async (e) => {
+      map.current.on('click', async (e: MapMouseEvent) => {
         const state = useStore.getState();
 
         // Check if in overlay georeferencing mode
@@ -149,7 +174,7 @@ export default function MapView() {
               state.cancelLocationPlacement();
 
               // Fly to the new location
-              map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
+              map.current?.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
 
               console.log(`✓ Location updated for ${entityName}`);
             }
@@ -171,7 +196,7 @@ export default function MapView() {
         try {
           const place = await createPlace(
             {
-              project_id: currentProject.id,
+              project_id: currentProject!.id,
               name: name || 'Untitled Location',
               lng: e.lngLat.lng,
               lat: e.lngLat.lat,
@@ -184,10 +209,10 @@ export default function MapView() {
           state.cancelPinPlacement();
 
           // Fly to the new pin
-          map.current.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
+          map.current?.flyTo({ center: [e.lngLat.lng, e.lngLat.lat], zoom: 8 });
         } catch (err) {
           console.error('Failed to create place:', err);
-          alert(`Failed to create pin: ${err.message}`);
+          alert(`Failed to create pin: ${(err as Error).message}`);
         }
       });
     } catch (error) {
@@ -231,10 +256,10 @@ export default function MapView() {
         ] = await Promise.all([
           loadPlaces(currentProject.id),
           loadOverlays(currentProject.id),
-          invoke('list_people', { projectId: currentProject.id }),
-          invoke('list_events', { projectId: currentProject.id }),
-          invoke('list_theories', { projectId: currentProject.id }),
-          invoke('list_artifacts', { projectId: currentProject.id }),
+          invoke<Person[]>('list_people', { projectId: currentProject.id }),
+          invoke<Event[]>('list_events', { projectId: currentProject.id }),
+          invoke<Theory[]>('list_theories', { projectId: currentProject.id }),
+          invoke<Artifact[]>('list_artifacts', { projectId: currentProject.id }),
         ]);
         setPlaces(loadedPlaces);
         setMapOverlays(loadedOverlays);
@@ -252,14 +277,14 @@ export default function MapView() {
 
   // Handle flyTo when navigating from annotation
   useEffect(() => {
-    const flyToPlace = useStore.getState().flyToPlace;
+    const flyToPlace = (useStore.getState() as any).flyToPlace;
     if (flyToPlace && map.current && mapReady) {
       map.current.flyTo({
         center: [flyToPlace.lng, flyToPlace.lat],
         zoom: 8,
       });
       // Clear the flyTo state
-      useStore.getState().flyToPlace = null;
+      (useStore.getState() as any).flyToPlace = null;
     }
   }, [mapReady]);
 
@@ -281,14 +306,19 @@ export default function MapView() {
     };
 
     // Helper function to create marker for any entity
-    const createEntityMarker = (entity, entityType) => {
+    const createEntityMarker = (entity: EntityWithLocation, entityType: EntityType) => {
       // Skip if entity doesn't have coordinates
       if (!entity.lng || !entity.lat) return;
 
       // Skip if this entity type is filtered out
       if (!entityTypeFilters[entityType]) return;
 
-      const config = entityTypeConfig[entityType];
+      const config = entityTypeConfig[entityType] as {
+        color: string;
+        borderColor: string;
+        icon: string;
+        label: string;
+      };
       const el = document.createElement('div');
       el.style.cssText = `
         width: 14px;
@@ -302,13 +332,13 @@ export default function MapView() {
 
       // Build popup content based on entity type
       let additionalInfo = '';
-      if (entityType === 'place' && entity.place_type) {
+      if (entityType === 'place' && 'place_type' in entity && entity.place_type) {
         additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">📍 ${entity.place_type}</div>`;
-      } else if (entityType === 'person' && entity.occupation) {
+      } else if (entityType === 'person' && 'occupation' in entity && entity.occupation) {
         additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">💼 ${entity.occupation}</div>`;
-      } else if (entityType === 'event' && entity.event_date) {
+      } else if (entityType === 'event' && 'event_date' in entity && entity.event_date) {
         additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">📅 ${entity.event_date}</div>`;
-      } else if (entityType === 'artifact' && entity.category) {
+      } else if (entityType === 'artifact' && 'category' in entity && entity.category) {
         additionalInfo = `<div style="margin-bottom: 6px; color: #59636e; font-size: 12px; font-weight: 500;">🏺 ${entity.category}</div>`;
       }
 
@@ -353,7 +383,7 @@ export default function MapView() {
       const marker = new Marker({ element: el })
         .setLngLat([entity.lng, entity.lat])
         .setPopup(popup)
-        .addTo(map.current);
+        .addTo(map.current!);
 
       // Add click handler for the button after popup opens
       popup.on('open', () => {
@@ -392,22 +422,22 @@ export default function MapView() {
     // Remove existing overlay sources and layers
     mapOverlays.forEach((overlay) => {
       const layerId = `overlay-${overlay.id}`;
-      if (map.current.getLayer(layerId)) {
-        map.current.removeLayer(layerId);
+      if (map.current!.getLayer(layerId)) {
+        map.current!.removeLayer(layerId);
       }
-      if (map.current.getSource(layerId)) {
-        map.current.removeSource(layerId);
+      if (map.current!.getSource(layerId)) {
+        map.current!.removeSource(layerId);
       }
     });
 
     // Add overlay sources and layers
     mapOverlays
-      .filter((overlay) => overlay.visible)
-      .forEach((overlay) => {
+      .filter((overlay: any) => overlay.visible)
+      .forEach((overlay: any) => {
         const layerId = `overlay-${overlay.id}`;
 
         // Add image source with corner coordinates
-        map.current.addSource(layerId, {
+        map.current!.addSource(layerId, {
           type: 'image',
           url: overlay.image_url,
           coordinates: [
@@ -419,7 +449,7 @@ export default function MapView() {
         });
 
         // Add raster layer
-        map.current.addLayer({
+        map.current!.addLayer({
           id: layerId,
           type: 'raster',
           source: layerId,
