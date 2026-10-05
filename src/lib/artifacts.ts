@@ -1,10 +1,11 @@
 import * as tauri from './tauri';
 import { logger } from '../utils/logger';
+import type { Artifact, CreateArtifactInput, UpdateArtifactInput } from '../types/entities';
 
 /**
  * Upload an artifact image to local storage
  */
-export async function uploadArtifactImage(file, projectId) {
+export async function uploadArtifactImage(file: File, projectId: string): Promise<string> {
   const fileExt = file.name.split('.').pop();
   const fileName = `${projectId}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
 
@@ -22,39 +23,38 @@ export async function uploadArtifactImage(file, projectId) {
 /**
  * Create a new artifact
  */
-export async function createArtifact(artifactData) {
-  return await tauri.createArtifact({
-    ...artifactData,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
+export async function createArtifact(artifactData: CreateArtifactInput): Promise<Artifact> {
+  return await tauri.createArtifact(artifactData);
 }
 
 /**
  * Load all artifacts for a project
  */
-export async function loadArtifacts(projectId) {
+export async function loadArtifacts(projectId: string): Promise<Artifact[]> {
   return await tauri.loadArtifacts(projectId);
 }
 
 /**
  * Get a single artifact by ID
  */
-export async function getArtifact(artifactId) {
+export async function getArtifact(artifactId: string): Promise<Artifact> {
   return await tauri.getArtifact(artifactId);
 }
 
 /**
  * Update an artifact
  */
-export async function updateArtifact(artifactId, updates) {
+export async function updateArtifact(
+  artifactId: string,
+  updates: UpdateArtifactInput
+): Promise<Artifact> {
   return await tauri.updateArtifact(artifactId, updates);
 }
 
 /**
  * Delete an artifact and its images
  */
-export async function deleteArtifact(artifactId, imageUrls) {
+export async function deleteArtifact(artifactId: string, imageUrls?: string[]): Promise<void> {
   // Delete from database
   await tauri.deleteArtifact(artifactId);
 
@@ -75,13 +75,17 @@ export async function deleteArtifact(artifactId, imageUrls) {
 /**
  * Get artifacts by findspot (place)
  */
-export async function getArtifactsByFindspot(placeId) {
+export async function getArtifactsByFindspot(placeId: string): Promise<Artifact[]> {
   return await tauri.getArtifactsByFindspot(placeId);
 }
 
 /**
  * Search artifacts
  */
-export async function searchArtifacts(projectId, query, filters = {}) {
+export async function searchArtifacts(
+  projectId: string,
+  query: string,
+  filters: Record<string, any> = {}
+): Promise<Artifact[]> {
   return await tauri.searchArtifacts(projectId, query, filters);
 }
