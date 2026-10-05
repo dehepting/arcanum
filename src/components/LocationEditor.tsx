@@ -1,5 +1,16 @@
-import { useCallback } from 'react';
+import { useCallback, type ChangeEvent } from 'react';
 import './LocationEditor.css';
+
+interface LocationEditorProps {
+  lat: number | null;
+  lng: number | null;
+  entityId: string;
+  entityType: string;
+  entityTitle: string;
+  onLocationChange: (field: 'lat' | 'lng', value: number | null) => void;
+  onSetOnMap: () => void;
+  saving: boolean;
+}
 
 /**
  * LocationEditor - Reusable location editing component
@@ -14,8 +25,8 @@ export default function LocationEditor({
   onLocationChange,
   onSetOnMap,
   saving,
-}) {
-  const validateCoordinate = (value, type) => {
+}: LocationEditorProps) {
+  const validateCoordinate = (value: string, type: 'lat' | 'lng'): number | null => {
     const num = parseFloat(value);
     if (isNaN(num)) return null;
 
@@ -27,7 +38,7 @@ export default function LocationEditor({
   };
 
   const handleChange = useCallback(
-    (field, value) => {
+    (field: 'lat' | 'lng', value: string) => {
       const validated = validateCoordinate(value, field);
       onLocationChange(field, validated);
     },
@@ -43,7 +54,7 @@ export default function LocationEditor({
           step="0.0001"
           placeholder="Latitude (-90 to 90)"
           value={lat || ''}
-          onChange={(e) => handleChange('lat', e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('lat', e.target.value)}
           disabled={saving}
           min="-90"
           max="90"
@@ -54,7 +65,7 @@ export default function LocationEditor({
           step="0.0001"
           placeholder="Longitude (-180 to 180)"
           value={lng || ''}
-          onChange={(e) => handleChange('lng', e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('lng', e.target.value)}
           disabled={saving}
           min="-180"
           max="180"

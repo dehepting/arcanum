@@ -1,15 +1,26 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { logger } from '../utils/logger';
 import useStore from '../store/useStore';
 import { createOverlay, uploadOverlay } from '../lib/overlays';
 
+interface Corner {
+  lng: number;
+  lat: number;
+  order: number;
+}
+
+interface LngLat {
+  lng: number;
+  lat: number;
+}
+
 export default function OverlayGeoreference() {
-  const [file, setFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [overlayName, setOverlayName] = useState('');
-  const [corners, setCorners] = useState([]);
+  const [corners, setCorners] = useState<Corner[]>([]);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentProject = useStore((state) => state.currentProject);
   const overlayMode = useStore((state) => state.overlayMode);
@@ -28,8 +39,8 @@ export default function OverlayGeoreference() {
     }
   }, [overlayMode]);
 
-  const handleFileSelect = (e) => {
-    const selectedFile = e.target.files[0];
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
     if (!selectedFile.type.startsWith('image/')) {
@@ -42,14 +53,14 @@ export default function OverlayGeoreference() {
 
     // Create preview
     const reader = new FileReader();
-    reader.onload = (e) => setPreviewUrl(e.target.result);
+    reader.onload = (e) => setPreviewUrl(e.target?.result as string);
     reader.readAsDataURL(selectedFile);
   };
 
-  const handleMapClick = (lngLat) => {
+  const handleMapClick = (lngLat: LngLat) => {
     if (corners.length >= 4) return;
 
-    const newCorner = {
+    const newCorner: Corner = {
       lng: lngLat.lng,
       lat: lngLat.lat,
       order: corners.length,
@@ -59,7 +70,7 @@ export default function OverlayGeoreference() {
   };
 
   const handleSave = async () => {
-    if (!file || corners.length !== 4 || !overlayName.trim()) {
+    if (!file || corners.length !== 4 || !overlayName.trim() || !currentProject) {
       alert('Please upload an image, name it, and place all 4 corner markers');
       return;
     }
@@ -93,7 +104,7 @@ export default function OverlayGeoreference() {
       closeOverlayMode();
     } catch (err) {
       logger.error('Failed to create overlay:', err);
-      alert(`Failed to create overlay: ${err.message}`);
+      alert(`Failed to create overlay: ${(err as Error).message}`);
     } finally {
       setUploading(false);
     }
@@ -102,7 +113,7 @@ export default function OverlayGeoreference() {
   if (!overlayMode) return null;
 
   // Expose handleMapClick to parent MapView
-  useStore.getState().onOverlayMapClick = handleMapClick;
+  (useStore.getState() as any).onOverlayMapClick = handleMapClick;
 
   const cornerLabels = ['Top-Left', 'Top-Right', 'Bottom-Right', 'Bottom-Left'];
 
@@ -169,7 +180,7 @@ export default function OverlayGeoreference() {
             }}
           >
             <img
-              src={previewUrl}
+              src={previewUrl || ''}
               alt="Overlay preview"
               style={{ width: '100%', display: 'block' }}
             />
@@ -181,7 +192,7 @@ export default function OverlayGeoreference() {
           <input
             type="text"
             value={overlayName}
-            onChange={(e) => setOverlayName(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setOverlayName(e.target.value)}
             style={{
               width: '100%',
               background: 'var(--bg)',

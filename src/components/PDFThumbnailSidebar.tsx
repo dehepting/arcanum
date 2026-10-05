@@ -1,13 +1,35 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { logger } from '../utils/logger';
 
-export default function PDFThumbnailSidebar({ pdfDoc, currentPage, onPageClick }) {
-  const [thumbnails, setThumbnails] = useState([]);
+interface Thumbnail {
+  pageNumber: number;
+  dataUrl: string;
+  width: number;
+  height: number;
+}
+
+interface PDFDocumentProxy {
+  numPages: number;
+  getPage: (pageNumber: number) => Promise<any>;
+}
+
+interface PDFThumbnailSidebarProps {
+  pdfDoc: PDFDocumentProxy | null;
+  currentPage: number;
+  onPageClick: (pageNumber: number) => void;
+}
+
+export default function PDFThumbnailSidebar({
+  pdfDoc,
+  currentPage,
+  onPageClick,
+}: PDFThumbnailSidebarProps) {
+  const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
   const [numPages, setNumPages] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
-  const thumbnailRefs = useRef({});
-  const sidebarRef = useRef(null);
+  const thumbnailRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!pdfDoc) return;
@@ -16,7 +38,7 @@ export default function PDFThumbnailSidebar({ pdfDoc, currentPage, onPageClick }
       const pageCount = pdfDoc.numPages;
       setNumPages(pageCount);
 
-      const thumbs = [];
+      const thumbs: Thumbnail[] = [];
       const scale = 0.2; // Small scale for thumbnails
 
       for (let i = 1; i <= pageCount; i++) {
@@ -27,6 +49,8 @@ export default function PDFThumbnailSidebar({ pdfDoc, currentPage, onPageClick }
           // Create canvas for this thumbnail
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
+          if (!context) continue;
+
           canvas.width = viewport.width;
           canvas.height = viewport.height;
 
