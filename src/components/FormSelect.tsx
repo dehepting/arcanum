@@ -1,14 +1,23 @@
+import type { CSSProperties, SelectHTMLAttributes, ChangeEvent } from 'react';
+
+export interface SelectOption {
+  value: string | number;
+  label: string;
+}
+
+interface FormSelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> {
+  label?: string;
+  value: string | number;
+  onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
+  options?: (string | SelectOption)[];
+  disabled?: boolean;
+  containerStyle?: CSSProperties;
+  selectStyle?: CSSProperties;
+}
+
 /**
  * FormSelect - Reusable form select field with label
  * Eliminates duplicate inline styling across form components
- *
- * @param {string} label - Field label text
- * @param {string} value - Selected value
- * @param {Function} onChange - Change handler
- * @param {Array} options - Array of {value, label} or string options
- * @param {boolean} disabled - Whether field is disabled
- * @param {object} containerStyle - Additional container styles
- * @param {object} selectStyle - Additional select styles
  */
 export default function FormSelect({
   label,
@@ -19,7 +28,7 @@ export default function FormSelect({
   containerStyle = {},
   selectStyle = {},
   ...selectProps
-}) {
+}: FormSelectProps) {
   return (
     <div style={containerStyle}>
       {label && (

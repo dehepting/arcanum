@@ -1,17 +1,21 @@
+import type { KeyboardEvent } from 'react';
 import './ConfirmDialog.css';
+
+export type ConfirmDialogVariant = 'danger' | 'warning' | 'primary';
+
+interface ConfirmDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title?: string;
+  message?: string;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: ConfirmDialogVariant;
+}
 
 /**
  * ConfirmDialog - Reusable confirmation dialog for destructive actions
- *
- * @param {Object} props
- * @param {boolean} props.isOpen - Whether dialog is open
- * @param {Function} props.onClose - Called when dialog is closed/cancelled
- * @param {Function} props.onConfirm - Called when user confirms
- * @param {string} props.title - Dialog title
- * @param {string} props.message - Dialog message
- * @param {string} props.confirmText - Confirm button text (default: "Confirm")
- * @param {string} props.cancelText - Cancel button text (default: "Cancel")
- * @param {string} props.variant - Button variant: "danger" | "warning" | "primary"
  *
  * @example
  * const [showConfirm, setShowConfirm] = useState(false);
@@ -38,7 +42,7 @@ export default function ConfirmDialog({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   variant = 'danger',
-}) {
+}: ConfirmDialogProps) {
   if (!isOpen) return null;
 
   const handleConfirm = () => {
@@ -46,7 +50,7 @@ export default function ConfirmDialog({
     onClose();
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Escape') {
       onClose();
     } else if (e.key === 'Enter') {
