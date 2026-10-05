@@ -4,11 +4,58 @@
  * across EntityExplorer, EntityPage, MapView, and other components
  */
 
+import type { EntityType } from '../types/entities';
+
+interface EntityTypeCommands {
+  get: string;
+  create: string;
+  update: string;
+  delete: string;
+  list: string;
+}
+
+interface EntityTypeParams {
+  id: string;
+  input: string;
+}
+
+interface EntityTypeStore {
+  collection: string;
+  setter: string;
+  adder: string;
+  updater: string;
+  remover: string;
+}
+
+interface EntityTypeFields {
+  name: string;
+  description: string;
+  [key: string]: string;
+}
+
+export interface EntityTypeConfig {
+  singular: string;
+  plural: string;
+  label: string;
+  labelPlural: string;
+  icon: string;
+  color: string;
+  colorLight: string;
+  commands: EntityTypeCommands;
+  params: EntityTypeParams;
+  store: EntityTypeStore;
+  fields: EntityTypeFields;
+}
+
+type EntityTypesMap = {
+  [K in EntityType]: EntityTypeConfig;
+};
+
 /**
  * Entity type configuration
  * Each entity type has consistent naming for commands, parameters, and store actions
  */
-export const ENTITY_TYPES = {
+export const ENTITY_TYPES: EntityTypesMap = {
   person: {
     singular: 'person',
     plural: 'people',
@@ -18,7 +65,6 @@ export const ENTITY_TYPES = {
     color: '#1565c0',
     colorLight: '#e3f2fd',
 
-    // Tauri command names
     commands: {
       get: 'get_person',
       create: 'create_person',
@@ -27,13 +73,11 @@ export const ENTITY_TYPES = {
       list: 'list_people',
     },
 
-    // Parameter names for Tauri commands
     params: {
       id: 'person_id',
       input: 'input',
     },
 
-    // Zustand store keys
     store: {
       collection: 'people',
       setter: 'setPeople',
@@ -42,7 +86,6 @@ export const ENTITY_TYPES = {
       remover: 'removePerson',
     },
 
-    // Fields for forms/display
     fields: {
       name: 'name',
       description: 'description',
@@ -207,42 +250,62 @@ export const ENTITY_TYPES = {
 /**
  * Get entity type config by name
  */
-export function getEntityType(type) {
+export function getEntityType(type: EntityType): EntityTypeConfig | undefined {
   return ENTITY_TYPES[type];
 }
 
 /**
  * Get all entity type names
  */
-export function getAllEntityTypes() {
-  return Object.keys(ENTITY_TYPES);
+export function getAllEntityTypes(): EntityType[] {
+  return Object.keys(ENTITY_TYPES) as EntityType[];
 }
 
 /**
  * Get entity type command name
  */
-export function getEntityCommand(type, action) {
+export function getEntityCommand(
+  type: EntityType,
+  action: keyof EntityTypeCommands
+): string | undefined {
   return ENTITY_TYPES[type]?.commands[action];
 }
 
 /**
  * Get entity type parameter name
  */
-export function getEntityParam(type, paramType) {
+export function getEntityParam(
+  type: EntityType,
+  paramType: keyof EntityTypeParams
+): string | undefined {
   return ENTITY_TYPES[type]?.params[paramType];
 }
 
 /**
  * Get entity type store key
  */
-export function getEntityStoreKey(type, keyType) {
+export function getEntityStoreKey(
+  type: EntityType,
+  keyType: keyof EntityTypeStore
+): string | undefined {
   return ENTITY_TYPES[type]?.store[keyType];
+}
+
+interface InvokeEntityCommandData {
+  id?: string;
+  input?: any;
+  projectId?: string;
 }
 
 /**
  * Helper to invoke entity commands with proper parameters
  */
-export async function invokeEntityCommand(invoke, type, action, data = {}) {
+export async function invokeEntityCommand(
+  invoke: (command: string, params: Record<string, any>) => Promise<any>,
+  type: EntityType,
+  action: keyof EntityTypeCommands,
+  data: InvokeEntityCommandData = {}
+): Promise<any> {
   const config = ENTITY_TYPES[type];
   if (!config) {
     throw new Error(`Unknown entity type: ${type}`);
@@ -254,7 +317,7 @@ export async function invokeEntityCommand(invoke, type, action, data = {}) {
   }
 
   // Build parameters based on action
-  const params = {};
+  const params: Record<string, any> = {};
 
   if (action === 'get' || action === 'delete') {
     params[config.params.id] = data.id;
@@ -273,7 +336,7 @@ export async function invokeEntityCommand(invoke, type, action, data = {}) {
 /**
  * Get entity from store by type
  */
-export function getEntitiesFromStore(store, type) {
+export function getEntitiesFromStore(store: any, type: EntityType): any[] {
   const collectionKey = ENTITY_TYPES[type]?.store.collection;
   return collectionKey ? store[collectionKey] : [];
 }
@@ -281,7 +344,12 @@ export function getEntitiesFromStore(store, type) {
 /**
  * Update entity in store by type
  */
-export function updateEntityInStore(store, type, entityId, updates) {
+export function updateEntityInStore(
+  store: any,
+  type: EntityType,
+  entityId: string,
+  updates: any
+): void {
   const updaterKey = ENTITY_TYPES[type]?.store.updater;
   if (updaterKey && store[updaterKey]) {
     store[updaterKey](entityId, updates);
@@ -291,7 +359,7 @@ export function updateEntityInStore(store, type, entityId, updates) {
 /**
  * Add entity to store by type
  */
-export function addEntityToStore(store, type, entity) {
+export function addEntityToStore(store: any, type: EntityType, entity: any): void {
   const adderKey = ENTITY_TYPES[type]?.store.adder;
   if (adderKey && store[adderKey]) {
     store[adderKey](entity);
@@ -301,7 +369,7 @@ export function addEntityToStore(store, type, entity) {
 /**
  * Remove entity from store by type
  */
-export function removeEntityFromStore(store, type, entityId) {
+export function removeEntityFromStore(store: any, type: EntityType, entityId: string): void {
   const removerKey = ENTITY_TYPES[type]?.store.remover;
   if (removerKey && store[removerKey]) {
     store[removerKey](entityId);

@@ -1,12 +1,26 @@
 import * as tauri from './tauri';
 import { logger } from '../utils/logger';
+import type { EntityType, EntityPage } from '../types/entities';
 
 const STORAGE_BUCKET = 'entity-pages';
+
+type Result<T> = { data: T; error: null } | { data: null; error: Error };
+
+interface PageInfo {
+  projectId: string;
+  entityType: EntityType;
+  title: string;
+}
+
+interface EntityPageWithContent {
+  page: EntityPage;
+  content: string;
+}
 
 /**
  * Get storage path for an entity page
  */
-function getStoragePath(projectId, entityType, entityId) {
+function getStoragePath(projectId: string, entityType: EntityType, entityId: string): string {
   return `${projectId}/entities/${entityType}/${entityId}.md`;
 }
 
@@ -14,13 +28,13 @@ function getStoragePath(projectId, entityType, entityId) {
  * Create a new entity page with hybrid storage
  */
 export async function createEntityPage(
-  projectId,
-  entityId,
-  entityType,
-  title,
-  content = '',
-  metadata = {}
-) {
+  projectId: string,
+  entityId: string,
+  entityType: EntityType,
+  title: string,
+  content: string = '',
+  metadata: Record<string, any> = {}
+): Promise<Result<EntityPage>> {
   try {
     const storagePath = getStoragePath(projectId, entityType, entityId);
 
@@ -42,14 +56,14 @@ export async function createEntityPage(
     return { data: page, error: null };
   } catch (error) {
     logger.error('Error creating entity page:', error);
-    return { data: null, error };
+    return { data: null, error: error as Error };
   }
 }
 
 /**
  * Get an entity page (metadata + content)
  */
-export async function getEntityPage(entityId) {
+export async function getEntityPage(entityId: string): Promise<Result<EntityPageWithContent>> {
   try {
     logger.debug('getEntityPage called with entityId:', entityId);
 
@@ -72,14 +86,19 @@ export async function getEntityPage(entityId) {
     return { data: { page, content }, error: null };
   } catch (error) {
     logger.error('Error getting entity page:', error);
-    return { data: null, error };
+    return { data: null, error: error as Error };
   }
 }
 
 /**
  * Update entity page content
  */
-export async function updateEntityPage(entityId, content, append = false, pageInfo = null) {
+export async function updateEntityPage(
+  entityId: string,
+  content: string,
+  append: boolean = false,
+  pageInfo: PageInfo | null = null
+): Promise<Result<EntityPage>> {
   try {
     // 1. Get current page metadata
     const page = await tauri.getEntityPage(entityId);
@@ -119,27 +138,30 @@ export async function updateEntityPage(entityId, content, append = false, pageIn
     return { data: updatedPage, error: null };
   } catch (error) {
     logger.error('Error updating entity page:', error);
-    return { data: null, error };
+    return { data: null, error: error as Error };
   }
 }
 
 /**
  * Update entity page metadata
  */
-export async function updateEntityPageMetadata(entityId, updates) {
+export async function updateEntityPageMetadata(
+  entityId: string,
+  updates: Partial<EntityPage>
+): Promise<Result<EntityPage>> {
   try {
     const page = await tauri.updateEntityPage(entityId, updates);
     return { data: page, error: null };
   } catch (error) {
     logger.error('Error updating entity page metadata:', error);
-    return { data: null, error };
+    return { data: null, error: error as Error };
   }
 }
 
 /**
  * Delete an entity page
  */
-export async function deleteEntityPage(entityId) {
+export async function deleteEntityPage(entityId: string): Promise<Result<boolean>> {
   try {
     // 1. Get page to find storage path
     const page = await tauri.getEntityPage(entityId);
@@ -161,33 +183,37 @@ export async function deleteEntityPage(entityId) {
     return { data: true, error: null };
   } catch (error) {
     logger.error('Error deleting entity page:', error);
-    return { data: false, error };
+    return { data: null, error: error as Error };
   }
 }
 
 /**
  * List all entity pages for a project
  */
-export async function listEntityPages(projectId) {
+export async function listEntityPages(projectId: string): Promise<Result<EntityPage[]>> {
   try {
     const pages = await tauri.loadEntityPages(projectId);
     return { data: pages, error: null };
   } catch (error) {
     logger.error('Error listing entity pages:', error);
-    return { data: [], error };
+    return { data: null, error: error as Error };
   }
 }
 
 /**
  * Search entity pages by title
  */
-export async function searchEntityPages(projectId, query, entityTypes = null) {
+export async function searchEntityPages(
+  projectId: string,
+  query: string,
+  entityTypes: EntityType[] | null = null
+): Promise<Result<EntityPage[]>> {
   try {
     let pages = await tauri.loadEntityPages(projectId);
 
     // Filter by entity types if provided
     if (entityTypes && entityTypes.length > 0) {
-      pages = pages.filter((p) => entityTypes.includes(p.entity_type));
+      pages = pages.filter((p) => entityTypes.includes(p.entity_type as EntityType));
     }
 
     // Search in title
@@ -199,31 +225,33 @@ export async function searchEntityPages(projectId, query, entityTypes = null) {
     return { data: pages, error: null };
   } catch (error) {
     logger.error('Error searching entity pages:', error);
-    return { data: [], error };
+    return { data: null, error: error as Error };
   }
 }
 
 // Entity links - TODO: Add backend commands for entity_links table
 export async function createEntityLink(
-  _projectId,
-  _fromEntityId,
-  _fromEntityType,
-  _toEntityId,
-  _toEntityType,
-  _relationshipType,
-  _verified = false,
-  _notes = null
-) {
+  _projectId: string,
+  _fromEntityId: string,
+  _fromEntityType: EntityType,
+  _toEntityId: string,
+  _toEntityType: EntityType,
+  _relationshipType: string,
+  _verified: boolean = false,
+  _notes: string | null = null
+): Promise<Result<null>> {
   logger.warn('createEntityLink not yet implemented in Tauri backend');
   return { data: null, error: new Error('Not implemented') };
 }
 
-export async function getEntityLinks(_entityId) {
+export async function getEntityLinks(
+  _entityId: string
+): Promise<{ data: { outgoing: any[]; incoming: any[] }; error: null }> {
   logger.warn('getEntityLinks not yet implemented in Tauri backend');
   return { data: { outgoing: [], incoming: [] }, error: null };
 }
 
-export async function getProjectLinks(_projectId) {
+export async function getProjectLinks(_projectId: string): Promise<{ data: any[]; error: null }> {
   logger.warn('getProjectLinks not yet implemented in Tauri backend');
   return { data: [], error: null };
 }
