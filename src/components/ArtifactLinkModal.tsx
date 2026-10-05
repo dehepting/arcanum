@@ -1,23 +1,33 @@
-import React, { useState } from 'react';
+import { useState, type ChangeEvent, type MouseEvent } from 'react';
 import useStore from '../store/useStore';
 import { linkArtifactToAnnotation } from '../lib/artifact-sources';
 import ArtifactForm from './ArtifactForm';
+import type { Annotation } from '../types/annotations';
+import type { Artifact } from '../types/entities';
+
+interface ArtifactLinkModalProps {
+  annotation: Annotation;
+  onClose: () => void;
+  onLink?: (data: any) => void;
+}
+
+type Mode = 'select' | 'create';
 
 /**
  * Modal for linking an annotation to an artifact
  * Two modes: link to existing artifact or create new artifact
  */
-export default function ArtifactLinkModal({ annotation, onClose, onLink }) {
+export default function ArtifactLinkModal({ annotation, onClose, onLink }: ArtifactLinkModalProps) {
   const { artifacts, currentProject } = useStore();
-  const [mode, setMode] = useState('select'); // 'select' or 'create'
+  const [mode, setMode] = useState<Mode>('select');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedArtifactId, setSelectedArtifactId] = useState(null);
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
   const [context, setContext] = useState('');
   const [isLinking, setIsLinking] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Get quote from annotation
-  const quote = annotation.text || annotation.content || '';
+  const quote = (annotation as any).text || annotation.content || '';
 
   // Filter artifacts by search term
   const projectArtifacts = artifacts.filter((a) => a.project_id === currentProject?.id);
@@ -54,7 +64,7 @@ export default function ArtifactLinkModal({ annotation, onClose, onLink }) {
     }
   };
 
-  const handleArtifactCreated = async (newArtifact) => {
+  const handleArtifactCreated = async (newArtifact: Artifact) => {
     // Link the newly created artifact to this annotation
     const result = await linkArtifactToAnnotation(newArtifact.id, annotation.id, quote, context);
 
@@ -88,6 +98,7 @@ export default function ArtifactLinkModal({ annotation, onClose, onLink }) {
             onCancel={() => setMode('select')}
           />
 
+          {/* @ts-ignore - styled-jsx */}
           <style jsx>{`
             .quote-display {
               background: #f7fafc;
@@ -147,7 +158,7 @@ export default function ArtifactLinkModal({ annotation, onClose, onLink }) {
                   className="search-input"
                   placeholder="Search artifacts..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 />
 
                 <div className="artifact-list">
@@ -197,7 +208,7 @@ export default function ArtifactLinkModal({ annotation, onClose, onLink }) {
               className="context-input"
               placeholder="Add notes about this reference..."
               value={context}
-              onChange={(e) => setContext(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setContext(e.target.value)}
               rows={3}
             />
           </div>
@@ -216,6 +227,7 @@ export default function ArtifactLinkModal({ annotation, onClose, onLink }) {
           </button>
         </div>
 
+        {/* @ts-ignore - styled-jsx */}
         <style jsx>{`
           .artifact-link-modal {
             max-width: 500px;
@@ -382,8 +394,8 @@ export default function ArtifactLinkModal({ annotation, onClose, onLink }) {
   );
 }
 
-function getCategoryEmoji(category) {
-  const emojiMap = {
+function getCategoryEmoji(category?: string): string {
+  const emojiMap: Record<string, string> = {
     pottery: '🏺',
     sculpture: '🗿',
     jewelry: '💍',
@@ -395,5 +407,5 @@ function getCategoryEmoji(category) {
     architecture: '🏛️',
     other: '📦',
   };
-  return emojiMap[category] || emojiMap.other;
+  return category ? emojiMap[category] || emojiMap.other : emojiMap.other;
 }
