@@ -83,26 +83,68 @@ npm run type-check
 npm run lint:all && npm run test:all
 ```
 
+## Pre-commit Hook
+
+**Automatic testing before every commit!**
+
+The pre-commit hook runs automatically when you `git commit`:
+
+1. **Lint-staged** - Format and lint changed files
+2. **Unit Tests** (5s) - All 467 unit tests must pass
+3. **Integration Tests** (10s) - Only if Tauri is running
+   - ✅ Detects if Tauri is running on port 1420
+   - ✅ Runs integration tests with real backend
+   - ⚠️ Skips if Tauri not running (warns you)
+
+**Why this matters:**
+- Catches bugs before you push
+- Ensures types match backend (like the Source bug we fixed)
+- Fast feedback loop (~15 seconds total)
+
+**Workflow:**
+```bash
+# Terminal 1: Start Tauri
+npm run tauri dev
+
+# Terminal 2: Make changes, then commit
+git add .
+git commit -m "feat: add new feature"
+# → Hook runs automatically:
+#    ✅ Lint-staged
+#    ✅ Unit tests (5s)
+#    ✅ Integration tests (10s) - validates against real backend
+#    ✅ Commit succeeds!
+
+git push
+```
+
+**If Tauri isn't running:**
+```bash
+git commit -m "docs: update README"
+# → Hook runs:
+#    ✅ Lint-staged
+#    ✅ Unit tests (5s)
+#    ⚠️  Warning: Tauri not running, skipping integration tests
+#    ✅ Commit succeeds (safe for docs/config changes)
+```
+
 ## CI/CD Pipeline
 
 Every push/PR triggers:
 
-1. **Unit Tests** (2-5 min)
-   - Runs all unit tests
+1. **Unit Tests** (~30s)
+   - Runs all 467 unit tests
    - Type checking
    - Linting
-   - ❌ If fails → Integration tests don't run (save CI time)
+   - ❌ If fails → Build check doesn't run
 
-2. **Integration Tests** (5-10 min)
-   - Builds Rust backend
-   - Runs integration tests
+2. **Build Check** (~20s)
+   - Validates production build works
    - Only runs if unit tests pass
 
-3. **Build Check** (5-10 min)
-   - Validates production build works
-   - Runs in parallel with integration tests
+**Total CI time**: ~1 minute
 
-**Total CI time**: ~10-15 minutes
+**Note:** Integration tests run locally via pre-commit hook, not in CI. This keeps CI fast and simple while ensuring real backend validation before code is pushed.
 
 ## Adding New Tests
 

@@ -1,1 +1,39 @@
-npx lint-staged
+#!/bin/sh
+
+echo "🧪 Running pre-commit checks..."
+echo ""
+
+# Run lint-staged (format/lint changed files)
+echo "📝 Checking staged files..."
+npx lint-staged || exit 1
+echo ""
+
+# Always run unit tests
+echo "🔬 Running unit tests..."
+npm test -- --run || {
+  echo ""
+  echo "❌ Unit tests failed! Fix the tests before committing."
+  exit 1
+}
+echo ""
+
+# Run integration tests if Tauri is running
+if lsof -Pi :1420 -sTCP:LISTEN -t >/dev/null 2>&1; then
+  echo "✅ Tauri detected on port 1420"
+  echo "🔗 Running integration tests..."
+  npm run test:integration || {
+    echo ""
+    echo "❌ Integration tests failed!"
+    echo "   Fix the tests or ensure Tauri backend is running correctly."
+    exit 1
+  }
+  echo ""
+else
+  echo "⚠️  Tauri not running - skipping integration tests"
+  echo "   💡 Start Tauri with: npm run tauri dev"
+  echo "   (Integration tests will validate backend contracts)"
+  echo ""
+fi
+
+echo "✅ All pre-commit checks passed!"
+echo ""
