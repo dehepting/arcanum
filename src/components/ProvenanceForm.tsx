@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type FormEvent, type MouseEvent } from 'react';
 import { logger } from '../utils/logger';
 import { createProvenanceEntry, updateProvenanceEntry } from '../lib/provenance';
 import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
@@ -27,8 +27,51 @@ const OWNER_TYPES = [
   'destroyed',
 ];
 
-export default function ProvenanceForm({ artifactId, entry, isOpen, onClose, onSaved }) {
-  const [formData, setFormData] = useState({
+interface ProvenanceEntry {
+  id: string;
+  owner_name?: string;
+  owner_type?: string;
+  location?: string;
+  date_from?: string;
+  date_to?: string;
+  is_current?: boolean;
+  transfer_method?: string;
+  transfer_details?: string;
+  purchase_price?: string;
+  verified?: boolean;
+  notes?: string;
+}
+
+interface ProvenanceFormData {
+  owner_name: string;
+  owner_type: string;
+  location: string;
+  date_from: string;
+  date_to: string;
+  is_current: boolean;
+  transfer_method: string;
+  transfer_details: string;
+  purchase_price: string;
+  verified: boolean;
+  notes: string;
+}
+
+interface ProvenanceFormProps {
+  artifactId: string;
+  entry: ProvenanceEntry | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+export default function ProvenanceForm({
+  artifactId,
+  entry,
+  isOpen,
+  onClose,
+  onSaved,
+}: ProvenanceFormProps) {
+  const [formData, setFormData] = useState<ProvenanceFormData>({
     owner_name: '',
     owner_type: 'museum',
     location: '',
@@ -78,7 +121,7 @@ export default function ProvenanceForm({ artifactId, entry, isOpen, onClose, onS
     }
   }, [entry, isOpen]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement> | MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
     if (!formData.owner_name.trim()) {
@@ -103,7 +146,7 @@ export default function ProvenanceForm({ artifactId, entry, isOpen, onClose, onS
       onClose();
     } catch (err) {
       logger.error('Failed to save provenance:', err);
-      alert(`Failed to save: ${err.message}`);
+      alert(`Failed to save: ${(err as Error).message}`);
     } finally {
       setSaving(false);
     }

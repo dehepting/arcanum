@@ -1,10 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, type FormEvent, type ChangeEvent } from 'react';
 import { getClaims, createClaim, updateClaim, deleteClaim } from '../lib/provenance';
 import { useAsync } from '../hooks/useAsync';
 import { showError, showSuccess } from '../utils/errorHandling';
 import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
 
-const CLAIM_STATUSES = [
+interface ClaimStatus {
+  value: string;
+  label: string;
+  color: string;
+}
+
+const CLAIM_STATUSES: ClaimStatus[] = [
   { value: 'pending', label: 'Pending', color: '#e8b86d' },
   { value: 'under_review', label: 'Under Review', color: '#d4a373' },
   { value: 'accepted', label: 'Accepted', color: '#6ea36e' },
@@ -13,8 +19,25 @@ const CLAIM_STATUSES = [
   { value: 'withdrawn', label: 'Withdrawn', color: '#8b8f99' },
 ];
 
-export default function ClaimsList({ artifactId }) {
-  const [claims, setClaims] = useState([]);
+interface Claim {
+  id: string;
+  artifact_id: string;
+  claimant_name: string;
+  claimant_type?: string;
+  claim_basis?: string;
+  details?: string;
+  claim_date?: string;
+  status: string;
+  resolution_details?: string;
+  [key: string]: any;
+}
+
+interface ClaimsListProps {
+  artifactId: string;
+}
+
+export default function ClaimsList({ artifactId }: ClaimsListProps) {
+  const [claims, setClaims] = useState<Claim[]>([]);
   const [showForm, setShowForm] = useState(false);
 
   // Load claims using useAsync hook
@@ -26,7 +49,7 @@ export default function ClaimsList({ artifactId }) {
 
   const { loading } = useAsync(loadClaims, true);
 
-  const handleDelete = async (claimId) => {
+  const handleDelete = async (claimId: string) => {
     if (!confirm('Delete this claim?')) return;
 
     try {
@@ -34,17 +57,17 @@ export default function ClaimsList({ artifactId }) {
       setClaims(claims.filter((c) => c.id !== claimId));
       showSuccess('Claim deleted');
     } catch (err) {
-      showError(`Failed to delete claim: ${err.message || 'Unknown error'}`);
+      showError(`Failed to delete claim: ${(err as Error).message || 'Unknown error'}`);
     }
   };
 
-  const handleStatusChange = async (claimId, newStatus) => {
+  const handleStatusChange = async (claimId: string, newStatus: string) => {
     try {
       const updated = await updateClaim(claimId, { status: newStatus });
       setClaims(claims.map((c) => (c.id === claimId ? updated : c)));
       showSuccess('Status updated');
     } catch (err) {
-      showError(`Failed to update status: ${err.message || 'Unknown error'}`);
+      showError(`Failed to update status: ${(err as Error).message || 'Unknown error'}`);
     }
   };
 
@@ -128,7 +151,9 @@ export default function ClaimsList({ artifactId }) {
                     <div style={{ fontSize: '14px', fontWeight: 500 }}>{claim.claimant_name}</div>
                     <select
                       value={claim.status}
-                      onChange={(e) => handleStatusChange(claim.id, e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                        handleStatusChange(claim.id, e.target.value)
+                      }
                       style={{
                         background: CLAIM_STATUSES.find((s) => s.value === claim.status)?.color,
                         color: '#fff',
@@ -274,24 +299,26 @@ export default function ClaimsList({ artifactId }) {
         <ModalBody>
           <form
             id="claim-form"
-            onSubmit={async (e) => {
+            onSubmit={async (e: FormEvent<HTMLFormElement>) => {
               e.preventDefault();
-              const formData = new FormData(e.target);
+              const formData = new FormData(e.currentTarget);
               try {
                 const newClaim = await createClaim({
                   artifact_id: artifactId,
-                  claimant_name: formData.get('claimant_name'),
-                  claimant_type: formData.get('claimant_type'),
-                  claim_basis: formData.get('claim_basis'),
-                  details: formData.get('details'),
-                  claim_date: formData.get('claim_date') || new Date().toISOString().split('T')[0],
+                  claimant_name: formData.get('claimant_name') as string,
+                  claimant_type: formData.get('claimant_type') as string,
+                  claim_basis: formData.get('claim_basis') as string,
+                  details: formData.get('details') as string,
+                  claim_date:
+                    (formData.get('claim_date') as string) ||
+                    new Date().toISOString().split('T')[0],
                   status: 'pending',
                 });
                 setClaims([newClaim, ...claims]);
                 setShowForm(false);
                 showSuccess('Claim added successfully');
               } catch (err) {
-                showError(`Failed to add claim: ${err.message || 'Unknown error'}`);
+                showError(`Failed to add claim: ${(err as Error).message || 'Unknown error'}`);
               }
             }}
           >

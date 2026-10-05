@@ -3,7 +3,7 @@ import { getProvenance, deleteProvenanceEntry } from '../lib/provenance';
 import { useAsync } from '../hooks/useAsync';
 import { showError, showSuccess } from '../utils/errorHandling';
 
-const TRANSFER_METHODS = {
+const TRANSFER_METHODS: Record<string, string> = {
   excavation: '🔨 Excavation',
   purchase: '💰 Purchase',
   gift: '🎁 Gift',
@@ -14,8 +14,28 @@ const TRANSFER_METHODS = {
   unknown: '❓ Unknown',
 };
 
-export default function ProvenanceTimeline({ artifactId, onEdit }) {
-  const [provenance, setProvenance] = useState([]);
+interface ProvenanceEntry {
+  id: string;
+  owner_name: string;
+  owner_type?: string;
+  location?: string;
+  date_from?: string;
+  date_to?: string;
+  is_current?: boolean;
+  transfer_method?: string;
+  transfer_details?: string;
+  purchase_price?: string;
+  verified?: boolean;
+  [key: string]: any;
+}
+
+interface ProvenanceTimelineProps {
+  artifactId: string;
+  onEdit: (entry: ProvenanceEntry | null) => void;
+}
+
+export default function ProvenanceTimeline({ artifactId, onEdit }: ProvenanceTimelineProps) {
+  const [provenance, setProvenance] = useState<ProvenanceEntry[]>([]);
 
   // Load provenance using useAsync hook
   const loadProvenance = useCallback(async () => {
@@ -26,7 +46,7 @@ export default function ProvenanceTimeline({ artifactId, onEdit }) {
 
   const { loading } = useAsync(loadProvenance, true);
 
-  const handleDelete = async (entryId) => {
+  const handleDelete = async (entryId: string) => {
     if (!confirm('Delete this provenance entry?')) return;
 
     try {
@@ -34,7 +54,7 @@ export default function ProvenanceTimeline({ artifactId, onEdit }) {
       setProvenance(provenance.filter((p) => p.id !== entryId));
       showSuccess('Provenance entry deleted');
     } catch (err) {
-      showError(`Failed to delete entry: ${err.message || 'Unknown error'}`);
+      showError(`Failed to delete entry: ${(err as Error).message || 'Unknown error'}`);
     }
   };
 
