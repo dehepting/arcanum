@@ -1,10 +1,30 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, type ChangeEvent, type MouseEvent } from 'react';
 import useStore from '../../store/useStore';
 import './EntityPicker.css';
 
-export default function EntityPicker({ onSelect, onClose }) {
+interface EntityWithType {
+  id: string;
+  name: string;
+  entityType: 'person' | 'event' | 'theory' | 'place' | 'artifact';
+  icon: string;
+  color: string;
+  [key: string]: any;
+}
+
+interface EntitySelection {
+  entityId: string;
+  entityType: string;
+  entityName: string;
+}
+
+interface EntityPickerProps {
+  onSelect: (selection: EntitySelection) => void;
+  onClose: () => void;
+}
+
+export default function EntityPicker({ onSelect, onClose }: EntityPickerProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const people = useStore((state) => state.people);
   const events = useStore((state) => state.events);
@@ -13,13 +33,23 @@ export default function EntityPicker({ onSelect, onClose }) {
   const artifacts = useStore((state) => state.artifacts);
 
   // All entities combined with their type (memoized for performance)
-  const allEntities = useMemo(
+  const allEntities = useMemo<EntityWithType[]>(
     () => [
-      ...people.map((e) => ({ ...e, entityType: 'person', icon: '👤', color: 'blue' })),
-      ...events.map((e) => ({ ...e, entityType: 'event', icon: '📅', color: 'red' })),
-      ...theories.map((e) => ({ ...e, entityType: 'theory', icon: '💡', color: 'yellow' })),
-      ...places.map((e) => ({ ...e, entityType: 'place', icon: '📍', color: 'green' })),
-      ...artifacts.map((e) => ({ ...e, entityType: 'artifact', icon: '🏺', color: 'violet' })),
+      ...people.map((e) => ({ ...e, entityType: 'person' as const, icon: '👤', color: 'blue' })),
+      ...events.map((e) => ({ ...e, entityType: 'event' as const, icon: '📅', color: 'red' })),
+      ...theories.map((e) => ({
+        ...e,
+        entityType: 'theory' as const,
+        icon: '💡',
+        color: 'yellow',
+      })),
+      ...places.map((e) => ({ ...e, entityType: 'place' as const, icon: '📍', color: 'green' })),
+      ...artifacts.map((e) => ({
+        ...e,
+        entityType: 'artifact' as const,
+        icon: '🏺',
+        color: 'violet',
+      })),
     ],
     [people, events, theories, places, artifacts]
   );
@@ -40,7 +70,7 @@ export default function EntityPicker({ onSelect, onClose }) {
 
   // Handle escape key
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
       }
@@ -49,7 +79,7 @@ export default function EntityPicker({ onSelect, onClose }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  const handleSelect = (entity) => {
+  const handleSelect = (entity: EntityWithType) => {
     onSelect({
       entityId: entity.id,
       entityType: entity.entityType,
@@ -60,7 +90,7 @@ export default function EntityPicker({ onSelect, onClose }) {
 
   return (
     <div className="entity-picker-overlay" onClick={onClose}>
-      <div className="entity-picker" onClick={(e) => e.stopPropagation()}>
+      <div className="entity-picker" onClick={(e: MouseEvent) => e.stopPropagation()}>
         <div className="entity-picker-header">
           <input
             ref={inputRef}
@@ -68,7 +98,7 @@ export default function EntityPicker({ onSelect, onClose }) {
             className="entity-picker-search"
             placeholder="Search entities..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
           />
           <button className="entity-picker-close" onClick={onClose}>
             ×

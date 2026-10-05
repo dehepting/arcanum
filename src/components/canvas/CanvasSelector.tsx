@@ -1,10 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ChangeEvent, type KeyboardEvent } from 'react';
 import { logger } from '../../utils/logger';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../../store/useStore';
 
-export default function CanvasSelector({ currentCanvasId, onCanvasChange }) {
-  const [canvases, setCanvases] = useState([]);
+interface Canvas {
+  id: string;
+  name: string;
+  project_id: string;
+  is_dashboard: boolean;
+  [key: string]: any;
+}
+
+interface CreateCanvasInput {
+  project_id: string;
+  name: string;
+  is_dashboard: boolean;
+}
+
+interface CanvasSelectorProps {
+  currentCanvasId?: string | null;
+  onCanvasChange: (canvasId: string, canvasName: string) => void;
+}
+
+export default function CanvasSelector({ currentCanvasId, onCanvasChange }: CanvasSelectorProps) {
+  const [canvases, setCanvases] = useState<Canvas[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [newCanvasName, setNewCanvasName] = useState('');
   const [showNewCanvas, setShowNewCanvas] = useState(false);
@@ -16,7 +35,7 @@ export default function CanvasSelector({ currentCanvasId, onCanvasChange }) {
 
     const loadCanvases = async () => {
       try {
-        const projectCanvases = await invoke('list_canvases', {
+        const projectCanvases = await invoke<Canvas[]>('list_canvases', {
           projectId: currentProject.id,
         });
         setCanvases(projectCanvases);
@@ -28,12 +47,12 @@ export default function CanvasSelector({ currentCanvasId, onCanvasChange }) {
         }
         // If no canvases exist at all, create a default one
         else if (!currentCanvasId && projectCanvases.length === 0) {
-          const defaultCanvas = await invoke('create_canvas', {
+          const defaultCanvas = await invoke<Canvas>('create_canvas', {
             input: {
               project_id: currentProject.id,
               name: 'Research Canvas',
               is_dashboard: false,
-            },
+            } as CreateCanvasInput,
           });
           setCanvases([defaultCanvas]);
           onCanvasChange(defaultCanvas.id, defaultCanvas.name);
@@ -50,12 +69,12 @@ export default function CanvasSelector({ currentCanvasId, onCanvasChange }) {
     if (!newCanvasName.trim() || !currentProject) return;
 
     try {
-      const newCanvas = await invoke('create_canvas', {
+      const newCanvas = await invoke<Canvas>('create_canvas', {
         input: {
           project_id: currentProject.id,
           name: newCanvasName.trim(),
           is_dashboard: false,
-        },
+        } as CreateCanvasInput,
       });
 
       setCanvases([...canvases, newCanvas]);
@@ -102,8 +121,8 @@ export default function CanvasSelector({ currentCanvasId, onCanvasChange }) {
                   type="text"
                   placeholder="Canvas name..."
                   value={newCanvasName}
-                  onChange={(e) => setNewCanvasName(e.target.value)}
-                  onKeyDown={(e) => {
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setNewCanvasName(e.target.value)}
+                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                     if (e.key === 'Enter') createNewCanvas();
                     if (e.key === 'Escape') {
                       setShowNewCanvas(false);
@@ -134,6 +153,7 @@ export default function CanvasSelector({ currentCanvasId, onCanvasChange }) {
         </div>
       )}
 
+      {/* @ts-ignore - styled-jsx */}
       <style jsx>{`
         .canvas-selector {
           position: relative;
