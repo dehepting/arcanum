@@ -1,13 +1,11 @@
 import * as tauri from './tauri';
 import { logger } from '../utils/logger';
+import type { Source } from '../types/store';
 
 /**
  * Upload a PDF file to local storage and create a source record
- * @param {File} file - The PDF file to upload
- * @param {string} projectId - The project ID to associate with this source
- * @returns {Promise<Object>} The created source record
  */
-export async function uploadPDF(file, projectId) {
+export async function uploadPDF(file: File, projectId: string): Promise<Source> {
   if (!file) {
     throw new Error('No file provided');
   }
@@ -43,19 +41,15 @@ export async function uploadPDF(file, projectId) {
 
 /**
  * Load all sources for a project
- * @param {string} projectId - The project ID
- * @returns {Promise<Array>} Array of source records
  */
-export async function loadSources(projectId) {
+export async function loadSources(projectId: string): Promise<Source[]> {
   return await tauri.loadSources(projectId);
 }
 
 /**
  * Delete a source and its file
- * @param {string} sourceId - The source ID to delete
- * @param {string} storagePath - The storage path to delete
  */
-export async function deleteSource(sourceId, storagePath) {
+export async function deleteSource(sourceId: string, storagePath?: string): Promise<void> {
   // Delete from storage
   if (storagePath) {
     try {

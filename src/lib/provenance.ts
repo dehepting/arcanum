@@ -1,33 +1,32 @@
 import * as tauri from './tauri';
 import { logger } from '../utils/logger';
+import type { EntityType } from '../types/entities';
 
 /**
  * Get provenance history for an entity
- * @param {string} entityId - The entity ID
- * @param {string} entityType - The entity type (artifact, person, place, etc.)
  */
-export async function getProvenance(entityId, entityType = 'artifact') {
+export async function getProvenance(entityId: string, entityType: EntityType = 'artifact') {
   return await tauri.getProvenance(entityId, entityType);
 }
 
 /**
  * Create a new provenance entry
  */
-export async function createProvenanceEntry(entryData) {
+export async function createProvenanceEntry(entryData: any) {
   return await tauri.createProvenanceRecord(entryData);
 }
 
 /**
  * Update a provenance entry
  */
-export async function updateProvenanceEntry(entryId, updates) {
+export async function updateProvenanceEntry(entryId: string, updates: any) {
   return await tauri.updateProvenanceRecord(entryId, updates);
 }
 
 /**
  * Delete a provenance entry
  */
-export async function deleteProvenanceEntry(entryId) {
+export async function deleteProvenanceEntry(entryId: string): Promise<void> {
   return await tauri.deleteProvenanceRecord(entryId);
 }
 
@@ -38,7 +37,7 @@ export async function deleteProvenanceEntry(entryId) {
 /**
  * Get claims for an artifact (compatibility function)
  */
-export async function getClaims(artifactId) {
+export async function getClaims(artifactId: string) {
   const records = await getProvenance(artifactId, 'artifact');
   return records.filter((r) => r.event_type === 'claim');
 }
@@ -46,7 +45,7 @@ export async function getClaims(artifactId) {
 /**
  * Create a new claim (compatibility function)
  */
-export async function createClaim(claimData) {
+export async function createClaim(claimData: any) {
   return await createProvenanceEntry({
     ...claimData,
     entity_type: 'artifact',
@@ -58,7 +57,7 @@ export async function createClaim(claimData) {
 /**
  * Update a claim (compatibility function)
  */
-export async function updateClaim(claimId, updates) {
+export async function updateClaim(claimId: string, updates: any) {
   return await updateProvenanceEntry(claimId, {
     event_data: JSON.stringify(updates),
   });
@@ -67,14 +66,14 @@ export async function updateClaim(claimId, updates) {
 /**
  * Delete a claim (compatibility function)
  */
-export async function deleteClaim(claimId) {
+export async function deleteClaim(claimId: string): Promise<void> {
   return await deleteProvenanceEntry(claimId);
 }
 
 /**
  * Reorder provenance entries (not implemented - can be added later if needed)
  */
-export async function reorderProvenance(_artifactId, _orderedIds) {
+export async function reorderProvenance(_artifactId: string, _orderedIds: string[]): Promise<void> {
   logger.warn('reorderProvenance not yet implemented in Tauri backend');
   // TODO: Add sequence_order field to provenance_records table if needed
 }
@@ -82,7 +81,7 @@ export async function reorderProvenance(_artifactId, _orderedIds) {
 /**
  * Get artifacts with disputed ownership (not implemented)
  */
-export async function getDisputedArtifacts(_projectId) {
+export async function getDisputedArtifacts(_projectId: string): Promise<any[]> {
   logger.warn('getDisputedArtifacts not yet implemented in Tauri backend');
   // TODO: Add has_disputed_ownership field to artifacts table if needed
   return [];

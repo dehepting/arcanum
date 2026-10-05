@@ -1,9 +1,15 @@
 import * as tauri from './tauri';
+import type { MapOverlay } from '../types/store';
+
+interface UploadResult {
+  fileName: string;
+  storagePath: string;
+}
 
 /**
  * Upload a map overlay image
  */
-export async function uploadOverlay(file, projectId) {
+export async function uploadOverlay(file: File, projectId: string): Promise<UploadResult> {
   // Read file as ArrayBuffer
   const arrayBuffer = await file.arrayBuffer();
   const data = new Uint8Array(arrayBuffer);
@@ -24,28 +30,31 @@ export async function uploadOverlay(file, projectId) {
 /**
  * Create a new map overlay with georeferencing
  */
-export async function createOverlay(overlayData) {
+export async function createOverlay(overlayData: Partial<MapOverlay>): Promise<MapOverlay> {
   return await tauri.createOverlay(overlayData);
 }
 
 /**
  * Load all overlays for a project
  */
-export async function loadOverlays(projectId) {
+export async function loadOverlays(projectId: string): Promise<MapOverlay[]> {
   return await tauri.loadOverlays(projectId);
 }
 
 /**
  * Update overlay properties (opacity, visibility, etc.)
  */
-export async function updateOverlay(overlayId, updates) {
+export async function updateOverlay(
+  overlayId: string,
+  updates: Partial<MapOverlay>
+): Promise<MapOverlay> {
   return await tauri.updateOverlay(overlayId, updates);
 }
 
 /**
  * Delete an overlay
  */
-export async function deleteOverlay(overlayId, storagePath) {
+export async function deleteOverlay(overlayId: string, storagePath?: string): Promise<void> {
   // Delete from database
   await tauri.deleteOverlay(overlayId);
 
