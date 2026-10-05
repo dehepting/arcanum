@@ -12,7 +12,7 @@ import type { Annotation } from '../types/annotations';
  */
 type OperationResult<T> = {
   success: boolean;
-  data: T;
+  data?: T;
   error?: string;
 };
 
