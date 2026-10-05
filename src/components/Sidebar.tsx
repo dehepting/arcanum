@@ -2,13 +2,14 @@ import { useState, lazy, Suspense } from 'react';
 import useStore from '../store/useStore';
 import ArtifactList from './ArtifactList';
 import ArtifactDetail from './ArtifactDetail';
+import type { Artifact } from '../types/entities';
 
 // Lazy load form modal (only needed when editing artifacts)
 const ArtifactForm = lazy(() => import('./ArtifactForm'));
 
 export default function Sidebar() {
   const [showArtifactForm, setShowArtifactForm] = useState(false);
-  const [editingArtifact, setEditingArtifact] = useState(null);
+  const [editingArtifact, setEditingArtifact] = useState<Artifact | null>(null);
 
   const annotations = useStore((state) => state.annotations);
   const selectedArtifact = useStore((state) => state.selectedArtifact);
@@ -46,7 +47,7 @@ export default function Sidebar() {
                     }}
                   >
                     <div className="text-accent" style={{ fontSize: '12px' }}>
-                      {ann.text || '(highlight)'}
+                      {(ann as any).text || '(highlight)'}
                     </div>
                     <div className="text-muted" style={{ fontSize: '11px', marginTop: '4px' }}>
                       Page {ann.page_number}
@@ -85,7 +86,7 @@ export default function Sidebar() {
               setEditingArtifact(null);
               setShowArtifactForm(true);
             }}
-            onArtifactClick={(artifact) => setSelectedArtifact(artifact)}
+            onArtifactClick={(artifact: Artifact) => setSelectedArtifact(artifact)}
           />
         )}
       </div>

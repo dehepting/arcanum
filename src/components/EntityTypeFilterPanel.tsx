@@ -1,12 +1,34 @@
+import type { ChangeEvent } from 'react';
+
+interface EntityTypeFilters {
+  place: boolean;
+  person: boolean;
+  event: boolean;
+  theory: boolean;
+  artifact: boolean;
+}
+
+interface EntityTypeFilterPanelProps {
+  filters: EntityTypeFilters;
+  onFilterChange: (type: string, checked: boolean) => void;
+}
+
+interface EntityTypeConfig {
+  type: string;
+  icon: string;
+  label: string;
+  color: string;
+}
+
 /**
  * EntityTypeFilterPanel - Reusable filter panel for showing/hiding entity types on map
  * Extracted from MapView.jsx to improve modularity and readability
- *
- * @param {object} filters - Current filter state { place: true, person: true, ... }
- * @param {Function} onFilterChange - Callback when filter changes (type, checked)
  */
-export default function EntityTypeFilterPanel({ filters, onFilterChange }) {
-  const entityTypes = [
+export default function EntityTypeFilterPanel({
+  filters,
+  onFilterChange,
+}: EntityTypeFilterPanelProps) {
+  const entityTypes: EntityTypeConfig[] = [
     { type: 'place', icon: '📍', label: 'Places', color: '#e8b86d' },
     { type: 'person', icon: '👤', label: 'People', color: '#60a5fa' },
     { type: 'event', icon: '📅', label: 'Events', color: '#f87171' },
@@ -56,8 +78,8 @@ export default function EntityTypeFilterPanel({ filters, onFilterChange }) {
         >
           <input
             type="checkbox"
-            checked={filters[type]}
-            onChange={(e) => onFilterChange(type, e.target.checked)}
+            checked={filters[type as keyof EntityTypeFilters]}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => onFilterChange(type, e.target.checked)}
             style={{ cursor: 'pointer' }}
           />
           <span style={{ fontSize: '14px' }}>{icon}</span>
