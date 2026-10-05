@@ -1,6 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode, type MouseEvent } from 'react';
 import useStore from '../store/useStore';
 import './IDEWorkspace.css';
+
+type ResizingPanel = 'left' | 'right' | null;
+
+interface IDEWorkspaceProps {
+  leftPanel: ReactNode;
+  centerPanel: ReactNode;
+  rightPanel?: ReactNode | null;
+}
 
 /**
  * IDEWorkspace - 3-panel resizable layout (VS Code style)
@@ -8,7 +16,11 @@ import './IDEWorkspace.css';
  * Center: Main content area with tabs
  * Right: Entity details/properties
  */
-export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel = null }) {
+export default function IDEWorkspace({
+  leftPanel,
+  centerPanel,
+  rightPanel = null,
+}: IDEWorkspaceProps) {
   // Panel widths (stored in localStorage)
   const [leftWidth, setLeftWidth] = useState(() => {
     const stored = localStorage.getItem('ide-left-width');
@@ -25,8 +37,8 @@ export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel = null
   const [rightCollapsed, setRightCollapsed] = useState(false);
 
   // Resize state
-  const [resizing, setResizing] = useState(null); // 'left' | 'right' | null
-  const containerRef = useRef(null);
+  const [resizing, setResizing] = useState<ResizingPanel>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Save widths to localStorage
   useEffect(() => {
@@ -38,7 +50,7 @@ export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel = null
   }, [rightWidth]);
 
   // Handle resize start
-  const handleResizeStart = (panel) => {
+  const handleResizeStart = (panel: 'left' | 'right') => {
     setResizing(panel);
   };
 
@@ -46,7 +58,7 @@ export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel = null
   useEffect(() => {
     if (!resizing) return;
 
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: globalThis.MouseEvent) => {
       if (!containerRef.current) return;
 
       const containerRect = containerRef.current.getBoundingClientRect();
@@ -79,7 +91,7 @@ export default function IDEWorkspace({ leftPanel, centerPanel, rightPanel = null
   const openAdvancedSearch = useStore((state) => state.openAdvancedSearch);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       // Cmd+B or Ctrl+B - toggle left panel
       if ((e.metaKey || e.ctrlKey) && e.key === 'b' && !e.altKey) {
         e.preventDefault();

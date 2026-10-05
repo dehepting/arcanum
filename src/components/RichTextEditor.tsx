@@ -1,8 +1,16 @@
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useEffect } from 'react';
 import EditorToolbar from './EditorToolbar';
 import '../styles/editor.css';
+
+interface RichTextEditorProps {
+  content?: string;
+  onChange?: (html: string) => void;
+  placeholder?: string;
+  editable?: boolean;
+  showToolbar?: boolean;
+}
 
 /**
  * RichTextEditor - Tiptap-based WYSIWYG markdown editor
@@ -20,7 +28,7 @@ export default function RichTextEditor({
   placeholder = 'Start writing...',
   editable = true,
   showToolbar = true,
-}) {
+}: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -48,7 +56,7 @@ export default function RichTextEditor({
         'data-placeholder': placeholder,
       },
     },
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor }: { editor: Editor }) => {
       if (onChange) {
         onChange(editor.getHTML());
       }

@@ -1,20 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
 import { useDebounce } from '../hooks/useDebounce';
 import { logger } from '../utils/logger';
 import './AdvancedSearch.css';
 
-export default function AdvancedSearch({ isOpen, onClose }) {
+interface EntityTypes {
+  people: boolean;
+  events: boolean;
+  theories: boolean;
+  places: boolean;
+  artifacts: boolean;
+}
+
+interface SearchResult {
+  id: string;
+  entity_type: string;
+  name: string;
+  snippet: string;
+}
+
+interface SearchInput {
+  project_id: string;
+  query: string;
+  entity_types: string[];
+  limit: number;
+}
+
+interface AdvancedSearchProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function AdvancedSearch({ isOpen, onClose }: AdvancedSearchProps) {
   const [query, setQuery] = useState('');
-  const [entityTypes, setEntityTypes] = useState({
+  const [entityTypes, setEntityTypes] = useState<EntityTypes>({
     people: true,
     events: true,
     theories: true,
     places: true,
     artifacts: true,
   });
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const currentProject = useStore((state) => state.currentProject);
   const addTab = useStore((state) => state.addTab);
@@ -41,13 +68,13 @@ export default function AdvancedSearch({ isOpen, onClose }) {
           return;
         }
 
-        const searchResults = await invoke('search_entities', {
+        const searchResults = await invoke<SearchResult[]>('search_entities', {
           input: {
             project_id: currentProject.id,
             query: debouncedQuery.trim(),
             entity_types: selectedTypes,
             limit: 50,
-          },
+          } as SearchInput,
         });
 
         setResults(searchResults);
@@ -62,9 +89,9 @@ export default function AdvancedSearch({ isOpen, onClose }) {
     performSearch();
   }, [debouncedQuery, entityTypes, currentProject]);
 
-  const handleOpenEntity = (result) => {
+  const handleOpenEntity = (result: SearchResult) => {
     // Map entity type to singular form for tab type
-    const typeMapping = {
+    const typeMapping: Record<string, string> = {
       people: 'person',
       events: 'event',
       theories: 'theory',
@@ -85,14 +112,14 @@ export default function AdvancedSearch({ isOpen, onClose }) {
     onClose();
   };
 
-  const handleToggleEntityType = (type) => {
+  const handleToggleEntityType = (type: keyof EntityTypes) => {
     setEntityTypes({
       ...entityTypes,
       [type]: !entityTypes[type],
     });
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Escape') {
       onClose();
     }
@@ -106,7 +133,7 @@ export default function AdvancedSearch({ isOpen, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div
         className="modal-content advanced-search-modal"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: MouseEvent) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         <div className="modal-header">
@@ -123,7 +150,7 @@ export default function AdvancedSearch({ isOpen, onClose }) {
             className="search-input"
             placeholder="Search across all entities..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
             autoFocus
           />
 
@@ -131,7 +158,7 @@ export default function AdvancedSearch({ isOpen, onClose }) {
           <div className="filter-section">
             <label className="filter-label">Entity Types:</label>
             <div className="filter-checkboxes">
-              {Object.keys(entityTypes).map((type) => (
+              {(Object.keys(entityTypes) as Array<keyof EntityTypes>).map((type) => (
                 <label key={type} className="checkbox-label">
                   <input
                     type="checkbox"
