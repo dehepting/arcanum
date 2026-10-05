@@ -1,16 +1,37 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import useStore from '../store/useStore';
 import { getSourcesForArtifact, unlinkArtifactFromAnnotation } from '../lib/artifact-sources';
 import { useAsync } from '../hooks/useAsync';
 import { showError } from '../utils/errorHandling';
 
+interface ArtifactSource {
+  id: string;
+  quote?: string;
+  context?: string;
+  created_at: string;
+  annotations: {
+    id: string;
+    page_number?: number;
+    text?: string;
+    sources?: {
+      id: string;
+      title?: string;
+      filename?: string;
+    };
+  };
+}
+
+interface ArtifactSourcesListProps {
+  artifactId: string;
+}
+
 /**
  * Displays list of source references (linked annotations) for an artifact
  * Shown in the "Sources" tab of ArtifactDetail
  */
-export default function ArtifactSourcesList({ artifactId }) {
+export default function ArtifactSourcesList({ artifactId }: ArtifactSourcesListProps) {
   const { setMapView, setActiveSource, setCurrentPage } = useStore();
-  const [sources, setSources] = useState([]);
+  const [sources, setSources] = useState<ArtifactSource[]>([]);
 
   // Load sources using useAsync hook - auto-execute on mount
   const loadSources = useCallback(async () => {
@@ -26,7 +47,7 @@ export default function ArtifactSourcesList({ artifactId }) {
 
   const { loading, error } = useAsync(loadSources, true);
 
-  const handleUnlink = async (linkId, annotationId) => {
+  const handleUnlink = async (linkId: string, annotationId: string) => {
     if (!confirm('Remove this source reference?')) return;
 
     const result = await unlinkArtifactFromAnnotation(artifactId, annotationId);
@@ -39,12 +60,12 @@ export default function ArtifactSourcesList({ artifactId }) {
     }
   };
 
-  const handleViewInPdf = (source) => {
+  const handleViewInPdf = (source: ArtifactSource) => {
     const annotation = source.annotations;
     if (!annotation || !annotation.sources) return;
 
     // Navigate to the PDF page
-    setMapView('sources');
+    setMapView('source');
     setActiveSource(annotation.sources.id);
     setCurrentPage(annotation.page_number || 1);
   };
@@ -54,7 +75,11 @@ export default function ArtifactSourcesList({ artifactId }) {
   }
 
   if (error) {
-    return <div className="sources-list-error">Error loading sources: {error}</div>;
+    return (
+      <div className="sources-list-error">
+        Error loading sources: {error instanceof Error ? error.message : String(error)}
+      </div>
+    );
   }
 
   if (sources.length === 0) {
@@ -135,6 +160,7 @@ export default function ArtifactSourcesList({ artifactId }) {
         })}
       </div>
 
+      {/* @ts-ignore - styled-jsx */}
       <style jsx>{`
         .sources-list {
           padding: 20px;

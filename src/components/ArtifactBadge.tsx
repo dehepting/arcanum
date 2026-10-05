@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
+import type { Artifact } from '../types/entities';
+
+interface ArtifactBadgeProps {
+  artifact: Artifact | null;
+  onClick?: (artifact: Artifact) => void;
+}
+
+type CategoryEmoji = Record<string, string>;
 
 /**
  * Badge overlay showing that an annotation is linked to an artifact
  * Displays artifact icon and shows preview on hover
  */
-export default function ArtifactBadge({ artifact, onClick }) {
+export default function ArtifactBadge({ artifact, onClick }: ArtifactBadgeProps) {
   const [showPreview, setShowPreview] = useState(false);
 
   if (!artifact) return null;
 
-  const categoryEmoji = {
+  const categoryEmoji: CategoryEmoji = {
     pottery: '🏺',
     sculpture: '🗿',
     jewelry: '💍',
@@ -22,14 +30,14 @@ export default function ArtifactBadge({ artifact, onClick }) {
     other: '📦',
   };
 
-  const emoji = categoryEmoji[artifact.category] || categoryEmoji.other;
+  const emoji = categoryEmoji[artifact.category || 'other'] || categoryEmoji.other;
 
   return (
     <div
       className="artifact-badge"
       onMouseEnter={() => setShowPreview(true)}
       onMouseLeave={() => setShowPreview(false)}
-      onClick={(e) => {
+      onClick={(e: MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
         onClick?.(artifact);
       }}
@@ -56,6 +64,7 @@ export default function ArtifactBadge({ artifact, onClick }) {
         </div>
       )}
 
+      {/* @ts-ignore - styled-jsx */}
       <style jsx>{`
         .artifact-badge {
           position: absolute;

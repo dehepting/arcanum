@@ -1,4 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import {
+  useState,
+  useEffect,
+  useRef,
+  type ChangeEvent,
+  type FormEvent,
+  type MouseEvent,
+} from 'react';
 import useStore from '../store/useStore';
 import { createArtifact, updateArtifact, uploadArtifactImage } from '../lib/artifacts';
 import { showError, showSuccess } from '../utils/errorHandling';
@@ -6,6 +13,7 @@ import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
 import FormField from './FormField';
 import FormSelect from './FormSelect';
 import FormTextarea from './FormTextarea';
+import type { Artifact } from '../types/entities';
 
 const CATEGORIES = [
   'Pottery & Ceramics',
@@ -24,8 +32,36 @@ const CATEGORIES = [
 const OWNER_TYPES = ['museum', 'private', 'government', 'unknown'];
 const CONDITIONS = ['excellent', 'good', 'fair', 'poor', 'fragmentary'];
 
-export default function ArtifactForm({ artifact, isOpen, onClose }) {
-  const [formData, setFormData] = useState({
+interface ArtifactFormData {
+  name: string;
+  description: string;
+  category: string;
+  subcategory: string;
+  period: string;
+  estimated_age: string;
+  date_found: string;
+  findspot_place_id: string;
+  findspot_description: string;
+  excavation_notes: string;
+  current_location: string;
+  current_owner: string;
+  owner_type: string;
+  accession_number: string;
+  material: string;
+  dimensions: string;
+  weight: string;
+  condition: string;
+  notes: string;
+}
+
+interface ArtifactFormProps {
+  artifact?: Artifact | null;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function ArtifactForm({ artifact, isOpen, onClose }: ArtifactFormProps) {
+  const [formData, setFormData] = useState<ArtifactFormData>({
     name: '',
     description: '',
     category: 'Pottery & Ceramics',
@@ -33,6 +69,7 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
     period: '',
     estimated_age: '',
     date_found: '',
+    findspot_place_id: '',
     findspot_description: '',
     excavation_notes: '',
     current_location: '',
@@ -46,9 +83,9 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
     notes: '',
   });
 
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentProject = useStore((state) => state.currentProject);
   const places = useStore((state) => state.places);
@@ -109,23 +146,23 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
     }
   }, [artifact, isOpen]);
 
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
     if (!files.length) return;
 
     setUploading(true);
     try {
-      const uploadPromises = files.map((file) => uploadArtifactImage(file, currentProject.id));
+      const uploadPromises = files.map((file) => uploadArtifactImage(file, currentProject!.id));
       const uploadedUrls = await Promise.all(uploadPromises);
       setImages([...images, ...uploadedUrls]);
     } catch (err) {
-      showError(`Failed to upload images: ${err.message || 'Unknown error'}`);
+      showError(`Failed to upload images: ${(err as Error).message || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement> | MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
@@ -137,7 +174,7 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
     try {
       const artifactData = {
         ...formData,
-        project_id: currentProject.id,
+        project_id: currentProject!.id,
         image_urls: images,
         findspot_place_id: formData.findspot_place_id || null,
       };
@@ -155,7 +192,7 @@ export default function ArtifactForm({ artifact, isOpen, onClose }) {
       showSuccess(artifact ? 'Artifact updated successfully!' : 'Artifact created successfully!');
       onClose();
     } catch (err) {
-      showError(`Failed to save artifact: ${err.message || 'Unknown error'}`);
+      showError(`Failed to save artifact: ${(err as Error).message || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }

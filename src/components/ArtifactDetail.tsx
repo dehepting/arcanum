@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import useStore from '../store/useStore';
 import { deleteArtifact } from '../lib/artifacts';
 import ProvenanceTimeline from './ProvenanceTimeline';
@@ -6,8 +6,9 @@ import ProvenanceForm from './ProvenanceForm';
 import ClaimsList from './ClaimsList';
 import ArtifactSourcesList from './ArtifactSourcesList';
 import { showError, showSuccess } from '../utils/errorHandling';
+import type { Artifact } from '../types/entities';
 
-const CATEGORY_ICONS = {
+const CATEGORY_ICONS: Record<string, string> = {
   'Pottery & Ceramics': '🏺',
   'Coins & Currency': '💰',
   'Sculptures & Statues': '🗿',
@@ -21,10 +22,23 @@ const CATEGORY_ICONS = {
   Other: '📦',
 };
 
-export default function ArtifactDetail({ artifact, onBack, onEdit }) {
-  const [activeTab, setActiveTab] = useState('details');
+type TabType = 'details' | 'provenance' | 'claims' | 'sources';
+
+interface ArtifactDetailProps {
+  artifact: Artifact;
+  onBack: () => void;
+  onEdit: () => void;
+}
+
+interface ProvenanceEntry {
+  id: string;
+  [key: string]: any;
+}
+
+export default function ArtifactDetail({ artifact, onBack, onEdit }: ArtifactDetailProps) {
+  const [activeTab, setActiveTab] = useState<TabType>('details');
   const [showProvenanceForm, setShowProvenanceForm] = useState(false);
-  const [editingProvenance, setEditingProvenance] = useState(null);
+  const [editingProvenance, setEditingProvenance] = useState<ProvenanceEntry | null>(null);
 
   const removeArtifact = useStore((state) => state.removeArtifact);
   const setMapView = useStore((state) => state.setMapView);
@@ -38,7 +52,7 @@ export default function ArtifactDetail({ artifact, onBack, onEdit }) {
       showSuccess('Artifact deleted successfully!');
       onBack();
     } catch (err) {
-      showError(`Failed to delete artifact: ${err.message || 'Unknown error'}`);
+      showError(`Failed to delete artifact: ${(err as Error).message || 'Unknown error'}`);
     }
   };
 
@@ -47,7 +61,7 @@ export default function ArtifactDetail({ artifact, onBack, onEdit }) {
 
     setMapView('map');
     // Store findspot for MapView to fly to
-    useStore.getState().flyToPlace = artifact.findspot;
+    (useStore.getState() as any).flyToPlace = artifact.findspot;
   };
 
   return (
@@ -78,7 +92,7 @@ export default function ArtifactDetail({ artifact, onBack, onEdit }) {
           background: 'var(--panel)',
         }}
       >
-        {['details', 'provenance', 'claims', 'sources'].map((tab) => (
+        {(['details', 'provenance', 'claims', 'sources'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -156,7 +170,7 @@ export default function ArtifactDetail({ artifact, onBack, onEdit }) {
               style={{ display: 'flex', alignItems: 'start', gap: '12px', marginBottom: '16px' }}
             >
               <div style={{ fontSize: '32px', flexShrink: 0 }}>
-                {CATEGORY_ICONS[artifact.category] || '📦'}
+                {CATEGORY_ICONS[artifact.category || 'Other'] || '📦'}
               </div>
               <div style={{ flex: 1 }}>
                 <h3

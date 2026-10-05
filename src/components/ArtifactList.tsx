@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent, type MouseEvent } from 'react';
 import useStore from '../store/useStore';
+import type { Artifact } from '../types/entities';
 
 const CATEGORIES = [
   'All',
@@ -16,7 +17,7 @@ const CATEGORIES = [
   'Other',
 ];
 
-const CATEGORY_ICONS = {
+const CATEGORY_ICONS: Record<string, string> = {
   'Pottery & Ceramics': '🏺',
   'Coins & Currency': '💰',
   'Sculptures & Statues': '🗿',
@@ -30,7 +31,12 @@ const CATEGORY_ICONS = {
   Other: '📦',
 };
 
-export default function ArtifactList({ onAddClick, onArtifactClick }) {
+interface ArtifactListProps {
+  onAddClick: () => void;
+  onArtifactClick: (artifact: Artifact) => void;
+}
+
+export default function ArtifactList({ onAddClick, onArtifactClick }: ArtifactListProps) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -74,7 +80,7 @@ export default function ArtifactList({ onAddClick, onArtifactClick }) {
       <div style={{ padding: '12px', borderBottom: '1px solid var(--line)' }}>
         <select
           value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCategory(e.target.value)}
           style={{
             width: '100%',
             background: 'var(--bg)',
@@ -98,7 +104,7 @@ export default function ArtifactList({ onAddClick, onArtifactClick }) {
           type="text"
           placeholder="Search artifacts..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
           style={{
             width: '100%',
             background: 'var(--bg)',
@@ -149,16 +155,16 @@ export default function ArtifactList({ onAddClick, onArtifactClick }) {
                 cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={(e) => {
+              onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
                 e.currentTarget.style.borderColor = 'var(--accent-2)';
               }}
-              onMouseLeave={(e) => {
+              onMouseLeave={(e: MouseEvent<HTMLDivElement>) => {
                 e.currentTarget.style.borderColor = 'var(--line)';
               }}
             >
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{ fontSize: '24px', flexShrink: 0 }}>
-                  {CATEGORY_ICONS[artifact.category] || '📦'}
+                  {CATEGORY_ICONS[artifact.category || 'Other'] || '📦'}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
