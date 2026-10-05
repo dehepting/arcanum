@@ -1,4 +1,18 @@
-import React from 'react';
+import React, { type ReactNode, type ErrorInfo } from 'react';
+
+// Type declaration for process.env (used in tests)
+declare const process: { env: { NODE_ENV?: string } };
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  fallbackMessage?: string;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+}
 
 /**
  * Error Boundary - Catches React component errors and displays fallback UI
@@ -11,18 +25,18 @@ import React from 'react';
  *   <YourComponent />
  * </ErrorBoundary>
  */
-class ErrorBoundary extends React.Component {
-  constructor(props) {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError() {
+  static getDerivedStateFromError(): Partial<ErrorBoundaryState> {
     // Update state so next render shows fallback UI
     return { hasError: true };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error details for debugging
     console.error('ErrorBoundary caught an error:', error, errorInfo);
 
@@ -91,34 +105,36 @@ class ErrorBoundary extends React.Component {
             </button>
           </div>
 
-          {process.env.NODE_ENV === 'development' && this.state.error && (
-            <details
-              style={{
-                marginTop: 'var(--space-6)',
-                textAlign: 'left',
-                background: 'var(--bg-panel)',
-                padding: 'var(--space-4)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-default)',
-              }}
-            >
-              <summary style={{ cursor: 'pointer', marginBottom: 'var(--space-3)' }}>
-                Error Details (Development Only)
-              </summary>
-              <pre
+          {typeof process !== 'undefined' &&
+            process.env.NODE_ENV === 'development' &&
+            this.state.error && (
+              <details
                 style={{
-                  fontSize: 'var(--font-size-sm)',
-                  color: 'var(--text-danger)',
-                  overflow: 'auto',
-                  whiteSpace: 'pre-wrap',
+                  marginTop: 'var(--space-6)',
+                  textAlign: 'left',
+                  background: 'var(--bg-panel)',
+                  padding: 'var(--space-4)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-default)',
                 }}
               >
-                {this.state.error.toString()}
-                {'\n\n'}
-                {this.state.errorInfo?.componentStack}
-              </pre>
-            </details>
-          )}
+                <summary style={{ cursor: 'pointer', marginBottom: 'var(--space-3)' }}>
+                  Error Details (Development Only)
+                </summary>
+                <pre
+                  style={{
+                    fontSize: 'var(--font-size-sm)',
+                    color: 'var(--text-danger)',
+                    overflow: 'auto',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {this.state.error.toString()}
+                  {'\n\n'}
+                  {this.state.errorInfo?.componentStack}
+                </pre>
+              </details>
+            )}
         </div>
       );
     }

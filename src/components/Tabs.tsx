@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type KeyboardEvent, type MouseEvent } from 'react';
 import useStore from '../store/useStore';
 import { updateSource } from '../lib/tauri';
+import type { Tab } from '../types/tabs';
 
-const TAB_ICONS = {
+const TAB_ICONS: Record<string, string> = {
   map: '🗺️',
   pdf: '📄',
   person: '👤',
@@ -23,11 +24,11 @@ export default function Tabs() {
   const sources = useStore((state) => state.sources);
   const setSources = useStore((state) => state.setSources);
 
-  const [editingTabId, setEditingTabId] = useState(null);
+  const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleCloseTab = (tab, e) => {
+  const handleCloseTab = (tab: Tab, e: MouseEvent<HTMLSpanElement>) => {
     e.stopPropagation();
 
     // If tab is dirty, confirm before closing
@@ -42,7 +43,7 @@ export default function Tabs() {
     removeTab(tab.id);
   };
 
-  const handleDoubleClick = (tab, e) => {
+  const handleDoubleClick = (tab: Tab, e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     // Don't allow renaming the default map tab
     if (tab.type === 'map' && tab.id === 'default-map') return;
@@ -51,7 +52,7 @@ export default function Tabs() {
     setEditingTitle(tab.title);
   };
 
-  const handleRename = async (tab) => {
+  const handleRename = async (tab: Tab) => {
     if (!editingTitle.trim()) {
       setEditingTabId(null);
       return;
@@ -78,7 +79,7 @@ export default function Tabs() {
     setEditingTabId(null);
   };
 
-  const handleKeyDown = (tab, e) => {
+  const handleKeyDown = (tab: Tab, e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleRename(tab);
     } else if (e.key === 'Escape') {

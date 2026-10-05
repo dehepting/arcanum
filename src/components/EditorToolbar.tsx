@@ -1,10 +1,15 @@
+import type { Editor } from '@tiptap/react';
 import '../styles/editor.css';
+
+interface EditorToolbarProps {
+  editor: Editor | null;
+}
 
 /**
  * EditorToolbar - Formatting toolbar for RichTextEditor
  * Provides buttons for bold, italic, headings, lists, links, and code
  */
-export default function EditorToolbar({ editor }) {
+export default function EditorToolbar({ editor }: EditorToolbarProps) {
   if (!editor) {
     return null;
   }
