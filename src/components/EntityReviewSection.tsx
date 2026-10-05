@@ -1,17 +1,25 @@
+import type { ReactNode } from 'react';
+
+interface Entity {
+  [key: string]: any;
+}
+
+interface EntityReviewSectionProps {
+  title: string;
+  singularLabel: string;
+  entities: Entity[];
+  selected: Set<number>;
+  onAdd: () => void;
+  onToggle: (entityType: string, index: number) => void;
+  onUpdate: (entityType: string, index: number, field: string, value: any) => void;
+  onRemove: (entityType: string, index: number) => void;
+  renderFields: (entity: Entity, index: number) => ReactNode;
+  entityType: string;
+}
+
 /**
  * EntityReviewSection - Reusable section for entity review/creation
  * Eliminates duplication across People, Events, Theories, Places sections in EntityReview
- *
- * @param {string} title - Section title (e.g., "People")
- * @param {string} singularLabel - Singular form for button (e.g., "Person")
- * @param {Array} entities - Array of entity objects
- * @param {Set} selected - Set of selected entity indices
- * @param {Function} onAdd - Handler for adding new entity
- * @param {Function} onToggle - Handler for toggling entity selection (entityType, index)
- * @param {Function} onUpdate - Handler for updating entity field (entityType, index, field, value)
- * @param {Function} onRemove - Handler for removing entity (entityType, index)
- * @param {Function} renderFields - Function to render entity-specific fields (entity, index)
- * @param {string} entityType - Entity type key (e.g., 'people', 'events')
  */
 export default function EntityReviewSection({
   title,
@@ -24,7 +32,7 @@ export default function EntityReviewSection({
   onRemove,
   renderFields,
   entityType,
-}) {
+}: EntityReviewSectionProps) {
   return (
     <div className="entity-section">
       <div className="section-header">

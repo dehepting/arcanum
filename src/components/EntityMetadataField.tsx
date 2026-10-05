@@ -1,4 +1,31 @@
-import { useState, useRef, useEffect } from 'react';
+import {
+  useState,
+  useRef,
+  useEffect,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
+
+interface SelectOption {
+  value: string | number;
+  label: string;
+}
+
+interface EntityMetadataFieldProps {
+  label: string;
+  value: string | number;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+  icon?: ReactNode;
+  validation?: ((value: string) => string | null) | null;
+  options?: SelectOption[] | null;
+  multiline?: boolean;
+  clearable?: boolean;
+  onClear?: (() => void) | null;
+}
 
 /**
  * Reusable metadata field component with inline editing
@@ -12,15 +39,15 @@ export default function EntityMetadataField({
   placeholder = '',
   icon = null,
   validation = null,
-  options = null, // For select type
+  options = null,
   multiline = false,
   clearable = false,
   onClear = null,
-}) {
+}: EntityMetadataFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value || '');
-  const [error, setError] = useState(null);
-  const inputRef = useRef(null);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setEditValue(value || '');
@@ -30,7 +57,7 @@ export default function EntityMetadataField({
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
-      if (type === 'text' || type === 'date') {
+      if ((type === 'text' || type === 'date') && 'select' in inputRef.current) {
         inputRef.current.select();
       }
     }
@@ -39,7 +66,7 @@ export default function EntityMetadataField({
   const handleSave = () => {
     // Validate
     if (validation) {
-      const validationError = validation(editValue);
+      const validationError = validation(String(editValue));
       if (validationError) {
         setError(validationError);
         return;
@@ -51,7 +78,7 @@ export default function EntityMetadataField({
 
     // Only call onChange if value actually changed
     if (editValue !== value) {
-      onChange(editValue);
+      onChange(String(editValue));
     }
   };
 
@@ -61,7 +88,9 @@ export default function EntityMetadataField({
     setIsEditing(false);
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (
+    e: KeyboardEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     if (e.key === 'Enter' && !multiline) {
       e.preventDefault();
       handleSave();
@@ -96,7 +125,7 @@ export default function EntityMetadataField({
             {clearable && value && (
               <button
                 className="metadata-clear-btn"
-                onClick={(e) => {
+                onClick={(e: MouseEvent<HTMLButtonElement>) => {
                   e.stopPropagation();
                   handleClear();
                 }}
@@ -110,9 +139,9 @@ export default function EntityMetadataField({
           <div className="metadata-field-edit">
             {type === 'select' ? (
               <select
-                ref={inputRef}
+                ref={inputRef as React.RefObject<HTMLSelectElement>}
                 value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setEditValue(e.target.value)}
                 onBlur={handleSave}
                 onKeyDown={handleKeyDown}
               >
@@ -125,9 +154,9 @@ export default function EntityMetadataField({
               </select>
             ) : multiline ? (
               <textarea
-                ref={inputRef}
+                ref={inputRef as React.RefObject<HTMLTextAreaElement>}
                 value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setEditValue(e.target.value)}
                 onBlur={handleSave}
                 onKeyDown={handleKeyDown}
                 rows={3}
@@ -135,10 +164,10 @@ export default function EntityMetadataField({
               />
             ) : (
               <input
-                ref={inputRef}
+                ref={inputRef as React.RefObject<HTMLInputElement>}
                 type={type}
                 value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setEditValue(e.target.value)}
                 onBlur={handleSave}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}

@@ -1,6 +1,21 @@
 import { getEntityTypeConfig } from '../config/entityTypes';
 import EntityFormItem from './EntityFormItem';
 import './EntitySection.css';
+import type { EntityType } from '../types/entities';
+
+interface Entity {
+  [key: string]: any;
+}
+
+interface EntitySectionProps {
+  entityType: EntityType;
+  entities: Entity[];
+  selectedIndices: Set<number>;
+  onToggleSelection: (index: number) => void;
+  onUpdate: (index: number, field: string, value: any) => void;
+  onRemove: (index: number) => void;
+  onAdd: () => void;
+}
 
 /**
  * EntitySection - Reusable section for managing entities in EntityReview
@@ -13,7 +28,7 @@ export default function EntitySection({
   onUpdate,
   onRemove,
   onAdd,
-}) {
+}: EntitySectionProps) {
   const config = getEntityTypeConfig(entityType);
 
   return (

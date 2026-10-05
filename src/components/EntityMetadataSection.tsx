@@ -1,6 +1,17 @@
 import { getEntityTypeConfig } from '../config/entityTypes';
 import LocationEditor from './LocationEditor';
 import './EntityMetadataSection.css';
+import type { EntityType } from '../types/entities';
+
+interface EntityMetadataSectionProps {
+  entityType: EntityType;
+  entityData: any;
+  entityId: string;
+  entityTitle: string;
+  onLocationChange: (lat: number, lng: number) => void;
+  onSetOnMap: () => void;
+  saving: boolean;
+}
 
 /**
  * EntityMetadataSection - Displays metadata for any entity type
@@ -14,7 +25,7 @@ export default function EntityMetadataSection({
   onLocationChange,
   onSetOnMap,
   saving,
-}) {
+}: EntityMetadataSectionProps) {
   if (!entityData) return null;
 
   const config = getEntityTypeConfig(entityType);
