@@ -9,6 +9,7 @@ import { loadArtifacts } from './lib/artifacts';
 import { invoke } from '@tauri-apps/api/core';
 import { logger } from './utils/logger';
 import './styles/index.css';
+import type { Place, Person, Event, Theory } from './types/entities';
 
 function App() {
   const currentProject = useStore((state) => state.currentProject);
@@ -44,12 +45,12 @@ function App() {
         logger.debug('Loading project data for:', currentProject.id, currentProject.name);
 
         // Load each resource type with individual error handling
-        let sources = [];
-        let artifacts = [];
-        let places = [];
-        let people = [];
-        let events = [];
-        let theories = [];
+        let sources: any[] = [];
+        let artifacts: any[] = [];
+        let places: Place[] = [];
+        let people: Person[] = [];
+        let events: Event[] = [];
+        let theories: Theory[] = [];
 
         try {
           sources = await loadSources(currentProject.id);
@@ -66,10 +67,10 @@ function App() {
 
         try {
           [places, people, events, theories] = await Promise.all([
-            invoke('list_places', { projectId: currentProject.id }),
-            invoke('list_people', { projectId: currentProject.id }),
-            invoke('list_events', { projectId: currentProject.id }),
-            invoke('list_theories', { projectId: currentProject.id }),
+            invoke<Place[]>('list_places', { projectId: currentProject.id }),
+            invoke<Person[]>('list_people', { projectId: currentProject.id }),
+            invoke<Event[]>('list_events', { projectId: currentProject.id }),
+            invoke<Theory[]>('list_theories', { projectId: currentProject.id }),
           ]);
         } catch (e) {
           logger.error('Failed to load entities:', e);
