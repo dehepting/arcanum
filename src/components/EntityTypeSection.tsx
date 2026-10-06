@@ -48,7 +48,7 @@ export default function EntityTypeSection({
   hasMore = false,
   showCreate = true,
 }: EntityTypeSectionProps) {
-  const config = getEntityType(type);
+  const config = getEntityType(type as any);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus rename input

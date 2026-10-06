@@ -179,7 +179,9 @@ export default function PDFThumbnailSidebar({
         thumbnails.map((thumb) => (
           <div
             key={thumb.pageNumber}
-            ref={(el) => (thumbnailRefs.current[thumb.pageNumber] = el)}
+            ref={(el) => {
+              thumbnailRefs.current[thumb.pageNumber] = el;
+            }}
             onClick={() => onPageClick(thumb.pageNumber)}
             style={{
               cursor: 'pointer',

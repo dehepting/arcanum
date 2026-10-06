@@ -51,7 +51,7 @@ export async function createEntityPage(
       title,
       storage_path: storagePath,
       metadata: metadata ? JSON.stringify(metadata) : null,
-    });
+    } as any);
 
     return { data: page, error: null };
   } catch (error) {
@@ -77,8 +77,8 @@ export async function getEntityPage(entityId: string): Promise<Result<EntityPage
     }
 
     // 2. Get content from storage
-    logger.debug('Reading file from storage:', STORAGE_BUCKET, page.storage_path);
-    const result = await tauri.readFile(STORAGE_BUCKET, page.storage_path);
+    logger.debug('Reading file from storage:', STORAGE_BUCKET, (page as any).storage_path);
+    const result = await tauri.readFile(STORAGE_BUCKET, (page as any).storage_path);
 
     const decoder = new TextDecoder();
     const content = decoder.decode(new Uint8Array(result.data));
@@ -121,7 +121,7 @@ export async function updateEntityPage(
 
     // 2. If appending, get current content first
     if (append) {
-      const result = await tauri.readFile(STORAGE_BUCKET, page.storage_path);
+      const result = await tauri.readFile(STORAGE_BUCKET, (page as any).storage_path);
       const decoder = new TextDecoder();
       const currentContent = decoder.decode(new Uint8Array(result.data));
       finalContent = currentContent + '\n\n' + content;
@@ -130,7 +130,7 @@ export async function updateEntityPage(
     // 3. Update content in storage
     const encoder = new TextEncoder();
     const data = encoder.encode(finalContent);
-    await tauri.uploadFile(STORAGE_BUCKET, page.storage_path, data);
+    await tauri.uploadFile(STORAGE_BUCKET, (page as any).storage_path, data);
 
     // 4. Update timestamp in database
     const updatedPage = await tauri.updateEntityPage(entityId, {});
@@ -172,7 +172,7 @@ export async function deleteEntityPage(entityId: string): Promise<Result<boolean
 
     // 2. Delete from storage
     try {
-      await tauri.deleteFile(STORAGE_BUCKET, page.storage_path);
+      await tauri.deleteFile(STORAGE_BUCKET, (page as any).storage_path);
     } catch (storageError) {
       logger.warn('Failed to delete storage file:', storageError);
     }
@@ -219,7 +219,7 @@ export async function searchEntityPages(
     // Search in title
     if (query) {
       const lowerQuery = query.toLowerCase();
-      pages = pages.filter((p) => p.title.toLowerCase().includes(lowerQuery));
+      pages = pages.filter((p) => (p as any).title.toLowerCase().includes(lowerQuery));
     }
 
     return { data: pages, error: null };

@@ -201,8 +201,8 @@ export default function MapView() {
               lng: e.lngLat.lng,
               lat: e.lngLat.lat,
               note: '',
-            },
-            state.pendingPinAnnotationId
+            } as any,
+            state.pendingPinAnnotationId as any
           );
 
           state.addPlace(place);

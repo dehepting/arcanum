@@ -1,22 +1,16 @@
-import { useState, useEffect, type ChangeEvent, type MouseEvent } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import useStore from '../store/useStore';
-import { logger } from '../utils/logger';
 import Modal, { ModalHeader, ModalBody, ModalFooter } from './Modal';
-import EntityPicker from './EntityPicker';
 import ArtifactLinkModal from './ArtifactLinkModal';
+import EntityPicker from './canvas/EntityPicker';
+import { getArtifactsForAnnotation } from '../lib/artifact-sources';
 import {
-  createAnnotation,
-  updateAnnotation,
+  getEntitiesForAnnotation,
   linkAnnotationToEntity,
   unlinkAnnotationFromEntity,
-  getLinkedEntities,
-  linkAnnotationToArtifact,
-  unlinkAnnotationFromArtifact,
-  getLinkedArtifacts,
-} from '../lib/tauri';
-import { showError, showSuccess } from '../utils/errorHandling';
+} from '../lib/annotationLinks';
+import { createAnnotation, updateAnnotation } from '../lib/tauri';
 import type { Annotation } from '../types/annotations';
-import type { Entity } from '../types/entities';
 
 interface LinkedEntity {
   id: string;
@@ -31,227 +25,263 @@ interface LinkedArtifact {
   [key: string]: any;
 }
 
-type EntityType = 'person' | 'event' | 'theory' | 'place' | 'artifact';
+interface EntitySelection {
+  entityId: string;
+  entityType: string;
+  entityName: string;
+}
 
-/**
- * AnnotationModal - Create/edit annotations with entity and artifact linking
- * Supports text notes, highlights, and ink annotations
- */
 export default function AnnotationModal() {
-  const annotationModal = useStore((state) => state.annotationModal);
-  const closeAnnotationModal = useStore((state) => state.closeAnnotationModal);
-  const currentSource = useStore((state) => state.currentSource);
-  const currentProject = useStore((state) => state.currentProject);
-  const setAnnotations = useStore((state) => state.setAnnotations);
-
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
-  const [linkedEntities, setLinkedEntities] = useState<LinkedEntity[]>([]);
-  const [linkedArtifacts, setLinkedArtifacts] = useState<LinkedArtifact[]>([]);
-  const [showEntityPicker, setShowEntityPicker] = useState(false);
-  const [entityTypeToLink, setEntityTypeToLink] = useState<EntityType | null>(null);
   const [showArtifactLinkModal, setShowArtifactLinkModal] = useState(false);
+  const [showEntityPicker, setShowEntityPicker] = useState(false);
+  const [_linkedArtifacts, setLinkedArtifacts] = useState<LinkedArtifact[]>([]);
+  const [linkedEntities, setLinkedEntities] = useState<LinkedEntity[]>([]);
 
-  const annotation = annotationModal.annotation;
-  const isOpen = annotationModal.isOpen;
+  const modalOpen = useStore((state) => state.annotationModalOpen);
+  const pendingAnnotation = useStore((state) => state.pendingAnnotation);
+  const closeModal = useStore((state) => state.closeAnnotationModal);
+  const addAnnotation = useStore((state) => state.addAnnotation);
+  const setAnnotations = useStore((state) => state.setAnnotations);
+  const annotations = useStore((state) => state.annotations);
+  const currentPage = useStore((state) => state.currentPage);
+  const activeSourceId = useStore((state) => state.activeSourceId);
+  const currentProject = useStore((state) => state.currentProject);
+  const startPinPlacement = useStore((state) => state.startPinPlacement);
 
-  // Load linked entities and artifacts when annotation changes
-  useEffect(() => {
-    if (annotation?.id) {
-      loadLinkedEntities();
-      loadLinkedArtifacts();
-    } else {
-      setLinkedEntities([]);
-      setLinkedArtifacts([]);
+  // Get entity stores for displaying linked entities
+  const people = useStore((state) => state.people);
+  const events = useStore((state) => state.events);
+  const theories = useStore((state) => state.theories);
+  const places = useStore((state) => state.places);
+  const artifacts = useStore((state) => state.artifacts);
+
+  const loadLinkedArtifacts = useCallback(async (annotationId: string) => {
+    const result = await getArtifactsForAnnotation(annotationId);
+    if (result.success) {
+      setLinkedArtifacts(result.data || []);
     }
-  }, [annotation?.id]);
+  }, []);
 
-  // Set initial note text
+  const loadLinkedEntities = useCallback(async (annotationId: string) => {
+    const result = await getEntitiesForAnnotation(annotationId);
+    if (result.success) {
+      setLinkedEntities((result.data || []) as any);
+    }
+  }, []);
+
   useEffect(() => {
-    if (annotation) {
-      setNoteText(annotation.content || '');
-    } else {
+    if (modalOpen && pendingAnnotation) {
+      console.log('Opening modal with annotation:', pendingAnnotation);
+      // If editing existing annotation
+      if (pendingAnnotation.id) {
+        setNoteText((pendingAnnotation as any).text || '');
+        loadLinkedArtifacts(pendingAnnotation.id);
+        loadLinkedEntities(pendingAnnotation.id);
+      } else {
+        // New annotation
+        setNoteText('');
+        setLinkedArtifacts([]);
+        setLinkedEntities([]);
+      }
+    } else if (!modalOpen) {
       setNoteText('');
+      setLinkedArtifacts([]);
+      setLinkedEntities([]);
     }
-  }, [annotation]);
+  }, [modalOpen, pendingAnnotation, loadLinkedArtifacts, loadLinkedEntities]);
 
-  const loadLinkedEntities = async () => {
-    if (!annotation?.id) return;
-    try {
-      const entities = await getLinkedEntities(annotation.id);
-      setLinkedEntities(entities);
-    } catch (err) {
-      logger.error('Failed to load linked entities:', err);
+  // Shared save logic - returns the annotation ID (new or existing)
+  const saveAnnotation = async (): Promise<string | null> => {
+    if (!pendingAnnotation) return null;
+
+    // Text annotations require text
+    if ((pendingAnnotation as any).type === 'text' && !noteText.trim()) {
+      alert('Please enter some text for the note');
+      return null;
     }
-  };
 
-  const loadLinkedArtifacts = async () => {
-    if (!annotation?.id) return;
-    try {
-      const artifacts = await getLinkedArtifacts(annotation.id);
-      setLinkedArtifacts(artifacts);
-    } catch (err) {
-      logger.error('Failed to load linked artifacts:', err);
+    // Check if editing existing annotation
+    if (pendingAnnotation.id) {
+      // Update existing
+      const data = await updateAnnotation(pendingAnnotation.id, {
+        text: noteText.trim(),
+      } as any);
+
+      // Update in store using the annotations from component state (not direct store access)
+      setAnnotations(annotations.map((a) => (a.id === data.id ? data : a)));
+      return data.id;
+    } else {
+      // Create new
+      const annotationData: any = {
+        source_id: activeSourceId,
+        project_id: currentProject?.id,
+        page_number: currentPage,
+        annotation_type: (pendingAnnotation as any).type || 'text',
+        rect: {
+          x: (pendingAnnotation as any).rect.x,
+          y: (pendingAnnotation as any).rect.y,
+          w: (pendingAnnotation as any).rect.w,
+          h: (pendingAnnotation as any).rect.h,
+        },
+        text: noteText.trim(),
+      };
+
+      const data = await createAnnotation(annotationData);
+      addAnnotation(data);
+      return data.id;
     }
   };
 
   const handleSave = async () => {
-    if (!currentSource?.id || !currentProject?.id) {
-      showError('No active source or project');
-      return;
-    }
+    if (!pendingAnnotation) return;
 
     setSaving(true);
     try {
-      let savedAnnotation: Annotation;
-
-      if (annotation?.id) {
-        // Update existing annotation
-        savedAnnotation = await updateAnnotation(annotation.id, {
-          content: noteText,
-        });
-        showSuccess('Annotation updated');
-      } else {
-        // Create new annotation (from pending annotation data)
-        if (!annotationModal.pendingAnnotation) {
-          showError('No annotation data to save');
-          return;
-        }
-
-        savedAnnotation = await createAnnotation({
-          source_id: currentSource.id,
-          project_id: currentProject.id,
-          page_number: annotationModal.pendingAnnotation.pageNumber,
-          annotation_type: annotationModal.pendingAnnotation.type,
-          content: noteText,
-          geometry: JSON.stringify(annotationModal.pendingAnnotation.geometry),
-          metadata: annotationModal.pendingAnnotation.metadata
-            ? JSON.stringify(annotationModal.pendingAnnotation.metadata)
-            : null,
-        });
-        showSuccess('Annotation created');
+      const annotationId = await saveAnnotation();
+      if (annotationId) {
+        handleClose();
       }
-
-      // Reload annotations
-      const { getAnnotations } = await import('../lib/tauri');
-      const updatedAnnotations = await getAnnotations(currentSource.id);
-      setAnnotations(updatedAnnotations);
-
-      closeAnnotationModal();
     } catch (err) {
-      logger.error('Failed to save annotation:', err);
-      showError(`Failed to save: ${(err as Error).message || 'Unknown error'}`);
+      console.error('Failed to save annotation:', err);
+      alert(
+        `Failed to save annotation: ${typeof err === 'string' ? err : (err as Error).message || JSON.stringify(err)}`
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleLinkEntity = (entityType: EntityType) => {
-    setEntityTypeToLink(entityType);
-    setShowEntityPicker(true);
-  };
+  const handleClose = async () => {
+    // Auto-save if there's content (for text annotations) or if editing existing
+    const hasContent = noteText.trim().length > 0;
+    const isNewTextAnnotation =
+      !pendingAnnotation?.id && (pendingAnnotation as any)?.type === 'text';
 
-  const handleEntitySelected = async (entity: Entity) => {
-    if (!annotation?.id) {
-      showError('Please save the annotation first before linking entities');
-      setShowEntityPicker(false);
-      return;
+    if (hasContent && (isNewTextAnnotation || pendingAnnotation?.id)) {
+      // Auto-save before closing
+      try {
+        await saveAnnotation();
+      } catch (err) {
+        console.error('Auto-save failed:', err);
+        // Still close even if save fails
+      }
     }
 
+    closeModal();
+  };
+
+  const handleLinkToMap = async () => {
+    if (!pendingAnnotation) return;
+
+    setSaving(true);
     try {
-      await linkAnnotationToEntity(annotation.id, entity.id);
-      await loadLinkedEntities();
-      showSuccess(`Linked to ${entity.name}`);
+      // Save annotation first if it's new
+      let annotationId = pendingAnnotation.id;
+      if (!annotationId) {
+        annotationId = await saveAnnotation();
+        if (!annotationId) return; // Save failed
+      }
+
+      // Close modal and enter pin placement mode
+      closeModal();
+      startPinPlacement(annotationId);
     } catch (err) {
-      logger.error('Failed to link entity:', err);
-      showError(`Failed to link: ${(err as Error).message || 'Unknown error'}`);
+      console.error('Failed to prepare for map linking:', err);
+      alert(`Error: ${(err as Error).message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLinkEntity = async (selection: EntitySelection) => {
+    if (!pendingAnnotation) return;
+
+    // Save annotation first if it's new
+    let annotationId = pendingAnnotation.id;
+    if (!annotationId) {
+      annotationId = await saveAnnotation();
+      if (!annotationId) return; // Save failed
+    }
+
+    // Link the entity
+    const result = await linkAnnotationToEntity(
+      annotationId,
+      selection.entityId,
+      selection.entityType as any,
+      'mentions'
+    );
+
+    if (result.success) {
+      // Reload linked entities
+      await loadLinkedEntities(annotationId);
+    } else {
+      alert(`Failed to link entity: ${result.error}`);
     }
 
     setShowEntityPicker(false);
-    setEntityTypeToLink(null);
   };
 
   const handleUnlinkEntity = async (entityId: string) => {
-    if (!annotation?.id) return;
+    if (!pendingAnnotation?.id) return;
 
-    try {
-      await unlinkAnnotationFromEntity(annotation.id, entityId);
-      await loadLinkedEntities();
-      showSuccess('Entity unlinked');
-    } catch (err) {
-      logger.error('Failed to unlink entity:', err);
-      showError(`Failed to unlink: ${(err as Error).message || 'Unknown error'}`);
+    const result = await unlinkAnnotationFromEntity(pendingAnnotation.id, entityId);
+    if (result.success) {
+      await loadLinkedEntities(pendingAnnotation.id);
+    } else {
+      alert(`Failed to unlink entity: ${result.error}`);
     }
   };
 
-  const handleLinkArtifact = () => {
-    if (!annotation?.id) {
-      showError('Please save the annotation first before linking artifacts');
-      return;
+  const handleArtifactLinked = async (_artifactId: string) => {
+    if (pendingAnnotation?.id) {
+      await loadLinkedArtifacts(pendingAnnotation.id);
     }
-    setShowArtifactLinkModal(true);
-  };
-
-  const handleArtifactLinked = async (artifactId: string) => {
-    if (!annotation?.id) return;
-
-    try {
-      await linkAnnotationToArtifact(annotation.id, artifactId);
-      await loadLinkedArtifacts();
-      showSuccess('Artifact linked');
-    } catch (err) {
-      logger.error('Failed to link artifact:', err);
-      showError(`Failed to link: ${(err as Error).message || 'Unknown error'}`);
-    }
-
     setShowArtifactLinkModal(false);
   };
 
-  const handleUnlinkArtifact = async (artifactId: string) => {
-    if (!annotation?.id) return;
-
-    try {
-      await unlinkAnnotationFromArtifact(annotation.id, artifactId);
-      await loadLinkedArtifacts();
-      showSuccess('Artifact unlinked');
-    } catch (err) {
-      logger.error('Failed to unlink artifact:', err);
-      showError(`Failed to unlink: ${(err as Error).message || 'Unknown error'}`);
+  // Get entity details from store
+  const getEntityDetails = (entityId: string, entityType: string) => {
+    let entityList: any[] = [];
+    switch (entityType) {
+      case 'person':
+      case 'people':
+        entityList = people;
+        break;
+      case 'event':
+      case 'events':
+        entityList = events;
+        break;
+      case 'theory':
+      case 'theories':
+        entityList = theories;
+        break;
+      case 'place':
+      case 'places':
+        entityList = places;
+        break;
+      case 'artifact':
+      case 'artifacts':
+        entityList = artifacts;
+        break;
     }
+
+    const entity = entityList.find((e) => e.id === entityId);
+    return entity
+      ? { id: entity.id, name: entity.name, type: entityType }
+      : { id: entityId, name: 'Unknown', type: entityType };
   };
 
-  const getEntityIcon = (entityType: string): string => {
-    const icons: Record<string, string> = {
-      person: '👤',
-      event: '📅',
-      theory: '💡',
-      place: '📍',
-      artifact: '🏺',
-    };
-    return icons[entityType] || '📌';
-  };
+  if (!modalOpen) return null;
 
-  const getEntityColor = (entityType: string): string => {
-    const colors: Record<string, string> = {
-      person: '#4a90e2',
-      event: '#e8b86d',
-      theory: '#9b59b6',
-      place: '#6ea36e',
-      artifact: '#d4a373',
-    };
-    return colors[entityType] || '#888';
-  };
-
-  if (!isOpen) return null;
-
-  const annotationType =
-    annotation?.annotation_type || annotationModal.pendingAnnotation?.type || 'text';
+  const annotationType = (pendingAnnotation as any)?.type || 'text';
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={closeAnnotationModal} maxWidth="500px">
+      <Modal isOpen={modalOpen} onClose={handleClose} maxWidth="500px">
         <ModalHeader>
-          {annotation ? 'Edit Annotation' : 'New Annotation'}
+          {pendingAnnotation?.id ? 'Edit' : 'New'} Annotation
           <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
             ({annotationType})
           </span>
@@ -274,7 +304,7 @@ export default function AnnotationModal() {
               </label>
               <textarea
                 value={noteText}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNoteText(e.target.value)}
+                onChange={(e) => setNoteText(e.target.value)}
                 placeholder="Add your notes here..."
                 rows={4}
                 style={{
@@ -292,7 +322,7 @@ export default function AnnotationModal() {
             </div>
 
             {/* Linked Entities */}
-            {annotation?.id && (
+            {pendingAnnotation?.id && (
               <div>
                 <div
                   style={{
@@ -311,105 +341,59 @@ export default function AnnotationModal() {
                   >
                     Linked Entities
                   </label>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <button
-                      onClick={() => handleLinkEntity('person')}
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: '11px',
-                        background: 'var(--bg)',
-                        border: '1px solid var(--line)',
-                        borderRadius: '3px',
-                        cursor: 'pointer',
-                        color: 'var(--text)',
-                      }}
-                      title="Link to Person"
-                    >
-                      👤
-                    </button>
-                    <button
-                      onClick={() => handleLinkEntity('event')}
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: '11px',
-                        background: 'var(--bg)',
-                        border: '1px solid var(--line)',
-                        borderRadius: '3px',
-                        cursor: 'pointer',
-                        color: 'var(--text)',
-                      }}
-                      title="Link to Event"
-                    >
-                      📅
-                    </button>
-                    <button
-                      onClick={() => handleLinkEntity('theory')}
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: '11px',
-                        background: 'var(--bg)',
-                        border: '1px solid var(--line)',
-                        borderRadius: '3px',
-                        cursor: 'pointer',
-                        color: 'var(--text)',
-                      }}
-                      title="Link to Theory"
-                    >
-                      💡
-                    </button>
-                    <button
-                      onClick={() => handleLinkEntity('place')}
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: '11px',
-                        background: 'var(--bg)',
-                        border: '1px solid var(--line)',
-                        borderRadius: '3px',
-                        cursor: 'pointer',
-                        color: 'var(--text)',
-                      }}
-                      title="Link to Place"
-                    >
-                      📍
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setShowEntityPicker(true)}
+                    style={{
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      background: 'var(--bg)',
+                      border: '1px solid var(--line)',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    + Link Entity
+                  </button>
                 </div>
 
                 {linkedEntities.length > 0 ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {linkedEntities.map((entity) => (
-                      <div
-                        key={entity.id}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '4px 8px',
-                          background: getEntityColor(entity.entity_type),
-                          color: '#fff',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                        }}
-                      >
-                        <span>{getEntityIcon(entity.entity_type)}</span>
-                        <span>{entity.name}</span>
-                        <button
-                          onClick={() => handleUnlinkEntity(entity.id)}
+                    {linkedEntities.map((link) => {
+                      const entity = getEntityDetails(link.entity_id, link.entity_type);
+                      return (
+                        <div
+                          key={link.id}
                           style={{
-                            background: 'transparent',
-                            border: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '4px 8px',
+                            background: 'var(--accent-2)',
                             color: '#fff',
-                            cursor: 'pointer',
-                            padding: '0 2px',
-                            fontSize: '14px',
-                            opacity: 0.8,
+                            borderRadius: '4px',
+                            fontSize: '12px',
                           }}
-                          title="Unlink"
                         >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                          <span>{entity.name}</span>
+                          <button
+                            onClick={() => handleUnlinkEntity(link.entity_id)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              cursor: 'pointer',
+                              padding: '0 2px',
+                              fontSize: '14px',
+                              opacity: 0.8,
+                            }}
+                            title="Unlink"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div
@@ -421,134 +405,47 @@ export default function AnnotationModal() {
               </div>
             )}
 
-            {/* Linked Artifacts */}
-            {annotation?.id && (
-              <div>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '8px',
-                  }}
-                >
-                  <label
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      color: 'var(--text)',
-                    }}
-                  >
-                    Linked Artifacts
-                  </label>
-                  <button
-                    onClick={handleLinkArtifact}
-                    style={{
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      background: 'var(--bg)',
-                      border: '1px solid var(--line)',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      color: 'var(--text)',
-                    }}
-                  >
-                    + Link Artifact
-                  </button>
-                </div>
-
-                {linkedArtifacts.length > 0 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {linkedArtifacts.map((artifact) => (
-                      <div
-                        key={artifact.id}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '4px 8px',
-                          background: 'var(--accent-2)',
-                          color: '#fff',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                        }}
-                      >
-                        <span>🏺</span>
-                        <span>{artifact.name}</span>
-                        <button
-                          onClick={() => handleUnlinkArtifact(artifact.id)}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#fff',
-                            cursor: 'pointer',
-                            padding: '0 2px',
-                            fontSize: '14px',
-                            opacity: 0.8,
-                          }}
-                          title="Unlink"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div
-                    style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}
-                  >
-                    No artifacts linked
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Info message if annotation not saved yet */}
-            {!annotation?.id && (
-              <div
-                style={{
-                  padding: '8px',
-                  background: 'var(--bg)',
-                  border: '1px solid var(--line)',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                💡 Save the annotation first to link entities and artifacts
-              </div>
-            )}
+            {/* Link to Map Button */}
+            <button
+              onClick={handleLinkToMap}
+              disabled={saving}
+              style={{
+                width: '100%',
+                padding: '8px',
+                background: 'var(--panel)',
+                border: '1px solid var(--line)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                color: 'var(--text)',
+              }}
+            >
+              📍 Link to Map
+            </button>
           </div>
         </ModalBody>
 
         <ModalFooter>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
-            <button onClick={closeAnnotationModal} className="btn" disabled={saving}>
-              Cancel
+            <button onClick={handleClose} className="btn" disabled={saving}>
+              Close
             </button>
             <button onClick={handleSave} className="btn btn-primary" disabled={saving}>
-              {saving ? 'Saving...' : annotation ? 'Update' : 'Save'}
+              {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </ModalFooter>
       </Modal>
 
       {/* Entity Picker Modal */}
-      {showEntityPicker && entityTypeToLink && (
-        <EntityPicker
-          entityType={entityTypeToLink}
-          onSelect={handleEntitySelected}
-          onClose={() => {
-            setShowEntityPicker(false);
-            setEntityTypeToLink(null);
-          }}
-        />
+      {showEntityPicker && (
+        <EntityPicker onSelect={handleLinkEntity} onClose={() => setShowEntityPicker(false)} />
       )}
 
       {/* Artifact Link Modal */}
-      {showArtifactLinkModal && annotation && (
+      {showArtifactLinkModal && pendingAnnotation && (
         <ArtifactLinkModal
-          annotation={annotation}
+          annotation={pendingAnnotation}
           onClose={() => setShowArtifactLinkModal(false)}
           onLink={handleArtifactLinked}
         />

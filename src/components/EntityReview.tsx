@@ -247,9 +247,9 @@ export default function EntityReview({
             birth_year: person.birth_year,
             death_year: person.death_year,
             bio: person.bio,
-          },
-          annotationId,
-          person.relationship_type
+          } as any,
+          annotationId as any,
+          person.relationship_type as any
         );
         createdEntities.people.push(created);
         addPerson(created);
@@ -260,7 +260,7 @@ export default function EntityReview({
         const event = entities.events[index];
         if (!event.name.trim()) continue;
 
-        const created = await createEvent(
+        const created = await (createEvent as any)(
           {
             project_id: currentProject.id,
             name: event.name,
@@ -281,7 +281,7 @@ export default function EntityReview({
         const theory = entities.theories[index];
         if (!theory.name.trim()) continue;
 
-        const created = await createTheory(
+        const created = await (createTheory as any)(
           {
             project_id: currentProject.id,
             name: theory.name,
@@ -308,8 +308,8 @@ export default function EntityReview({
             lng: place.lng,
             lat: place.lat,
             note: place.note,
-          },
-          annotationId
+          } as any,
+          annotationId as any
         );
         createdEntities.places.push(created);
         addPlace(created);

@@ -40,7 +40,7 @@ export default function ProvenanceTimeline({ artifactId, onEdit }: ProvenanceTim
   // Load provenance using useAsync hook
   const loadProvenance = useCallback(async () => {
     const data = await getProvenance(artifactId);
-    setProvenance(data);
+    setProvenance(data as any);
     return data;
   }, [artifactId]);
 

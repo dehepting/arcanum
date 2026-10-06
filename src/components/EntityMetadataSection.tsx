@@ -53,7 +53,7 @@ export default function EntityMetadataSection({
             entityId={entityId}
             entityType={entityType}
             entityTitle={entityTitle}
-            onLocationChange={onLocationChange}
+            onLocationChange={onLocationChange as any}
             onSetOnMap={onSetOnMap}
             saving={saving}
           />

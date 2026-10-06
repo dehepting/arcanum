@@ -43,7 +43,7 @@ export default function ClaimsList({ artifactId }: ClaimsListProps) {
   // Load claims using useAsync hook
   const loadClaims = useCallback(async () => {
     const data = await getClaims(artifactId);
-    setClaims(data);
+    setClaims(data as any);
     return data;
   }, [artifactId]);
 
@@ -64,7 +64,7 @@ export default function ClaimsList({ artifactId }: ClaimsListProps) {
   const handleStatusChange = async (claimId: string, newStatus: string) => {
     try {
       const updated = await updateClaim(claimId, { status: newStatus });
-      setClaims(claims.map((c) => (c.id === claimId ? updated : c)));
+      setClaims(claims.map((c) => (c.id === claimId ? updated : c)) as any);
       showSuccess('Status updated');
     } catch (err) {
       showError(`Failed to update status: ${(err as Error).message || 'Unknown error'}`);
@@ -314,7 +314,7 @@ export default function ClaimsList({ artifactId }: ClaimsListProps) {
                     new Date().toISOString().split('T')[0],
                   status: 'pending',
                 });
-                setClaims([newClaim, ...claims]);
+                setClaims([newClaim as any, ...claims]);
                 setShowForm(false);
                 showSuccess('Claim added successfully');
               } catch (err) {

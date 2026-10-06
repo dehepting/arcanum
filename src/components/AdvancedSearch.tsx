@@ -102,11 +102,11 @@ export default function AdvancedSearch({ isOpen, onClose }: AdvancedSearchProps)
     const tabType = typeMapping[result.entity_type] || result.entity_type;
 
     addTab({
-      type: tabType,
+      type: tabType as any,
       title: result.name,
       data: {
         entityId: result.id,
-        entityType: result.entity_type,
+        entityType: result.entity_type as any,
       },
     });
     onClose();

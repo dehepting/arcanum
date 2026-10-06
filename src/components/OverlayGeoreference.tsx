@@ -78,7 +78,7 @@ export default function OverlayGeoreference() {
     setUploading(true);
     try {
       // Upload image
-      const { publicUrl } = await uploadOverlay(file, currentProject.id);
+      const { publicUrl } = (await uploadOverlay(file, currentProject.id)) as any;
 
       // Create overlay record
       const overlayData = {
