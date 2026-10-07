@@ -23,6 +23,16 @@ import {
   loadArtifacts,
   deleteArtifact,
 } from './entityCrud';
+import { validateOrThrow, validateArrayOrThrow, validateOptional } from '../schemas';
+import {
+  ProjectSchema,
+  SourceSchema,
+  AnnotationSchema,
+  EntityPageSchema,
+  ArtifactSchema,
+  PlaceSchema,
+  MapOverlaySchema,
+} from '../schemas';
 
 import type { Project, Source, MapOverlay } from '../types/store';
 import type {
@@ -70,22 +80,26 @@ export {
 
 // Projects
 export async function createProject(projectData: Partial<Project>): Promise<Project> {
-  return await invoke('create_project', { input: projectData });
+  const response = await invoke('create_project', { input: projectData });
+  return validateOrThrow(ProjectSchema, response, 'create_project');
 }
 
 export async function getProject(projectId: string): Promise<Project> {
-  return await invoke('get_project', { projectId });
+  const response = await invoke('get_project', { projectId });
+  return validateOrThrow(ProjectSchema, response, 'get_project');
 }
 
 export async function listProjects(): Promise<Project[]> {
-  return await invoke('list_projects');
+  const response = await invoke('list_projects');
+  return validateArrayOrThrow(ProjectSchema, response, 'list_projects');
 }
 
 export async function updateProject(
   projectId: string,
   updates: Partial<Project>
 ): Promise<Project> {
-  return await invoke('update_project', { projectId, input: updates });
+  const response = await invoke('update_project', { projectId, input: updates });
+  return validateOrThrow(ProjectSchema, response, 'update_project');
 }
 
 export async function deleteProject(projectId: string): Promise<void> {
@@ -94,11 +108,13 @@ export async function deleteProject(projectId: string): Promise<void> {
 
 // Artifacts (CRUD imported from entityCrud.ts)
 export async function getArtifact(artifactId: string): Promise<Artifact> {
-  return await invoke('get_artifact', { artifactId });
+  const response = await invoke('get_artifact', { artifactId });
+  return validateOrThrow(ArtifactSchema, response, 'get_artifact');
 }
 
 export async function getArtifactsByFindspot(placeId: string): Promise<Artifact[]> {
-  return await invoke('get_artifacts_by_findspot', { placeId });
+  const response = await invoke('get_artifacts_by_findspot', { placeId });
+  return validateArrayOrThrow(ArtifactSchema, response, 'get_artifacts_by_findspot');
 }
 
 interface SearchArtifactsFilters {
@@ -111,7 +127,7 @@ export async function searchArtifacts(
   query: string,
   filters: SearchArtifactsFilters = {}
 ): Promise<Artifact[]> {
-  return await invoke('search_artifacts', {
+  const response = await invoke('search_artifacts', {
     input: {
       projectId,
       query,
@@ -119,11 +135,17 @@ export async function searchArtifacts(
       ownerType: filters.ownerType,
     },
   });
+  return validateArrayOrThrow(ArtifactSchema, response, 'search_artifacts');
 }
 
 // Places (CRUD imported from entityCrud.ts)
 export async function getPlaceForAnnotation(annotationId: string): Promise<Place | null> {
-  return await invoke('get_place_for_annotation', { annotationId });
+  const response = await invoke('get_place_for_annotation', { annotationId });
+  const result = validateOptional(PlaceSchema, response, 'get_place_for_annotation');
+  if (result.success === false) {
+    throw new Error(result.error);
+  }
+  return result.data;
 }
 
 export async function unlinkAnnotationFromPlace(
@@ -141,19 +163,23 @@ export async function unlinkAnnotationFromPlace(
 
 // Sources
 export async function createSource(sourceData: Partial<Source>): Promise<Source> {
-  return await invoke('create_source', { input: sourceData });
+  const response = await invoke('create_source', { input: sourceData });
+  return validateOrThrow(SourceSchema, response, 'create_source');
 }
 
 export async function getSource(sourceId: string): Promise<Source> {
-  return await invoke('get_source', { sourceId });
+  const response = await invoke('get_source', { sourceId });
+  return validateOrThrow(SourceSchema, response, 'get_source');
 }
 
 export async function loadSources(projectId: string): Promise<Source[]> {
-  return await invoke('list_sources', { projectId });
+  const response = await invoke('list_sources', { projectId });
+  return validateArrayOrThrow(SourceSchema, response, 'list_sources');
 }
 
 export async function updateSource(sourceId: string, updates: Partial<Source>): Promise<Source> {
-  return await invoke('update_source', { sourceId, input: updates });
+  const response = await invoke('update_source', { sourceId, input: updates });
+  return validateOrThrow(SourceSchema, response, 'update_source');
 }
 
 export async function deleteSource(sourceId: string): Promise<void> {
@@ -162,22 +188,30 @@ export async function deleteSource(sourceId: string): Promise<void> {
 
 // Entity Pages
 export async function createEntityPage(pageData: Partial<EntityPage>): Promise<EntityPage> {
-  return await invoke('create_entity_page', { input: pageData });
+  const response = await invoke('create_entity_page', { input: pageData });
+  return validateOrThrow(EntityPageSchema, response, 'create_entity_page');
 }
 
 export async function getEntityPage(entityId: string): Promise<EntityPage | null> {
-  return await invoke('get_entity_page', { entityId });
+  const response = await invoke('get_entity_page', { entityId });
+  const result = validateOptional(EntityPageSchema, response, 'get_entity_page');
+  if (result.success === false) {
+    throw new Error(result.error);
+  }
+  return result.data;
 }
 
 export async function loadEntityPages(projectId: string): Promise<EntityPage[]> {
-  return await invoke('list_entity_pages', { projectId });
+  const response = await invoke('list_entity_pages', { projectId });
+  return validateArrayOrThrow(EntityPageSchema, response, 'list_entity_pages');
 }
 
 export async function updateEntityPage(
   entityId: string,
   updates: Partial<EntityPage>
 ): Promise<EntityPage> {
-  return await invoke('update_entity_page', { entityId, input: updates });
+  const response = await invoke('update_entity_page', { entityId, input: updates });
+  return validateOrThrow(EntityPageSchema, response, 'update_entity_page');
 }
 
 export async function deleteEntityPage(entityId: string): Promise<void> {
@@ -314,7 +348,8 @@ export async function createAnnotation(
       : null,
   };
 
-  const result = await invoke<Annotation>('create_annotation', { input });
+  const response = await invoke('create_annotation', { input });
+  const result = validateOrThrow(AnnotationSchema, response, 'create_annotation');
 
   // Transform backend response to frontend format
   return {
@@ -330,7 +365,8 @@ export async function createAnnotation(
 }
 
 export async function loadAnnotations(sourceId: string): Promise<AnnotationWithDisplayProps[]> {
-  const annotations = await invoke<Annotation[]>('load_annotations', { sourceId });
+  const response = await invoke('load_annotations', { sourceId });
+  const annotations = validateArrayOrThrow(AnnotationSchema, response, 'load_annotations');
 
   // Transform backend format to frontend format
   return annotations.map((ann) => {
@@ -395,7 +431,8 @@ export async function updateAnnotation(
     });
   }
 
-  const result = await invoke<Annotation>('update_annotation', { annotationId, input });
+  const response = await invoke('update_annotation', { annotationId, input });
+  const result = validateOrThrow(AnnotationSchema, response, 'update_annotation');
 
   // Transform backend response to frontend format
   let rect: { x: number; y: number; w: number; h: number } | null = null;
@@ -424,18 +461,21 @@ export async function deleteAnnotation(annotationId: string): Promise<void> {
 
 // Map Overlays
 export async function createOverlay(overlayData: Partial<MapOverlay>): Promise<MapOverlay> {
-  return await invoke('create_overlay', { input: overlayData });
+  const response = await invoke('create_overlay', { input: overlayData });
+  return validateOrThrow(MapOverlaySchema, response, 'create_overlay') as MapOverlay;
 }
 
 export async function loadOverlays(projectId: string): Promise<MapOverlay[]> {
-  return await invoke('load_overlays', { projectId });
+  const response = await invoke('load_overlays', { projectId });
+  return validateArrayOrThrow(MapOverlaySchema, response, 'load_overlays') as MapOverlay[];
 }
 
 export async function updateOverlay(
   overlayId: string,
   updates: Partial<MapOverlay>
 ): Promise<MapOverlay> {
-  return await invoke('update_overlay', { overlayId, input: updates });
+  const response = await invoke('update_overlay', { overlayId, input: updates });
+  return validateOrThrow(MapOverlaySchema, response, 'update_overlay') as MapOverlay;
 }
 
 export async function deleteOverlay(overlayId: string): Promise<void> {

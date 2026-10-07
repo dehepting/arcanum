@@ -4,6 +4,15 @@
  * Eliminates ~300 lines of duplicate code in tauri.js
  */
 import { invoke } from '@tauri-apps/api/core';
+import { z } from 'zod';
+import { validateOrThrow, validateArrayOrThrow } from '../schemas';
+import {
+  PersonSchema,
+  EventSchema,
+  TheorySchema,
+  PlaceSchema,
+  ArtifactSchema,
+} from '../schemas/entities';
 import type {
   Person,
   Event,
@@ -25,10 +34,11 @@ import type {
 /**
  * Configuration options for entity CRUD factory
  */
-export interface EntityCrudOptions {
+export interface EntityCrudOptions<TEntity> {
   hasAnnotationLink?: boolean;
   hasRelationshipType?: boolean;
   pluralOverride?: string | null;
+  schema: z.ZodSchema<TEntity>; // Zod schema for runtime validation
 }
 
 /**
@@ -50,17 +60,21 @@ export interface EntityCrudOperations<TEntity, TCreateInput, TUpdateInput> {
 /**
  * Creates CRUD operations for an entity type
  * @param entityType - Singular entity name (person, event, theory, place, artifact)
- * @param options - Configuration options
+ * @param options - Configuration options including Zod schema for validation
  * @returns CRUD operations { create, update, load, delete, linkToAnnotation }
  */
 export function createEntityCrud<TEntity, TCreateInput, TUpdateInput>(
   entityType: string,
-  options: EntityCrudOptions = {}
+  options: EntityCrudOptions<TEntity>
 ): EntityCrudOperations<TEntity, TCreateInput, TUpdateInput> {
-  const { hasAnnotationLink = false, hasRelationshipType = false, pluralOverride = null } = options;
+  const {
+    hasAnnotationLink = false,
+    hasRelationshipType = false,
+    pluralOverride = null,
+    schema,
+  } = options;
 
   // Generate naming conventions
-  const entityCapitalized = entityType.charAt(0).toUpperCase() + entityType.slice(1);
   const pluralForm = pluralOverride || `${entityType}s`;
   const idParam = `${entityType}Id`;
 
@@ -86,7 +100,8 @@ export function createEntityCrud<TEntity, TCreateInput, TUpdateInput>(
         }
       }
 
-      return await invoke<TEntity>(`create_${entityType}`, { input });
+      const response = await invoke(`create_${entityType}`, { input });
+      return validateOrThrow(schema, response, `create_${entityType}`);
     },
 
     /**
@@ -95,10 +110,11 @@ export function createEntityCrud<TEntity, TCreateInput, TUpdateInput>(
      * @param updates - Fields to update
      */
     update: async (id: string, updates: TUpdateInput) => {
-      return await invoke<TEntity>(`update_${entityType}`, {
+      const response = await invoke(`update_${entityType}`, {
         [idParam]: id,
         input: updates,
       });
+      return validateOrThrow(schema, response, `update_${entityType}`);
     },
 
     /**
@@ -106,7 +122,8 @@ export function createEntityCrud<TEntity, TCreateInput, TUpdateInput>(
      * @param projectId - Project ID
      */
     load: async (projectId: string) => {
-      return await invoke<TEntity[]>(`list_${pluralForm}`, { projectId });
+      const response = await invoke(`list_${pluralForm}`, { projectId });
+      return validateArrayOrThrow(schema, response, `list_${pluralForm}`);
     },
 
     /**
@@ -139,27 +156,31 @@ export function createEntityCrud<TEntity, TCreateInput, TUpdateInput>(
   };
 }
 
-// Pre-configured CRUD operations for each entity type
+// Pre-configured CRUD operations for each entity type with runtime validation
 export const personCrud = createEntityCrud<Person, CreatePersonInput, UpdatePersonInput>('person', {
   hasAnnotationLink: true,
   hasRelationshipType: true,
   pluralOverride: 'people',
+  schema: PersonSchema,
 });
 
 export const eventCrud = createEntityCrud<Event, CreateEventInput, UpdateEventInput>('event', {
   hasAnnotationLink: false,
   hasRelationshipType: false,
+  schema: EventSchema,
 });
 
 export const theoryCrud = createEntityCrud<Theory, CreateTheoryInput, UpdateTheoryInput>('theory', {
   hasAnnotationLink: true,
   hasRelationshipType: false,
   pluralOverride: 'theories',
+  schema: TheorySchema,
 });
 
 export const placeCrud = createEntityCrud<Place, CreatePlaceInput, UpdatePlaceInput>('place', {
   hasAnnotationLink: false,
   hasRelationshipType: false,
+  schema: PlaceSchema,
 });
 
 export const artifactCrud = createEntityCrud<Artifact, CreateArtifactInput, UpdateArtifactInput>(
@@ -167,6 +188,7 @@ export const artifactCrud = createEntityCrud<Artifact, CreateArtifactInput, Upda
   {
     hasAnnotationLink: false,
     hasRelationshipType: false,
+    schema: ArtifactSchema,
   }
 );
 
