@@ -23,8 +23,8 @@ export const BaseEntitySchema = z.object({
   metadata: z.string().optional(), // JSON string
   lng: z.number().min(-180).max(180).optional(),
   lat: z.number().min(-90).max(90).optional(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 /**
@@ -195,8 +195,8 @@ export const EntityLinkSchema = z.object({
   target_entity_id: z.string().uuid(),
   target_entity_type: EntityTypeSchema,
   relationship_type: z.string(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 /**
@@ -208,7 +208,7 @@ export const AnnotationEntityLinkSchema = z.object({
   entity_id: z.string().uuid(),
   entity_type: EntityTypeSchema,
   relationship_type: z.string(),
-  created_at: z.string().datetime(),
+  created_at: z.string(),
 });
 
 /**
@@ -219,5 +219,5 @@ export const EntityPageSchema = z.object({
   entity_type: EntityTypeSchema,
   project_id: z.string().uuid(),
   content_path: z.string(),
-  updated_at: z.string().datetime(),
+  updated_at: z.string(),
 });

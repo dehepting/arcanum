@@ -43,8 +43,8 @@ export const AnnotationSchema = z.object({
   content: z.string().optional(),
   geometry: z.string().optional(), // JSON string of Geometry
   metadata: z.string().optional(), // JSON string, often InkMetadata
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 /**
@@ -107,7 +107,7 @@ export const PlacePinSchema = z.object({
   id: z.string().uuid(),
   annotation_id: z.string().uuid(),
   place_id: z.string().uuid(),
-  created_at: z.string().datetime(),
+  created_at: z.string(),
 });
 
 /**
@@ -117,5 +117,5 @@ export const ArtifactAnnotationLinkSchema = z.object({
   id: z.string().uuid(),
   annotation_id: z.string().uuid(),
   artifact_id: z.string().uuid(),
-  created_at: z.string().datetime(),
+  created_at: z.string(),
 });
