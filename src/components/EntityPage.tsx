@@ -152,7 +152,7 @@ export default function EntityPage({
 
       try {
         setLoadingAnnotations(true);
-        const { data } = await getAnnotationsForEntity(entityId, entityType);
+        const { data } = await getAnnotationsForEntity(entityId, entityType as any);
         setLinkedAnnotations(data || []);
       } catch (err) {
         console.error('Error loading linked annotations:', err);
@@ -189,7 +189,7 @@ export default function EntityPage({
           setError(null);
           const { error: saveError } = await updateEntityPage(entityId, newContent, false, {
             projectId,
-            entityType,
+            entityType: entityType as any,
             title,
           });
 

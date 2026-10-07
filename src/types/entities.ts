@@ -58,11 +58,28 @@ export interface Place extends Omit<BaseEntity, 'lng' | 'lat'> {
  */
 export interface Artifact extends BaseEntity {
   category?: string;
+  subcategory?: string;
+  period?: string;
+  estimated_age?: string;
+  date_found?: string;
   date_range?: string;
+  findspot_place_id?: string;
+  findspot_description?: string;
+  findspot?: Place | null;
+  excavation_notes?: string;
+  current_owner?: string;
+  current_location?: string;
   owner_type?: string;
   owner_name?: string;
-  findspot_place_id?: string;
+  accession_number?: string;
+  material?: string;
+  dimensions?: string;
+  weight?: string;
+  condition?: string;
+  notes?: string;
   images?: string; // JSON array of image paths
+  image_urls?: string[]; // Parsed array of image URLs
+  has_disputed_ownership?: boolean;
 }
 
 /**
