@@ -1,66 +1,51 @@
-# Integration Testing Quick Start
+# Testing Quick Start
 
 ## 🎯 Goal
 
-Catch bugs like the **Source type mismatch** (name vs title, file_path vs file_url) before they reach production.
+Write fast, reliable unit tests that catch bugs early and document expected behavior.
 
 ## 🚀 Quick Example
 
-Here's how integration tests would have caught the bug:
+Here's a simple component test:
 
 ```typescript
-// This test FAILS if TypeScript types don't match backend
-it('should have correct Source properties', async () => {
-  const sources = await invoke<Source[]>('list_sources', { projectId });
+// src/components/Button.test.tsx
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import Button from './Button';
 
-  if (sources.length > 0) {
-    const source = sources[0];
+describe('Button', () => {
+  it('should call onClick when clicked', () => {
+    const onClick = vi.fn();
+    render(<Button onClick={onClick}>Click me</Button>);
 
-    // ✅ PASSES if backend returns 'title' and type expects 'title'
-    // ❌ FAILS if backend returns 'title' but type expects 'name'
-    expect(source.title).toBeDefined();
+    fireEvent.click(screen.getByText('Click me'));
 
-    // ✅ PASSES if backend returns 'file_url' and type expects 'file_url'
-    // ❌ FAILS if backend returns 'file_url' but type expects 'file_path'
-    expect(source.file_url).toBeDefined();
-  }
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
 });
 ```
 
-## 📝 Writing Your First Integration Test
+## 📝 Writing Your First Test
 
 ### Step 1: Create the test file
 
 ```bash
-# Create a new integration test
-touch src/lib/__integration__/my-feature.integration.test.ts
+# Unit tests go next to the component they test
+touch src/components/MyComponent.test.tsx
 ```
 
 ### Step 2: Copy this template
 
 ```typescript
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { invoke } from '@tauri-apps/api/core';
-import { createTestProject, testData } from '../../../tests/integration-utils';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import MyComponent from './MyComponent';
 
-describe('My Feature Integration Tests', () => {
-  let projectId: string;
-
-  // Setup: Create test data
-  beforeAll(async () => {
-    const project = await createTestProject();
-    projectId = project.id;
-  });
-
-  // Cleanup: Delete test data
-  afterAll(async () => {
-    await testData.cleanup();
-  });
-
-  // Write your test
-  it('should do something', async () => {
-    const result = await invoke('my_command', { projectId });
-    expect(result).toBeDefined();
+describe('MyComponent', () => {
+  it('should render', () => {
+    render(<MyComponent />);
+    expect(screen.getByText('Expected Text')).toBeInTheDocument();
   });
 });
 ```
@@ -68,97 +53,213 @@ describe('My Feature Integration Tests', () => {
 ### Step 3: Run it
 
 ```bash
-npm run test:integration
+npm test
 ```
 
 ## 🎓 Learn by Example
 
-Look at existing integration tests:
+Look at existing test files:
 
-1. **`src/lib/__integration__/projects.integration.test.ts`**
-   - Shows CRUD operations
-   - Demonstrates cleanup
+1. **`src/components/EntityPage.test.jsx`**
+   - Component rendering
+   - Loading states
+   - Error handling
 
-2. **`src/lib/__integration__/sources.integration.test.ts`**
-   - Shows schema validation
-   - Catches type mismatches
+2. **`src/store/useStore.test.js`**
+   - State management
+   - Store actions
+   - Side effects
+
+3. **`src/hooks/useLoadData.test.js`**
+   - Custom hooks
+   - Async operations
+   - Error scenarios
 
 ## 🧰 Common Patterns
 
-### Pattern 1: Validate Data Structure
+### Pattern 1: Testing Component Rendering
 
 ```typescript
-it('should return correct schema', async () => {
-  const data = await invoke('get_something', { id: '123' });
-
-  // Check all required fields exist
-  expect(data).toHaveProperty('id');
-  expect(data).toHaveProperty('name');
-  expect(data).toHaveProperty('created_at');
+it('should display user name', () => {
+  render(<UserProfile name="Alice" />);
+  expect(screen.getByText('Alice')).toBeInTheDocument();
 });
 ```
 
-### Pattern 2: Test Full Workflow
+### Pattern 2: Testing User Interactions
 
 ```typescript
-it('should create and retrieve entity', async () => {
-  // Create
-  const created = await invoke('create_entity', {
+it('should toggle visibility when button clicked', () => {
+  render(<Collapsible />);
+
+  const button = screen.getByRole('button');
+  expect(screen.queryByText('Content')).not.toBeInTheDocument();
+
+  fireEvent.click(button);
+  expect(screen.getByText('Content')).toBeInTheDocument();
+});
+```
+
+### Pattern 3: Testing Async Operations
+
+```typescript
+it('should load and display data', async () => {
+  // Mock the API call
+  vi.mock('../lib/api', () => ({
+    fetchUser: vi.fn().mockResolvedValue({ name: 'Alice' }),
+  }));
+
+  render(<UserLoader id="123" />);
+
+  // Wait for async operation
+  expect(await screen.findByText('Alice')).toBeInTheDocument();
+});
+```
+
+### Pattern 4: Testing Store Integration
+
+```typescript
+import { renderHook, act } from '@testing-library/react';
+import useStore from '../store/useStore';
+
+it('should add project to store', () => {
+  const { result } = renderHook(() => useStore());
+
+  act(() => {
+    result.current.addProject({
+      id: '1',
+      name: 'Test Project',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+  });
+
+  expect(result.current.projects).toHaveLength(1);
+  expect(result.current.projects[0].name).toBe('Test Project');
+});
+```
+
+### Pattern 5: Mocking Tauri Commands
+
+```typescript
+import { vi } from 'vitest';
+
+// Mock the Tauri invoke function
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn((cmd, args) => {
+    if (cmd === 'create_project') {
+      return Promise.resolve({
+        id: 'mock-id',
+        name: args.input.name,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    }
+  }),
+}));
+
+it('should create project via Tauri', async () => {
+  const { invoke } = await import('@tauri-apps/api/core');
+
+  const project = await invoke('create_project', {
     input: { name: 'Test' },
   });
-  testData.trackEntity('entity', created.id);
 
-  // Retrieve
-  const retrieved = await invoke('get_entity', {
-    entityId: created.id,
+  expect(project.name).toBe('Test');
+  expect(invoke).toHaveBeenCalledWith('create_project', {
+    input: { name: 'Test' },
   });
-
-  expect(retrieved.name).toBe('Test');
-});
-```
-
-### Pattern 3: Validate Relationships
-
-```typescript
-it('should link entities correctly', async () => {
-  const person = await invoke('create_person', { input: { name: 'Alice' } });
-  const event = await invoke('create_event', { input: { name: 'Meeting' } });
-
-  await invoke('link_person_to_event', {
-    personId: person.id,
-    eventId: event.id,
-  });
-
-  const links = await invoke('get_person_events', { personId: person.id });
-  expect(links).toHaveLength(1);
-  expect(links[0].event_id).toBe(event.id);
 });
 ```
 
 ## ⚡ Pro Tips
 
-1. **Always clean up**: Use `testData.cleanup()` in `afterAll`
-2. **Use helpers**: Don't create projects manually, use `createTestProject()`
-3. **Test the contract**: Focus on data shape, not implementation
-4. **One assertion per test**: Makes failures easier to debug
-5. **Descriptive names**: "should validate Source has title property" > "test source"
+1. **Test behavior, not implementation**: Test what the user sees, not internal state
+2. **Use data-testid sparingly**: Prefer text content or ARIA roles
+3. **Keep tests simple**: One concept per test
+4. **Mock external dependencies**: API calls, Tauri commands, timers
+5. **Descriptive names**: "should display error when login fails" > "test error"
+6. **Arrange-Act-Assert**: Structure your tests clearly
+
+```typescript
+it('should show error message on failed login', () => {
+  // Arrange - set up test data
+  const mockError = 'Invalid credentials';
+  vi.mocked(login).mockRejectedValue(new Error(mockError));
+
+  // Act - perform the action
+  render(<LoginForm />);
+  fireEvent.click(screen.getByRole('button', { name: 'Login' }));
+
+  // Assert - verify the outcome
+  expect(await screen.findByText(mockError)).toBeInTheDocument();
+});
+```
 
 ## 🐛 Debugging Failed Tests
 
 ```bash
 # Run with verbose output
-npm run test:integration -- --reporter=verbose
+npm test -- --reporter=verbose
 
 # Run specific test file
-npm run test:integration -- sources.integration
+npm test -- EntityPage
 
-# Run single test
-npm run test:integration -- -t "should have correct property names"
+# Run single test by name
+npm test -- -t "should display user name"
+
+# Run in UI mode (interactive)
+npm run test:ui
+
+# Run with coverage
+npm run test:coverage
 ```
+
+## 🔍 Common Testing Queries
+
+```typescript
+// By text content
+screen.getByText('Submit');
+
+// By role
+screen.getByRole('button', { name: 'Submit' });
+
+// By label
+screen.getByLabelText('Email');
+
+// By placeholder
+screen.getByPlaceholderText('Enter email');
+
+// By test ID (use sparingly)
+screen.getByTestId('submit-button');
+
+// Query variants:
+// getBy* - throws error if not found
+// queryBy* - returns null if not found
+// findBy* - async, waits for element (use for async content)
+```
+
+## 📚 What About Integration Tests?
+
+Integration tests that required a running Tauri application were removed in October 2026 because they couldn't run in CI. Instead, we rely on:
+
+- **Unit tests** with mocked Tauri commands (fast, reliable)
+- **TypeScript** for compile-time type safety
+- **Manual testing** with the actual Tauri app during development
+
+See `tests/INTEGRATION_TESTS.md` for the full story.
 
 ## 📚 Next Steps
 
 1. Read `tests/README.md` for full documentation
 2. Look at existing tests for patterns
-3. Write integration tests for new features
-4. Run `npm run test:all` before committing
+3. Write tests for new features
+4. Run `npm test` before committing (pre-commit hook does this automatically)
+5. Check coverage with `npm run test:coverage`
+
+## 📖 Resources
+
+- [Vitest Docs](https://vitest.dev/)
+- [React Testing Library](https://testing-library.com/react)
+- [Testing Library Queries](https://testing-library.com/docs/queries/about)
+- [Common Mistakes](https://kentcdodds.com/blog/common-mistakes-with-react-testing-library)
