@@ -40,7 +40,7 @@ export async function linkTheoryToAnnotation(
   annotationId: string,
   theoryId: string
 ): Promise<void> {
-  return await tauri.linkTheoryToAnnotation(annotationId, theoryId);
+  return await tauri.linkTheoryToAnnotation!(annotationId, theoryId);
 }
 
 /**

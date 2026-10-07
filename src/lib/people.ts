@@ -42,7 +42,7 @@ export async function linkPersonToAnnotation(
   personId: string,
   relationshipType: string = 'mentions'
 ): Promise<void> {
-  return await tauri.linkPersonToAnnotation(annotationId, personId, relationshipType);
+  return await tauri.linkPersonToAnnotation!(annotationId, personId, relationshipType);
 }
 
 /**

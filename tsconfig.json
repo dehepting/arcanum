@@ -14,10 +14,8 @@
     "checkJs": false, // Don't type-check .js files (only .ts files)
     "noEmit": true, // Vite handles compilation, tsc only checks types
 
-    // Strict mode - START PERMISSIVE, enable later in #141
-    "strict": false,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
+    // Strict mode - Enabled for maximum type safety
+    "strict": true,
 
     // Quality of life
     "esModuleInterop": true,

@@ -176,7 +176,7 @@ export default function ArtifactForm({ artifact, isOpen, onClose }: ArtifactForm
         ...formData,
         project_id: currentProject!.id,
         image_urls: images,
-        findspot_place_id: formData.findspot_place_id || null,
+        findspot_place_id: formData.findspot_place_id || undefined,
       };
 
       if (artifact) {

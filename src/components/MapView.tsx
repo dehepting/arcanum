@@ -144,7 +144,7 @@ export default function MapView() {
             // Update entity coordinates based on type
             const updateCommandMap = UPDATE_COMMANDS_CAMEL;
 
-            const config = updateCommandMap[entityType];
+            const config = updateCommandMap[entityType as keyof typeof updateCommandMap];
             if (config) {
               await invoke(config.command, {
                 [config.param]: entityId,
@@ -163,7 +163,7 @@ export default function MapView() {
                 artifact: state.updateArtifact,
               };
 
-              const updateFn = updateFunctions[entityType];
+              const updateFn = updateFunctions[entityType as keyof typeof updateFunctions];
               if (updateFn) {
                 updateFn(entityId, {
                   lng: e.lngLat.lng,

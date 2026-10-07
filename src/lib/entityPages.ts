@@ -73,7 +73,7 @@ export async function getEntityPage(entityId: string): Promise<Result<EntityPage
     // If page doesn't exist, return null data
     if (!page) {
       logger.debug('Page does not exist, returning null');
-      return { data: null, error: null };
+      return { data: null, error: null } as unknown as Result<EntityPageWithContent>;
     }
 
     // 2. Get content from storage

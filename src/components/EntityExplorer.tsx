@@ -223,6 +223,8 @@ export default function EntityExplorer() {
 
     try {
       const config = getEntityType(entityType);
+      if (!config) return;
+
       const updateFn = useStore.getState()[
         config.store.updater as keyof typeof useStore.getState
       ] as (id: string, updates: Partial<Entity>) => void;
@@ -392,6 +394,7 @@ export default function EntityExplorer() {
   // Handle create new entity
   const handleCreateEntity = (entityType: EntityType) => {
     const config = getEntityType(entityType);
+    if (!config) return;
 
     addTab({
       type: entityType,

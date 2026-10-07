@@ -359,7 +359,7 @@ export default function EntityReview({
             onUpdate={handleUpdateEntity}
             onRemove={handleRemoveEntity}
             entityType="people"
-            renderFields={(person: PersonDraft, index: number): ReactNode => (
+            renderFields={(person: any, index: number): ReactNode => (
               <>
                 <input
                   type="text"
@@ -415,7 +415,7 @@ export default function EntityReview({
             onUpdate={handleUpdateEntity}
             onRemove={handleRemoveEntity}
             entityType="events"
-            renderFields={(event: EventDraft, index: number): ReactNode => (
+            renderFields={(event: any, index: number): ReactNode => (
               <>
                 <input
                   type="text"
@@ -473,7 +473,7 @@ export default function EntityReview({
             onUpdate={handleUpdateEntity}
             onRemove={handleRemoveEntity}
             entityType="theories"
-            renderFields={(theory: TheoryDraft, index: number): ReactNode => (
+            renderFields={(theory: any, index: number): ReactNode => (
               <>
                 <input
                   type="text"
@@ -532,7 +532,7 @@ export default function EntityReview({
             onUpdate={handleUpdateEntity}
             onRemove={handleRemoveEntity}
             entityType="places"
-            renderFields={(place: PlaceDraft, index: number): ReactNode => (
+            renderFields={(place: any, index: number): ReactNode => (
               <>
                 <input
                   type="text"
