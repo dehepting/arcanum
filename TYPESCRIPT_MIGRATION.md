@@ -252,9 +252,11 @@ export function useLoadData<T>(
 
 ---
 
-### Phase 9: Runtime Validation (Week 10+, ~6 hours)
+### Phase 9: Runtime Validation (Week 10+, ~6 hours) ✅ COMPLETE
 
 **Goal:** Add Zod for runtime validation at API boundaries
+
+**Status:** ✅ Completed - All Tauri API calls validated
 
 **Install:**
 ```bash
@@ -264,30 +266,184 @@ npm install zod
 **Files Created:**
 ```
 src/schemas/
-├── entities.ts       # Zod schemas for all entities
-├── annotations.ts    # Zod schemas for annotations
-└── api.ts            # Validation helpers
+├── entities.ts       # Zod schemas for all entities (Person, Event, Theory, Place, Artifact)
+├── annotations.ts    # Zod schemas for annotations (Annotation, Geometry, InkMetadata)
+├── common.ts         # Schemas for Project, Source, MapOverlay
+├── api.ts            # Validation helpers (validateOrThrow, validateArrayOrThrow, etc.)
+└── index.ts          # Central export point
 ```
 
-**Usage Pattern:**
-```typescript
-// src/lib/people.ts
-import { PersonSchema } from '../schemas/entities';
+## Schema Organization
 
-export async function loadPeople(projectId: string): Promise<Person[]> {
-  const data = await invoke('list_people', { projectId });
-  return z.array(PersonSchema).parse(data);  // Validates at runtime
+### Entity Schemas (`entities.ts`)
+- `PersonSchema`, `EventSchema`, `TheorySchema`, `PlaceSchema`, `ArtifactSchema`
+- `CreatePersonInputSchema`, `UpdatePersonInputSchema` (and variants for all entities)
+- `EntityLinkSchema`, `AnnotationEntityLinkSchema`, `EntityPageSchema`
+- Full UUID validation, coordinate validation, datetime validation
+
+### Annotation Schemas (`annotations.ts`)
+- `AnnotationSchema`, `GeometrySchema`, `InkMetadataSchema`
+- `CreateAnnotationInputSchema`, `UpdateAnnotationInputSchema`
+- Normalized coordinate validation (0-1 range)
+
+### Common Schemas (`common.ts`)
+- `ProjectSchema`, `SourceSchema`, `MapOverlaySchema`
+- `FileReadResultSchema`
+
+## Validation Helpers (`api.ts`)
+
+### Core Functions
+
+```typescript
+// Validate or throw - for single items
+const project = validateOrThrow(ProjectSchema, response, 'create_project');
+
+// Validate array or throw - for lists
+const people = validateArrayOrThrow(PersonSchema, response, 'list_people');
+
+// Validate optional - for nullable returns
+const result = validateOptional(PlaceSchema, response, 'get_place');
+if (result.success === false) {
+  throw new Error(result.error);
+}
+return result.data; // Place | null
+```
+
+### Factory Helpers
+
+```typescript
+// Create validator for Tauri command
+const validatePerson = createTauriValidator(PersonSchema, 'create_person');
+const person = await validatePerson(invoke('create_person', { input }));
+
+// Create array validator
+const validatePeople = createTauriArrayValidator(PersonSchema, 'list_people');
+const people = await validatePeople(invoke('list_people', { projectId }));
+```
+
+## Usage Patterns
+
+### Entity CRUD (Automatic)
+The `entityCrud.ts` factory automatically validates all operations:
+
+```typescript
+// src/lib/entityCrud.ts
+export const personCrud = createEntityCrud<Person, CreatePersonInput, UpdatePersonInput>(
+  'person',
+  {
+    hasAnnotationLink: true,
+    hasRelationshipType: true,
+    pluralOverride: 'people',
+    schema: PersonSchema, // ← Validation applied automatically
+  }
+);
+```
+
+All entity operations are validated:
+- `createPerson()` → validates response with PersonSchema
+- `updatePerson()` → validates response with PersonSchema
+- `loadPeople()` → validates array with PersonSchema
+- Same for Event, Theory, Place, Artifact
+
+### Manual API Calls
+
+```typescript
+// src/lib/tauri.ts - Example: Projects
+export async function createProject(projectData: Partial<Project>): Promise<Project> {
+  const response = await invoke('create_project', { input: projectData });
+  return validateOrThrow(ProjectSchema, response, 'create_project');
+}
+
+export async function listProjects(): Promise<Project[]> {
+  const response = await invoke('list_projects');
+  return validateArrayOrThrow(ProjectSchema, response, 'list_projects');
 }
 ```
 
+### Optional Returns
+
+```typescript
+// When API might return null
+export async function getEntityPage(entityId: string): Promise<EntityPage | null> {
+  const response = await invoke('get_entity_page', { entityId });
+  const result = validateOptional(EntityPageSchema, response, 'get_entity_page');
+  if (result.success === false) {
+    throw new Error(result.error);
+  }
+  return result.data; // EntityPage | null
+}
+```
+
+## Validation Coverage
+
+**All Tauri API calls validated:**
+- ✅ Entity CRUD (Person, Event, Theory, Place, Artifact)
+- ✅ Project operations (create, get, list, update)
+- ✅ Source operations (create, get, load, update)
+- ✅ Annotation operations (create, load, update)
+- ✅ Entity Page operations (create, get, load, update)
+- ✅ Artifact queries (get, search, findspot)
+- ✅ Place operations (getForAnnotation)
+- ✅ Map Overlay operations (create, load, update)
+
 **Where to Use Zod:**
-- ✅ Tauri API responses (invoke calls)
-- ✅ localStorage/IndexedDB data
-- ✅ User form input
+- ✅ Tauri API responses (invoke calls) - ALL COVERED
+- ✅ localStorage/IndexedDB data - Use `validateOrThrow`
+- ✅ User form input - Use schema.parse() or validateOrThrow
 - ❌ Internal function calls (use TypeScript)
 - ❌ Component props (use TypeScript)
 
-**PR:** `feat/runtime-validation` → `main`
+## Error Handling
+
+Zod provides detailed error messages:
+
+```typescript
+try {
+  const person = validateOrThrow(PersonSchema, response, 'create_person');
+} catch (error) {
+  // Error message includes:
+  // - Context: "Validation failed for create_person"
+  // - Field path: "birth_date: Expected string, received number"
+  // - All validation issues
+  console.error(error.message);
+}
+```
+
+## Performance Impact
+
+- **Bundle Size:** +5KB gzipped (820KB → 825KB)
+- **Runtime:** Negligible (<1ms per validation)
+- **Benefits:** Catches malformed data before it reaches UI
+
+## Best Practices
+
+1. **Always validate at boundaries:** Tauri calls, localStorage, external APIs
+2. **Don't validate internal calls:** Trust your own TypeScript types
+3. **Use context parameter:** Makes debugging easier
+4. **Handle errors gracefully:** Show user-friendly messages, log details
+5. **Keep schemas in sync:** Update Zod schemas when TypeScript types change
+
+## Migration Checklist
+
+- [x] Install Zod
+- [x] Create schema files (entities, annotations, common)
+- [x] Create validation helpers
+- [x] Update entity CRUD factory
+- [x] Validate all Project operations
+- [x] Validate all Source operations
+- [x] Validate all Annotation operations
+- [x] Validate all Entity Page operations
+- [x] Validate artifact/place queries
+- [x] Validate Map Overlay operations
+- [x] Document usage patterns
+- [x] All tests passing
+- [x] Build succeeds
+
+**PRs:**
+- `feat/zod-runtime-validation` (commit 1: entity CRUD)
+- `feat/zod-runtime-validation` (commit 2: all API calls)
+
+**Bundle Impact:** +5KB (acceptable, well under 14KB budget)
 
 ---
 
