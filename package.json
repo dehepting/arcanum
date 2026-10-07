@@ -37,6 +37,7 @@
     "react-dom": "^19.2.8",
     "react-hot-toast": "^2.6.1",
     "tldraw": "^5.5.2",
+    "zod": "^4.6.5",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
