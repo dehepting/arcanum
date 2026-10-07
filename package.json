@@ -17,9 +17,6 @@
     "preview": "vite preview",
     "prepare": "husky",
     "test": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:all": "npm test && npm run test:integration",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"
