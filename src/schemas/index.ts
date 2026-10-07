@@ -4,6 +4,9 @@
  * Central export point for all validation schemas.
  */
 
+// Common schemas
+export { ProjectSchema, SourceSchema, MapOverlaySchema, FileReadResultSchema } from './common';
+
 // Entity schemas
 export {
   EntityTypeSchema,
