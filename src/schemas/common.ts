@@ -13,8 +13,8 @@ export const ProjectSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
   description: z.string().optional(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 /**
@@ -30,8 +30,8 @@ export const SourceSchema = z.object({
   file_size: z.number().int().nonnegative().optional(),
   mime_type: z.string().optional(),
   metadata: z.string().optional(), // JSON string
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 /**
@@ -46,8 +46,8 @@ export const MapOverlaySchema = z.object({
     .tuple([z.tuple([z.number(), z.number()]), z.tuple([z.number(), z.number()])])
     .transform((val) => val as [[number, number], [number, number]]), // [[sw_lat, sw_lng], [ne_lat, ne_lng]]
   opacity: z.number().min(0).max(1),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 /**
