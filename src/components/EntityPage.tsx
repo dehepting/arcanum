@@ -334,7 +334,7 @@ export default function EntityPage({
         setActiveTab(pdfTab.id);
       }
 
-      setCurrentPage(annotation.page_number);
+      setCurrentPage(annotation.page_number || 1);
     },
     [sources, tabs, addTab, setActiveTab, setCurrentPage]
   );
@@ -452,7 +452,7 @@ export default function EntityPage({
                       <EntityMetadataField
                         key={field.key}
                         label={field.label}
-                        value={entityData[field.key] as string | number | null | undefined}
+                        value={(entityData[field.key] ?? '') as string | number}
                         onChange={(value) => handleMetadataChange(field.key, value)}
                         type={field.type}
                         icon={field.icon}

@@ -178,7 +178,7 @@ export default function AnnotationModal() {
     setSaving(true);
     try {
       // Save annotation first if it's new
-      let annotationId = pendingAnnotation.id;
+      let annotationId: string | null | undefined = pendingAnnotation.id;
       if (!annotationId) {
         annotationId = await saveAnnotation();
         if (!annotationId) return; // Save failed
@@ -186,7 +186,7 @@ export default function AnnotationModal() {
 
       // Close modal and enter pin placement mode
       closeModal();
-      startPinPlacement(annotationId);
+      startPinPlacement(annotationId!);
     } catch (err) {
       console.error('Failed to prepare for map linking:', err);
       alert(`Error: ${(err as Error).message}`);
@@ -199,7 +199,7 @@ export default function AnnotationModal() {
     if (!pendingAnnotation) return;
 
     // Save annotation first if it's new
-    let annotationId = pendingAnnotation.id;
+    let annotationId: string | null | undefined = pendingAnnotation.id;
     if (!annotationId) {
       annotationId = await saveAnnotation();
       if (!annotationId) return; // Save failed
@@ -207,7 +207,7 @@ export default function AnnotationModal() {
 
     // Link the entity
     const result = await linkAnnotationToEntity(
-      annotationId,
+      annotationId!,
       selection.entityId,
       selection.entityType as any,
       'mentions'
@@ -215,7 +215,7 @@ export default function AnnotationModal() {
 
     if (result.success) {
       // Reload linked entities
-      await loadLinkedEntities(annotationId);
+      await loadLinkedEntities(annotationId!);
     } else {
       alert(`Failed to link entity: ${result.error}`);
     }

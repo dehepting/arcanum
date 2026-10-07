@@ -67,6 +67,8 @@ export default function EntityTypeSection({
     }
   };
 
+  if (!config) return null;
+
   return (
     <div>
       {/* Entity Type Header - Always visible with count */}

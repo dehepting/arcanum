@@ -5,7 +5,7 @@ interface AnnotationContextMenuProps {
   x: number;
   y: number;
   onDelete: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
   onClose: () => void;
   annotation: Annotation;
 }
@@ -38,7 +38,7 @@ export default function AnnotationContextMenu({
 
   const handleEdit = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    onEdit();
+    onEdit?.();
     onClose();
   };
 
@@ -64,25 +64,27 @@ export default function AnnotationContextMenu({
         padding: '4px',
       }}
     >
-      <button
-        onClick={handleEdit}
-        style={{
-          display: 'block',
-          width: '100%',
-          padding: '8px 12px',
-          background: 'transparent',
-          border: 'none',
-          textAlign: 'left',
-          cursor: 'pointer',
-          fontSize: '13px',
-          color: 'var(--text)',
-          borderRadius: '4px',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-      >
-        ✏️ Edit
-      </button>
+      {onEdit && (
+        <button
+          onClick={handleEdit}
+          style={{
+            display: 'block',
+            width: '100%',
+            padding: '8px 12px',
+            background: 'transparent',
+            border: 'none',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: '13px',
+            color: 'var(--text)',
+            borderRadius: '4px',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          ✏️ Edit
+        </button>
+      )}
       <button
         onClick={handleDelete}
         style={{

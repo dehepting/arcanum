@@ -75,7 +75,7 @@ export default function Workspace() {
             entityId={activeTab.data?.entityId}
             entityType={activeTab.type}
             title={activeTab.title}
-            projectId={currentProject?.id}
+            projectId={currentProject?.id || ''}
             tabId={activeTab.id}
           />
         );

@@ -95,7 +95,7 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }: InkOve
       try {
         // Save to database
         const data = await createAnnotation({
-          source_id: activeSourceId,
+          source_id: activeSourceId || '',
           project_id: currentProject?.id,
           page_number: currentPage,
           annotation_type: 'ink',
@@ -106,7 +106,7 @@ export default function InkOverlay({ canvasWidth, canvasHeight, active }: InkOve
             h: rect.h,
           },
           ink_data: pathJSON,
-          text: null,
+          text: undefined,
         });
 
         // Add to store

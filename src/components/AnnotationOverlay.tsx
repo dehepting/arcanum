@@ -442,7 +442,7 @@ export default function AnnotationOverlay({ canvasWidth, canvasHeight }: Annotat
           onEdit={
             contextMenu.annotation.type === 'text'
               ? () => handleEditAnnotation(contextMenu.annotation)
-              : null
+              : undefined
           }
           onClose={() => setContextMenu(null)}
         />
