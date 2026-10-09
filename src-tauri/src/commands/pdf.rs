@@ -1,6 +1,7 @@
 use crate::commands::{CommandError, CommandResult};
 use std::process::Command;
 use base64::Engine;
+use lopdf::Document;
 
 #[derive(serde::Serialize)]
 pub struct PdfPageInfo {
@@ -85,41 +86,17 @@ pub async fn render_pdf_page(
     Ok(base64_image)
 }
 
-/// Get PDF metadata using mdls (macOS built-in)
+/// Get PDF metadata using lopdf (pure Rust)
 #[tauri::command]
 pub async fn get_pdf_info(file_path: String) -> CommandResult<PdfPageInfo> {
-    // Use mdls to get PDF page count
-    let output = Command::new("mdls")
-        .arg("-name")
-        .arg("kMDItemNumberOfPages")
-        .arg(&file_path)
-        .output()
+    // Use lopdf to directly read the PDF and get page count
+    let document = Document::load(&file_path)
         .map_err(|e| CommandError {
-            message: format!("Failed to execute mdls command: {}", e),
+            message: format!("Failed to load PDF: {}", e),
         })?;
 
-    if !output.status.success() {
-        return Err(CommandError {
-            message: format!("mdls command failed: {}", String::from_utf8_lossy(&output.stderr)),
-        });
-    }
-
-    // Parse output like "kMDItemNumberOfPages = 664"
-    let output_str = String::from_utf8_lossy(&output.stdout);
-
-    // Log the raw output for debugging
-    eprintln!("mdls output: {}", output_str);
-
-    let total_pages = if output_str.contains("(null)") {
-        // Metadata not available, try using pdfinfo or fallback to 1
-        1
-    } else {
-        output_str
-            .split('=')
-            .nth(1)
-            .and_then(|s| s.trim().parse::<u16>().ok())
-            .unwrap_or(1)
-    };
+    let total_pages = document.get_pages().len() as u16;
+    eprintln!("PDF has {} pages (detected by lopdf)", total_pages);
 
     // Use sips to get dimensions of first page
     let output = Command::new("sips")
