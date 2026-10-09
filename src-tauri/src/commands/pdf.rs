@@ -10,107 +10,71 @@ pub struct PdfPageInfo {
     pub total_pages: u16,
 }
 
-/// Render a PDF page to PNG using qlmanage (macOS built-in)
+/// Render a PDF page to PNG using pdftoppm (from poppler-utils)
 #[tauri::command]
 pub async fn render_pdf_page(
     file_path: String,
     page_number: u16,
-    _scale: Option<f32>,
+    scale: Option<f32>,
 ) -> CommandResult<String> {
-    // First, split the PDF to extract just the page we want using Python's PyPDF2 (if available)
-    // Otherwise, use qlmanage to render the whole PDF (only works for page 1)
-
-    // For now, let's use qlmanage which renders the first page only
-    // We'll need to add page extraction later
+    let scale = scale.unwrap_or(2.0);
+    let dpi = (72.0 * scale) as u32; // Convert scale to DPI (72 = default PDF DPI)
 
     let temp_dir = std::env::temp_dir();
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    let output_dir = temp_dir.join(format!("pdf_render_{}_{}", std::process::id(), timestamp));
+    let output_prefix = temp_dir.join(format!("pdf_page_{}_{}", std::process::id(), timestamp));
 
-    eprintln!("Creating temp directory: {:?}", output_dir);
-    std::fs::create_dir_all(&output_dir)
-        .map_err(|e| CommandError {
-            message: format!("Failed to create temp directory {:?}: {}", output_dir, e),
-        })?;
+    eprintln!("Rendering page {} of {} at {} DPI", page_number, file_path, dpi);
 
-    eprintln!("Temp directory created successfully");
-
-    // Use qlmanage to generate thumbnail/preview
-    // -t = thumbnail mode, -s = size, -o = output dir
-    eprintln!("Running qlmanage on: {}", file_path);
-    let output = Command::new("qlmanage")
-        .arg("-t")
-        .arg("-s")
-        .arg("2000") // Large size for quality
-        .arg("-o")
-        .arg(&output_dir)
+    // Use pdftoppm to render a specific page
+    // -f = first page, -l = last page (same number = single page)
+    // -png = output format
+    // -r = resolution in DPI
+    let output = Command::new("pdftoppm")
+        .arg("-f")
+        .arg(page_number.to_string())
+        .arg("-l")
+        .arg(page_number.to_string())
+        .arg("-png")
+        .arg("-r")
+        .arg(dpi.to_string())
         .arg(&file_path)
+        .arg(&output_prefix)
         .output()
         .map_err(|e| CommandError {
-            message: format!("Failed to execute qlmanage command: {}", e),
+            message: format!("Failed to execute pdftoppm (is poppler installed? try: brew install poppler): {}", e),
         })?;
-
-    eprintln!("qlmanage exit status: {}", output.status);
-    eprintln!("qlmanage stdout: {}", String::from_utf8_lossy(&output.stdout));
-    eprintln!("qlmanage stderr: {}", String::from_utf8_lossy(&output.stderr));
 
     if !output.status.success() {
-        let _ = std::fs::remove_dir_all(&output_dir);
         return Err(CommandError {
-            message: format!("qlmanage command failed with status {}: stdout: {} stderr: {}",
-                output.status,
-                String::from_utf8_lossy(&output.stdout),
-                String::from_utf8_lossy(&output.stderr)),
+            message: format!(
+                "pdftoppm failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            ),
         });
     }
 
-    // Check if output directory still exists
-    if !output_dir.exists() {
-        return Err(CommandError {
-            message: format!("Output directory {:?} disappeared after qlmanage", output_dir),
-        });
-    }
+    // pdftoppm creates files with format: prefix-N.png where N is the page number
+    let png_file = format!("{}-{}.png", output_prefix.to_string_lossy(), page_number);
 
-    // List all files created in the output directory for debugging
-    let files_created: Vec<_> = std::fs::read_dir(&output_dir)
-        .map_err(|e| CommandError {
-            message: format!("Failed to read output directory {:?}: {}", output_dir, e),
-        })?
-        .filter_map(|entry| entry.ok())
-        .map(|entry| entry.path())
-        .collect();
-
-    eprintln!("qlmanage created {} files in {:?}: {:?}", files_created.len(), output_dir, files_created);
-
-    // Find the first PNG file
-    let png_file = files_created.iter()
-        .find(|p| p.extension().and_then(|s| s.to_str()) == Some("png"))
-        .ok_or_else(|| {
-            let _ = std::fs::remove_dir_all(&output_dir);
-            CommandError {
-                message: format!("No PNG file created by qlmanage. Directory: {:?}, Files: {:?}", output_dir, files_created),
-            }
-        })?;
-
-    eprintln!("Using PNG file: {:?}", png_file);
+    eprintln!("Looking for PNG file: {}", png_file);
 
     // Read the generated PNG file
     let png_bytes = std::fs::read(&png_file)
-        .map_err(|e| {
-            let _ = std::fs::remove_dir_all(&output_dir);
-            CommandError {
-                message: format!("Failed to read generated PNG {:?}: {}", png_file, e),
-            }
+        .map_err(|e| CommandError {
+            message: format!("Failed to read generated PNG {}: {}", png_file, e),
         })?;
 
-    // Clean up temp directory
-    let _ = std::fs::remove_dir_all(&output_dir);
+    // Clean up temp file
+    let _ = std::fs::remove_file(&png_file);
 
     // Encode to base64
     let base64_image = base64::engine::general_purpose::STANDARD.encode(&png_bytes);
+
+    eprintln!("Successfully rendered page {}", page_number);
 
     Ok(base64_image)
 }
