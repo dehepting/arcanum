@@ -28,6 +28,7 @@ pub async fn render_pdf_page(
     let output_prefix = temp_dir.join(format!("pdf_page_{}_{}", std::process::id(), timestamp));
 
     eprintln!("Rendering page {} of {} at {} DPI", page_number, file_path, dpi);
+    eprintln!("Output prefix: {:?}", output_prefix);
 
     // Use pdftoppm to render a specific page
     // -f = first page, -l = last page (same number = single page)
@@ -48,10 +49,16 @@ pub async fn render_pdf_page(
             message: format!("Failed to execute pdftoppm (is poppler installed? try: brew install poppler): {}", e),
         })?;
 
+    eprintln!("pdftoppm exit status: {}", output.status);
+    eprintln!("pdftoppm stdout: {}", String::from_utf8_lossy(&output.stdout));
+    eprintln!("pdftoppm stderr: {}", String::from_utf8_lossy(&output.stderr));
+
     if !output.status.success() {
         return Err(CommandError {
             message: format!(
-                "pdftoppm failed: {}",
+                "pdftoppm failed with status {}: stdout: {} stderr: {}",
+                output.status,
+                String::from_utf8_lossy(&output.stdout),
                 String::from_utf8_lossy(&output.stderr)
             ),
         });
@@ -61,6 +68,15 @@ pub async fn render_pdf_page(
     let png_file = format!("{}-{}.png", output_prefix.to_string_lossy(), page_number);
 
     eprintln!("Looking for PNG file: {}", png_file);
+
+    // Check what files were actually created in temp dir
+    if let Ok(entries) = std::fs::read_dir(&temp_dir) {
+        let temp_files: Vec<_> = entries
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().to_string_lossy().contains("pdf_page"))
+            .collect();
+        eprintln!("Files in temp dir matching 'pdf_page': {:?}", temp_files.iter().map(|e| e.path()).collect::<Vec<_>>());
+    }
 
     // Read the generated PNG file
     let png_bytes = std::fs::read(&png_file)
