@@ -85,8 +85,9 @@ pub async fn render_pdf_page(
             message: format!("Failed to read generated PNG {}: {}", png_file, e),
         })?;
 
-    // Clean up temp file
-    let _ = std::fs::remove_file(&png_file);
+    // Don't delete immediately - let OS handle temp cleanup
+    // This prevents race conditions when zoom triggers multiple concurrent renders
+    // Temp files will be cleaned up when system restarts or manually
 
     // Encode to base64
     let base64_image = base64::engine::general_purpose::STANDARD.encode(&png_bytes);
