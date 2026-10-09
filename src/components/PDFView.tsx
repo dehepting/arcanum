@@ -40,6 +40,9 @@ export default function PDFView() {
   const [pageInput, setPageInput] = useState<string>('1');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isRendering, setIsRendering] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const activeSourceId = useStore((state) => state.activeSourceId);
   const sources = useStore((state) => state.sources);
@@ -220,6 +223,42 @@ export default function PDFView() {
     setPageInput(String(currentPage));
   }, [currentPage]);
 
+  // Handle click-and-drag panning
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (activeTool !== 'select') return; // Only allow dragging in select mode
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging || !dragStart || !scrollContainerRef.current) return;
+
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+
+    scrollContainerRef.current.scrollLeft -= deltaX;
+    scrollContainerRef.current.scrollTop -= deltaY;
+
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDragStart(null);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragStart]);
+
   if (!activeSource) {
     return (
       <div className="empty-state">
@@ -384,11 +423,14 @@ export default function PDFView() {
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {/* Main PDF View */}
         <div
+          ref={scrollContainerRef}
+          onMouseDown={handleMouseDown}
           style={{
             flex: 1,
             overflow: 'auto',
             background: 'var(--bg-canvas)',
             padding: 'var(--space-5)',
+            cursor: activeTool === 'select' ? (isDragging ? 'grabbing' : 'grab') : 'default',
           }}
         >
           <div
