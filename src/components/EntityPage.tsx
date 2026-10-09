@@ -6,7 +6,7 @@ import { getAnnotationsForEntity } from '../lib/annotationLinks';
 import { entityMetadataSchemas } from '../lib/entityMetadataSchemas';
 import { invoke } from '@tauri-apps/api/core';
 import useStore from '../store/useStore';
-import { GET_COMMANDS, UPDATE_COMMANDS } from '../config/entityCommands';
+import { GET_COMMANDS, UPDATE_COMMANDS, DELETE_COMMANDS } from '../config/entityCommands';
 import '../styles/entity.css';
 
 import type { EntityType, Annotation, Source, Tab } from '@/types';
@@ -82,11 +82,19 @@ export default function EntityPage({
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const updateTab = useStore((state) => state.updateTab);
+  const removeTab = useStore((state) => state.removeTab);
   const sources = useStore((state) => state.sources);
   const tabs = useStore((state) => state.tabs);
   const setActiveTab = useStore((state) => state.setActiveTab);
   const addTab = useStore((state) => state.addTab);
   const setCurrentPage = useStore((state) => state.setCurrentPage);
+
+  // Entity removal functions from store
+  const removePerson = useStore((state) => state.removePerson);
+  const removeEvent = useStore((state) => state.removeEvent);
+  const removeTheory = useStore((state) => state.removeTheory);
+  const removePlace = useStore((state) => state.removePlace);
+  const removeArtifact = useStore((state) => state.removeArtifact);
 
   // Load entity page content and metadata
   useEffect(() => {
@@ -307,6 +315,47 @@ export default function EntityPage({
     };
   }, [entityData]);
 
+  // Handle entity deletion
+  const handleDelete = async () => {
+    if (!confirm(`Are you sure you want to delete "${title}"?\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const deleteCmd = DELETE_COMMANDS[entityType as EntityType];
+      if (!deleteCmd) {
+        throw new Error(`Unknown entity type: ${entityType}`);
+      }
+
+      await invoke(deleteCmd.command, { [deleteCmd.param]: entityId });
+
+      // Remove from store based on entity type
+      switch (entityType) {
+        case 'person':
+          removePerson(entityId);
+          break;
+        case 'event':
+          removeEvent(entityId);
+          break;
+        case 'theory':
+          removeTheory(entityId);
+          break;
+        case 'place':
+          removePlace(entityId);
+          break;
+        case 'artifact':
+          removeArtifact(entityId);
+          break;
+      }
+
+      // Close the tab
+      removeTab(tabId);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to delete entity: ${errorMsg}`);
+    }
+  };
+
   // Handle annotation click - navigate to PDF
   const handleAnnotationClick = useCallback(
     (annotation: Annotation) => {
@@ -423,6 +472,23 @@ export default function EntityPage({
         <div className="entity-page-actions">
           {saving && <span className="save-indicator saving">Saving...</span>}
           {saveSuccess && <span className="save-indicator success">✓ Saved</span>}
+          <button
+            className="entity-delete-btn"
+            onClick={handleDelete}
+            title="Delete entity"
+            style={{
+              padding: '4px 12px',
+              fontSize: '0.875rem',
+              background: 'var(--bg-danger, #dc2626)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 'var(--radius)',
+              cursor: 'pointer',
+              marginRight: 'var(--space-2)',
+            }}
+          >
+            🗑️ Delete
+          </button>
           {onClose && (
             <button className="entity-page-close" onClick={onClose} title="Close">
               ✕

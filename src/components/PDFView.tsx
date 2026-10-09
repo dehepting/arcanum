@@ -27,6 +27,8 @@ export default function PDFView() {
   const [numPages, setNumPages] = useState<number>(0);
   const [canvasSize, setCanvasSize] = useState<CanvasSize>({ width: 0, height: 0 });
   const [selectedText, setSelectedText] = useState<string>('');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [pageInput, setPageInput] = useState<string>('1');
 
   const activeSourceId = useStore((state) => state.activeSourceId);
   const sources = useStore((state) => state.sources);
@@ -68,6 +70,7 @@ export default function PDFView() {
 
     const loadPDF = async () => {
       try {
+        setLoadError(null);
         logger.debug('Reading PDF file from:', activeSource.file_url);
 
         // Read file as binary data using Tauri command
@@ -76,6 +79,11 @@ export default function PDFView() {
         });
         logger.debug('File read successfully, size:', fileData.length, 'bytes');
 
+        // Check if file data is empty
+        if (!fileData || fileData.length === 0) {
+          throw new Error('PDF file is empty or could not be read');
+        }
+
         // Load PDF from binary data
         const doc = await pdfjsLib.getDocument({ data: new Uint8Array(fileData) }).promise;
         logger.debug('PDF loaded successfully, pages:', doc.numPages);
@@ -83,9 +91,12 @@ export default function PDFView() {
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setCurrentPage(1);
+        setPageInput('1');
       } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
         logger.error('Error loading PDF:', err);
         logger.error('Failed to load from:', activeSource.file_url);
+        setLoadError(`Failed to load PDF: ${errorMsg}`);
       }
     };
 
@@ -201,6 +212,33 @@ export default function PDFView() {
     window.getSelection()?.removeAllRanges();
   };
 
+  // Handle page number input
+  const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPageInput(e.target.value);
+  };
+
+  const handlePageInputSubmit = () => {
+    const page = parseInt(pageInput, 10);
+    if (!isNaN(page) && page >= 1 && page <= numPages) {
+      setCurrentPage(page);
+    } else {
+      // Reset to current page if invalid
+      setPageInput(String(currentPage));
+    }
+  };
+
+  const handlePageInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handlePageInputSubmit();
+      e.currentTarget.blur();
+    }
+  };
+
+  // Update page input when current page changes via other means (arrows, thumbnails)
+  useEffect(() => {
+    setPageInput(String(currentPage));
+  }, [currentPage]);
+
   if (!activeSource) {
     return (
       <div className="empty-state">
@@ -208,6 +246,26 @@ export default function PDFView() {
         <div className="empty-state-title">No document selected</div>
         <div className="empty-state-text">
           Open a PDF from the tabs above or click + PDF to upload
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">⚠️</div>
+        <div className="empty-state-title">Failed to load PDF</div>
+        <div className="empty-state-text">{loadError}</div>
+        <div
+          className="empty-state-text"
+          style={{
+            marginTop: 'var(--space-2)',
+            fontSize: '0.875rem',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          File path: {activeSource.file_url}
         </div>
       </div>
     );
@@ -232,9 +290,24 @@ export default function PDFView() {
           >
             →
           </button>
-          <span className="toolbar-label">
-            Page {currentPage} / {numPages}
-          </span>
+          <input
+            type="number"
+            min="1"
+            max={numPages}
+            value={pageInput}
+            onChange={handlePageInputChange}
+            onBlur={handlePageInputSubmit}
+            onKeyDown={handlePageInputKeyDown}
+            style={{
+              width: '60px',
+              textAlign: 'center',
+              padding: 'var(--space-1)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              fontSize: '0.875rem',
+            }}
+          />
+          <span className="toolbar-label">/ {numPages}</span>
         </div>
 
         <div className="toolbar-separator" />
