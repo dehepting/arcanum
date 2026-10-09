@@ -14,7 +14,7 @@ import type { Tab, CreateTabInput } from './tabs';
 export interface Project {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -29,9 +29,9 @@ export interface Source {
   file_name: string;
   storage_path: string;
   file_url: string;
-  file_size?: number;
-  mime_type?: string;
-  metadata?: string;
+  file_size?: number | null;
+  mime_type?: string | null;
+  metadata?: string | null;
   created_at: string;
   updated_at: string;
 }

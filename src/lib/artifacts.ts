@@ -54,7 +54,10 @@ export async function updateArtifact(
 /**
  * Delete an artifact and its images
  */
-export async function deleteArtifact(artifactId: string, imageUrls?: string[]): Promise<void> {
+export async function deleteArtifact(
+  artifactId: string,
+  imageUrls?: string[] | null
+): Promise<void> {
   // Delete from database
   await tauri.deleteArtifact(artifactId);
 

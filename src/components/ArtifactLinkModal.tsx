@@ -391,7 +391,7 @@ export default function ArtifactLinkModal({ annotation, onClose, onLink }: Artif
   );
 }
 
-function getCategoryEmoji(category?: string): string {
+function getCategoryEmoji(category?: string | null): string {
   const emojiMap: Record<string, string> = {
     pottery: '🏺',
     sculpture: '🗿',

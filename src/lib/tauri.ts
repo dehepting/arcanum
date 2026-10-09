@@ -303,7 +303,7 @@ interface AnnotationInput {
 }
 
 interface AnnotationWithDisplayProps extends Annotation {
-  text?: string;
+  text?: string | null;
   rect_x: number;
   rect_y: number;
   rect_w: number;
