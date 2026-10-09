@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import useStore from '../store/useStore';
-import { uploadPDF } from '../lib/upload';
+import { uploadPDF, deleteSource } from '../lib/upload';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readFile } from '@tauri-apps/plugin-fs';
@@ -56,6 +56,7 @@ export default function EntityExplorer() {
   const addTab = useStore((state) => state.addTab);
   const setActiveTab = useStore((state) => state.setActiveTab);
   const addSource = useStore((state) => state.addSource);
+  const removeSource = useStore((state) => state.removeSource);
   const setActiveSource = useStore((state) => state.setActiveSource);
   const currentProject = useStore((state) => state.currentProject);
 
@@ -284,6 +285,34 @@ export default function EntityExplorer() {
       setEditingSourceId(null);
     } catch (error) {
       console.error('Failed to rename source:', error);
+    }
+  };
+
+  // Handle source delete
+  const handleSourceDelete = async (source: Source, e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't trigger source click
+
+    if (
+      !confirm(
+        `Are you sure you want to delete "${source.title}"?\n\nThis will permanently delete the PDF and all its annotations.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await deleteSource(source.id, source.storage_path);
+      removeSource(source.id);
+
+      // Close any tabs showing this source
+      tabs.forEach((t) => {
+        if (t.type === 'pdf' && t.data?.source?.id === source.id) {
+          useStore.getState().removeTab(t.id);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to delete source:', error);
+      alert(`Failed to delete source: ${(error as Error).message || 'Unknown error'}`);
     }
   };
 
@@ -577,7 +606,28 @@ export default function EntityExplorer() {
                       autoFocus
                     />
                   ) : (
-                    <span className="entity-result-name">{source.title}</span>
+                    <>
+                      <span className="entity-result-name">{source.title}</span>
+                      <button
+                        className="entity-delete-btn"
+                        onClick={(e) => handleSourceDelete(source, e)}
+                        title="Delete source"
+                        style={{
+                          marginLeft: 'auto',
+                          padding: '2px 6px',
+                          fontSize: '0.75rem',
+                          opacity: 0.6,
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                        onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+                      >
+                        🗑️
+                      </button>
+                    </>
                   )}
                 </div>
               ))

@@ -1,32 +1,48 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { logger } from '../utils/logger';
-import * as pdfjsLib from 'pdfjs-dist';
-import type { PDFDocumentProxy, TextItem } from 'pdfjs-dist/types/src/display/api';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { renderPdfPage, getPdfInfo, type PdfPageInfo } from '../lib/tauri';
 import useStore from '../store/useStore';
 import AnnotationOverlay from './AnnotationOverlay';
 import InkOverlay from './InkOverlay';
 import AnnotationModal from './AnnotationModal';
 import PDFThumbnailSidebar from './PDFThumbnailSidebar';
 import { loadAnnotations } from '../lib/annotations';
-import { invoke } from '@tauri-apps/api/core';
 
-interface CanvasSize {
+// Debounce helper
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+interface ImageSize {
   width: number;
   height: number;
 }
 
-// Set worker path from npm package (ensures version match)
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
-
 export default function PDFView() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
-  const textLayerRef = useRef<HTMLDivElement | null>(null);
-  const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
-  const [numPages, setNumPages] = useState<number>(0);
-  const [canvasSize, setCanvasSize] = useState<CanvasSize>({ width: 0, height: 0 });
-  const [selectedText, setSelectedText] = useState<string>('');
+  const [pdfInfo, setPdfInfo] = useState<PdfPageInfo | null>(null);
+  const [pageImageUrl, setPageImageUrl] = useState<string | null>(null);
+  const [imageSize, setImageSize] = useState<ImageSize>({ width: 0, height: 0 });
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [pageInput, setPageInput] = useState<string>('1');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isRendering, setIsRendering] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const activeSourceId = useStore((state) => state.activeSourceId);
   const sources = useStore((state) => state.sources);
@@ -37,6 +53,9 @@ export default function PDFView() {
   const activeTool = useStore((state) => state.activeTool);
   const setActiveTool = useStore((state) => state.setActiveTool);
   const setAnnotations = useStore((state) => state.setAnnotations);
+
+  // Debounce scale to prevent re-rendering on every zoom change
+  const debouncedScale = useDebounce(pdfScale, 300);
 
   const activeSource = sources.find((s) => s.id === activeSourceId);
 
@@ -56,150 +75,205 @@ export default function PDFView() {
     fetchAnnotations();
   }, [activeSourceId, setAnnotations]);
 
-  // Load PDF
+  // Load PDF info when source changes
   useEffect(() => {
-    logger.debug('Active source:', activeSource);
-    logger.debug('File URL:', activeSource?.file_url);
-
     if (!activeSource?.file_url) {
       logger.warn('No file_url found in source');
       return;
     }
 
+    // Clear old image and reset page immediately when source changes
+    setPageImageUrl(null);
+    setCurrentPage(1);
+
     const loadPDF = async () => {
       try {
-        logger.debug('Reading PDF file from:', activeSource.file_url);
+        setIsLoading(true);
+        setLoadError(null);
+        logger.debug('Loading PDF info from:', activeSource.file_url);
 
-        // Read file as binary data using Tauri command
-        const fileData = await invoke<number[]>('read_file_bytes', {
-          filePath: activeSource.file_url,
-        });
-        logger.debug('File read successfully, size:', fileData.length, 'bytes');
-
-        // Load PDF from binary data
-        const doc = await pdfjsLib.getDocument({ data: new Uint8Array(fileData) }).promise;
-        logger.debug('PDF loaded successfully, pages:', doc.numPages);
-
-        setPdfDoc(doc);
-        setNumPages(doc.numPages);
-        setCurrentPage(1);
+        const info = await getPdfInfo(activeSource.file_url);
+        setPdfInfo(info);
+        logger.debug('PDF loaded:', info);
       } catch (err) {
-        logger.error('Error loading PDF:', err);
-        logger.error('Failed to load from:', activeSource.file_url);
+        logger.error('Failed to load PDF:', err);
+        // Properly extract error message from various error formats
+        let errorMessage = 'Unknown error';
+        if (err instanceof Error) {
+          errorMessage = err.message;
+        } else if (typeof err === 'string') {
+          errorMessage = err;
+        } else if (err && typeof err === 'object') {
+          // Try to extract message from object (Tauri errors)
+          errorMessage = (err as any).message || JSON.stringify(err);
+        }
+        setLoadError(`Failed to load PDF: ${errorMessage}`);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadPDF();
-  }, [activeSource, setCurrentPage]);
+  }, [activeSource?.file_url, setCurrentPage]);
 
-  // Render current page
+  // Render current page (only when debounced scale changes to avoid lag)
   useEffect(() => {
-    if (!pdfDoc || !canvasRef.current || !textLayerRef.current) return;
+    if (
+      !activeSource?.file_url ||
+      !pdfInfo ||
+      currentPage < 1 ||
+      currentPage > pdfInfo.total_pages
+    ) {
+      return;
+    }
 
     const renderPage = async () => {
-      const page = await pdfDoc.getPage(currentPage);
-      const viewport = page.getViewport({ scale: pdfScale });
-      const canvas = canvasRef.current!;
-      const ctx = canvas.getContext('2d')!;
+      try {
+        setIsRendering(true);
+        logger.debug(`Rendering page ${currentPage}...`);
 
-      // Clear the canvas before rendering new page
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Render page with Rust backend using debounced scale
+        const base64Image = await renderPdfPage(activeSource.file_url, currentPage, debouncedScale);
+        const imageUrl = `data:image/png;base64,${base64Image}`;
 
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+        // Clear old image URL
+        if (pageImageUrl) {
+          URL.revokeObjectURL(pageImageUrl);
+        }
 
-      // Update canvas size for overlay
-      setCanvasSize({ width: viewport.width, height: viewport.height });
+        setPageImageUrl(imageUrl);
 
-      // Set white background for proper PDF rendering
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Calculate rendered size based on PDF dimensions and debounced scale
+        const scaledWidth = pdfInfo.width * debouncedScale;
+        const scaledHeight = pdfInfo.height * debouncedScale;
+        setImageSize({ width: scaledWidth, height: scaledHeight });
 
-      await page.render({
-        canvasContext: ctx,
-        viewport,
-      } as any).promise;
-
-      // Render text layer for selection
-      const textContent = await page.getTextContent();
-      const textLayer = textLayerRef.current!;
-      textLayer.innerHTML = '';
-      textLayer.style.width = `${viewport.width}px`;
-      textLayer.style.height = `${viewport.height}px`;
-
-      // Simple text layer rendering (invisible but selectable)
-      textContent.items.forEach((item) => {
-        // Filter out marked content (only process TextItem)
-        if (!('str' in item)) return;
-
-        const textItem = item as TextItem;
-        const div = document.createElement('div');
-        div.textContent = textItem.str;
-        div.style.position = 'absolute';
-        div.style.left = `${textItem.transform[4]}px`;
-        div.style.top = `${textItem.transform[5]}px`;
-        div.style.fontSize = `${Math.sqrt(textItem.transform[0] * textItem.transform[0] + textItem.transform[1] * textItem.transform[1])}px`;
-        div.style.fontFamily = textItem.fontName;
-        div.style.color = 'transparent'; // Make text invisible but still selectable
-        div.style.userSelect = 'text';
-        textLayer.appendChild(div);
-      });
+        logger.debug(`Page ${currentPage} rendered`);
+      } catch (err) {
+        logger.error(`Error rendering page ${currentPage}:`, err);
+        // Properly extract error message from various error formats
+        let errorMessage = 'Unknown error';
+        if (err instanceof Error) {
+          errorMessage = err.message;
+        } else if (typeof err === 'string') {
+          errorMessage = err;
+        } else if (err && typeof err === 'object') {
+          // Try to extract message from object (Tauri errors)
+          errorMessage = (err as any).message || JSON.stringify(err);
+        }
+        setLoadError(`Failed to render page ${currentPage}: ${errorMessage}`);
+      } finally {
+        setIsRendering(false);
+      }
     };
 
     renderPage();
-  }, [pdfDoc, currentPage, pdfScale]);
 
-  // Handle text selection
-  useEffect(() => {
-    const handleSelection = () => {
-      const selection = window.getSelection();
-      const text = selection?.toString().trim() || '';
-      setSelectedText(text);
+    // Cleanup function
+    return () => {
+      if (pageImageUrl) {
+        URL.revokeObjectURL(pageImageUrl);
+      }
     };
-
-    document.addEventListener('selectionchange', handleSelection);
-    return () => document.removeEventListener('selectionchange', handleSelection);
-  }, []);
+  }, [activeSource?.file_url, pdfInfo, currentPage, debouncedScale]);
 
   // Handle touchpad pinch-to-zoom
-  useEffect(() => {
-    const container = overlayRef.current?.parentElement;
-    if (!container) return;
-
-    const handleWheel = (e: WheelEvent) => {
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
       // Check for pinch gesture (ctrlKey + wheel on Mac trackpad)
       if (e.ctrlKey) {
         e.preventDefault();
 
         // Adjust scale based on wheel delta
-        const delta = -e.deltaY * 0.01;
-        const newScale = Math.max(0.5, Math.min(3.0, pdfScale + delta));
-        setScale(newScale);
+        setScale((currentScale) => {
+          const delta = -e.deltaY * 0.01;
+          const newScale = Math.max(0.5, Math.min(3.0, currentScale + delta));
+          return newScale;
+        });
       }
-    };
+    },
+    [setScale]
+  );
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
-  }, [pdfScale, setScale]);
+  }, [handleWheel]);
 
-  // Add selected text to canvas
-  const addToCanvas = () => {
-    if (!selectedText || !activeSource) return;
-
-    window.dispatchEvent(
-      new CustomEvent('addPDFExcerptToCanvas', {
-        detail: {
-          text: selectedText,
-          sourceId: activeSource.id,
-          sourceTitle: activeSource.title,
-          pageNumber: currentPage,
-        },
-      })
-    );
-
-    setSelectedText('');
-    window.getSelection()?.removeAllRanges();
+  // Handle page number input
+  const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPageInput(e.target.value);
   };
+
+  const handlePageInputSubmit = () => {
+    if (!pdfInfo) return;
+    const page = parseInt(pageInput, 10);
+    if (!isNaN(page) && page >= 1 && page <= pdfInfo.total_pages) {
+      setCurrentPage(page);
+    } else {
+      // Reset to current page if invalid
+      setPageInput(String(currentPage));
+    }
+  };
+
+  const handlePageInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handlePageInputSubmit();
+      e.currentTarget.blur();
+    }
+  };
+
+  // Update page input when current page changes via other means (arrows, thumbnails)
+  useEffect(() => {
+    setPageInput(String(currentPage));
+  }, [currentPage]);
+
+  // Handle click-and-drag panning with useCallback to avoid stale closures
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (activeTool !== 'select') return; // Only allow dragging in select mode
+      setIsDragging(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+      e.preventDefault();
+    },
+    [activeTool]
+  );
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!scrollContainerRef.current) return;
+
+    const container = scrollContainerRef.current;
+    setDragStart((prev) => {
+      if (!prev) return null;
+
+      const deltaX = e.clientX - prev.x;
+      const deltaY = e.clientY - prev.y;
+
+      container.scrollLeft -= deltaX;
+      container.scrollTop -= deltaY;
+
+      return { x: e.clientX, y: e.clientY };
+    });
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    setDragStart(null);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   if (!activeSource) {
     return (
@@ -213,6 +287,57 @@ export default function PDFView() {
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">⏳</div>
+        <div className="empty-state-title">Loading PDF...</div>
+        <div className="empty-state-text">Reading PDF information</div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">⚠️</div>
+        <div className="empty-state-title">Failed to load PDF</div>
+        <div className="empty-state-text">{loadError}</div>
+        <div
+          className="empty-state-text"
+          style={{
+            marginTop: 'var(--space-2)',
+            fontSize: '0.875rem',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          File path: {activeSource.file_url}
+        </div>
+        <button
+          onClick={() => {
+            setLoadError(null);
+            window.location.reload();
+          }}
+          style={{
+            marginTop: 'var(--space-4)',
+            padding: '8px 16px',
+            background: 'var(--primary)',
+            color: 'white',
+            border: 'none',
+            borderRadius: 'var(--radius)',
+            cursor: 'pointer',
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!pdfInfo) {
+    return null;
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
@@ -221,20 +346,35 @@ export default function PDFView() {
           <button
             className="btn-icon"
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage <= 1}
+            disabled={currentPage <= 1 || isRendering}
           >
             ←
           </button>
           <button
             className="btn-icon"
-            onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
-            disabled={currentPage >= numPages}
+            onClick={() => setCurrentPage(Math.min(pdfInfo.total_pages, currentPage + 1))}
+            disabled={currentPage >= pdfInfo.total_pages || isRendering}
           >
             →
           </button>
-          <span className="toolbar-label">
-            Page {currentPage} / {numPages}
-          </span>
+          <input
+            type="number"
+            min="1"
+            max={pdfInfo.total_pages}
+            value={pageInput}
+            onChange={handlePageInputChange}
+            onBlur={handlePageInputSubmit}
+            onKeyDown={handlePageInputKeyDown}
+            style={{
+              width: '60px',
+              textAlign: 'center',
+              padding: 'var(--space-1)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              fontSize: '0.875rem',
+            }}
+          />
+          <span className="toolbar-label">/ {pdfInfo.total_pages}</span>
         </div>
 
         <div className="toolbar-separator" />
@@ -281,31 +421,32 @@ export default function PDFView() {
           </button>
         </div>
 
-        {selectedText && (
-          <>
-            <div className="toolbar-separator" />
-            <div className="toolbar-group">
-              <button
-                className="btn-primary"
-                onClick={addToCanvas}
-                title="Add selected text to Research Canvas"
-              >
-                Add to Canvas
-              </button>
-            </div>
-          </>
+        {/* Rendering indicator - pushed to the right */}
+        {isRendering && (
+          <div
+            style={{
+              marginLeft: 'auto',
+              color: 'var(--text-secondary)',
+              fontSize: '0.875rem',
+            }}
+          >
+            ⏳ Rendering...
+          </div>
         )}
       </div>
 
-      {/* PDF Canvas and Thumbnails */}
+      {/* PDF Image and Overlays */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Main PDF Canvas */}
+        {/* Main PDF View */}
         <div
+          ref={scrollContainerRef}
+          onMouseDown={handleMouseDown}
           style={{
             flex: 1,
             overflow: 'auto',
             background: 'var(--bg-canvas)',
             padding: 'var(--space-5)',
+            cursor: activeTool === 'select' ? (isDragging ? 'grabbing' : 'grab') : 'default',
           }}
         >
           <div
@@ -316,17 +457,23 @@ export default function PDFView() {
               boxShadow: 'var(--shadow-lg)',
             }}
           >
-            <canvas ref={canvasRef} style={{ display: 'block' }} />
-            <div
-              ref={textLayerRef}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                pointerEvents: 'auto',
-                userSelect: 'text',
-              }}
-            />
+            {pageImageUrl && (
+              <img
+                ref={imageRef}
+                src={pageImageUrl}
+                alt={`Page ${currentPage}`}
+                style={{
+                  display: 'block',
+                  width: `${imageSize.width}px`,
+                  height: `${imageSize.height}px`,
+                  // Instantly scale the image while waiting for new render
+                  transform: `scale(${pdfScale / debouncedScale})`,
+                  transformOrigin: 'top left',
+                  // Smooth scaling
+                  imageRendering: 'auto',
+                }}
+              />
+            )}
             <div
               ref={overlayRef}
               style={{
@@ -348,10 +495,7 @@ export default function PDFView() {
                   zIndex: 1,
                 }}
               >
-                <AnnotationOverlay
-                  canvasWidth={canvasSize.width}
-                  canvasHeight={canvasSize.height}
-                />
+                <AnnotationOverlay canvasWidth={imageSize.width} canvasHeight={imageSize.height} />
               </div>
               <div
                 style={{
@@ -365,8 +509,8 @@ export default function PDFView() {
                 }}
               >
                 <InkOverlay
-                  canvasWidth={canvasSize.width}
-                  canvasHeight={canvasSize.height}
+                  canvasWidth={imageSize.width}
+                  canvasHeight={imageSize.height}
                   active={activeTool === 'ink'}
                 />
               </div>
@@ -374,12 +518,12 @@ export default function PDFView() {
           </div>
         </div>
 
-        {/* Thumbnail Sidebar */}
-        <PDFThumbnailSidebar
-          pdfDoc={pdfDoc}
+        {/* Thumbnail Sidebar - temporarily disabled, will re-enable after testing */}
+        {/* <PDFThumbnailSidebar
+          pdfDoc={null}
           currentPage={currentPage}
           onPageClick={setCurrentPage}
-        />
+        /> */}
       </div>
 
       {/* Annotation Modal */}

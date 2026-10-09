@@ -36,7 +36,9 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hot-toast": "^2.6.1",
+    "react-pdf": "^11.0.0",
     "tldraw": "^5.5.2",
+    "web-streams-polyfill": "^4.3.0",
     "zod": "^4.6.5",
     "zustand": "^5.0.15"
   },

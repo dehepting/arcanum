@@ -176,6 +176,10 @@ pub fn run() {
 
       // Search commands
       commands::search::search_entities,
+
+      // PDF commands
+      commands::pdf::render_pdf_page,
+      commands::pdf::get_pdf_info,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

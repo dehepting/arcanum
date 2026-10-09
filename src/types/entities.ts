@@ -12,10 +12,10 @@ export interface BaseEntity {
   id: string;
   project_id: string;
   name: string;
-  description?: string;
-  metadata?: string; // JSON string
-  lng?: number;
-  lat?: number;
+  description?: string | null;
+  metadata?: string | null; // JSON string
+  lng?: number | null;
+  lat?: number | null;
   created_at: string; // ISO 8601 datetime
   updated_at: string; // ISO 8601 datetime
 }
@@ -24,17 +24,17 @@ export interface BaseEntity {
  * Person entity - Historical figure, researcher, author, etc.
  */
 export interface Person extends BaseEntity {
-  birth_date?: string;
-  death_date?: string;
-  occupation?: string;
+  birth_date?: string | null;
+  death_date?: string | null;
+  occupation?: string | null;
 }
 
 /**
  * Event entity - Historical event, occurrence, happening
  */
 export interface Event extends BaseEntity {
-  event_date?: string;
-  location?: string;
+  event_date?: string | null;
+  location?: string | null;
 }
 
 /**
@@ -50,36 +50,36 @@ export interface Theory extends BaseEntity {
 export interface Place extends Omit<BaseEntity, 'lng' | 'lat'> {
   lng: number; // Required for places
   lat: number; // Required for places
-  place_type?: string;
+  place_type?: string | null;
 }
 
 /**
  * Artifact entity - Physical object, document, artifact
  */
 export interface Artifact extends BaseEntity {
-  category?: string;
-  subcategory?: string;
-  period?: string;
-  estimated_age?: string;
-  date_found?: string;
-  date_range?: string;
-  findspot_place_id?: string;
-  findspot_description?: string;
+  category?: string | null;
+  subcategory?: string | null;
+  period?: string | null;
+  estimated_age?: string | null;
+  date_found?: string | null;
+  date_range?: string | null;
+  findspot_place_id?: string | null;
+  findspot_description?: string | null;
   findspot?: Place | null;
-  excavation_notes?: string;
-  current_owner?: string;
-  current_location?: string;
-  owner_type?: string;
-  owner_name?: string;
-  accession_number?: string;
-  material?: string;
-  dimensions?: string;
-  weight?: string;
-  condition?: string;
-  notes?: string;
-  images?: string; // JSON array of image paths
-  image_urls?: string[]; // Parsed array of image URLs
-  has_disputed_ownership?: boolean;
+  excavation_notes?: string | null;
+  current_owner?: string | null;
+  current_location?: string | null;
+  owner_type?: string | null;
+  owner_name?: string | null;
+  accession_number?: string | null;
+  material?: string | null;
+  dimensions?: string | null;
+  weight?: string | null;
+  condition?: string | null;
+  notes?: string | null;
+  images?: string | null; // JSON array of image paths
+  image_urls?: string[] | null; // Parsed array of image URLs
+  has_disputed_ownership?: boolean | null;
 }
 
 /**
@@ -107,27 +107,27 @@ export type EntityTypeMap = {
  * Create entity input types (for API calls)
  */
 export type CreatePersonInput = Omit<Person, 'id' | 'created_at' | 'updated_at'> & {
-  annotation_id?: string;
-  relationship_type?: string;
+  annotation_id?: string | null;
+  relationship_type?: string | null;
 };
 
 export type CreateEventInput = Omit<Event, 'id' | 'created_at' | 'updated_at'> & {
-  annotation_id?: string;
-  relationship_type?: string;
+  annotation_id?: string | null;
+  relationship_type?: string | null;
 };
 
 export type CreateTheoryInput = Omit<Theory, 'id' | 'created_at' | 'updated_at'> & {
-  annotation_id?: string;
-  relationship_type?: string;
+  annotation_id?: string | null;
+  relationship_type?: string | null;
 };
 
 export type CreatePlaceInput = Omit<Place, 'id' | 'created_at' | 'updated_at'> & {
-  annotation_id?: string;
+  annotation_id?: string | null;
 };
 
 export type CreateArtifactInput = Omit<Artifact, 'id' | 'created_at' | 'updated_at'> & {
-  annotation_id?: string;
-  relationship_type?: string;
+  annotation_id?: string | null;
+  relationship_type?: string | null;
 };
 
 /**

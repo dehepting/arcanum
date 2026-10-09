@@ -22,7 +22,7 @@ export type EntityCommandMap = Record<EntityType, EntityCommand>;
 /**
  * Command type discriminator
  */
-export type CommandType = 'get' | 'update' | 'updateCamel';
+export type CommandType = 'get' | 'update' | 'updateCamel' | 'delete';
 
 /**
  * Get commands for loading entity data
@@ -61,6 +61,18 @@ export const UPDATE_COMMANDS_CAMEL: EntityCommandMap = {
 };
 
 /**
+ * Delete commands for removing entities
+ * Used in EntityPage for entity deletion
+ */
+export const DELETE_COMMANDS: EntityCommandMap = {
+  person: { command: 'delete_person', param: 'person_id' },
+  event: { command: 'delete_event', param: 'event_id' },
+  theory: { command: 'delete_theory', param: 'theory_id' },
+  place: { command: 'delete_place', param: 'place_id' },
+  artifact: { command: 'delete_artifact', param: 'artifact_id' },
+};
+
+/**
  * Helper function to get command config for an entity type
  *
  * @param entityType - The entity type (person, event, theory, place, artifact)
@@ -79,6 +91,7 @@ export function getEntityCommand(
     get: GET_COMMANDS,
     update: UPDATE_COMMANDS,
     updateCamel: UPDATE_COMMANDS_CAMEL,
+    delete: DELETE_COMMANDS,
   };
 
   return commandMaps[commandType]?.[entityType];

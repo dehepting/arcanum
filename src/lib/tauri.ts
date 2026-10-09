@@ -303,7 +303,7 @@ interface AnnotationInput {
 }
 
 interface AnnotationWithDisplayProps extends Annotation {
-  text?: string;
+  text?: string | null;
   rect_x: number;
   rect_y: number;
   rect_w: number;
@@ -553,4 +553,39 @@ export async function getAnnotationsForEntity(
   entityType: EntityType
 ): Promise<Annotation[]> {
   return await invoke('get_annotations_for_entity', { entityId, entityType });
+}
+
+// PDF Rendering
+export interface PdfPageInfo {
+  width: number;
+  height: number;
+  total_pages: number;
+}
+
+/**
+ * Render a PDF page to PNG (base64 encoded)
+ * @param filePath - Absolute path to PDF file
+ * @param pageNumber - Page number (1-indexed)
+ * @param scale - Render scale (default: 2.0 for high quality)
+ * @returns Base64 encoded PNG image
+ */
+export async function renderPdfPage(
+  filePath: string,
+  pageNumber: number,
+  scale?: number
+): Promise<string> {
+  return await invoke('render_pdf_page', {
+    filePath,
+    pageNumber,
+    scale: scale ?? 2.0,
+  });
+}
+
+/**
+ * Get PDF metadata (page count and dimensions)
+ * @param filePath - Absolute path to PDF file
+ * @returns PDF info object
+ */
+export async function getPdfInfo(filePath: string): Promise<PdfPageInfo> {
+  return await invoke('get_pdf_info', { filePath });
 }
