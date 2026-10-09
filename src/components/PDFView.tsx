@@ -17,11 +17,7 @@ interface CanvasSize {
 }
 
 // Set worker path from npm package (ensures version match)
-// Note: Disabled for Tauri compatibility - workers can cause ReadableStream errors
-// pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
-
-// Disable worker to avoid ReadableStream API issues in Tauri webview
-pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export default function PDFView() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -98,10 +94,14 @@ export default function PDFView() {
         // Load PDF from binary data with options for Tauri compatibility
         const loadingTask = pdfjsLib.getDocument({
           data: uint8Array,
-          // Disable features that require ReadableStream API
-          disableStream: true,
+          // Critical: Provide data as typed array to avoid streaming
+          // This prevents PDF.js from trying to use ReadableStream
+          isEvalSupported: false,
+          // Disable auto-fetch to prevent additional stream usage
           disableAutoFetch: true,
-          // Use standard fonts to reduce render complexity
+          // Disable range requests which can trigger streaming
+          disableRange: true,
+          // Use standard fonts
           useSystemFonts: false,
         });
 
