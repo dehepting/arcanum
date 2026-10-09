@@ -19,10 +19,10 @@ export const BaseEntitySchema = z.object({
   id: z.string().uuid(),
   project_id: z.string().uuid(),
   name: z.string().min(1),
-  description: z.string().optional(),
-  metadata: z.string().optional(), // JSON string
-  lng: z.number().min(-180).max(180).optional(),
-  lat: z.number().min(-90).max(90).optional(),
+  description: z.string().nullish(),
+  metadata: z.string().nullish(), // JSON string
+  lng: z.number().min(-180).max(180).nullish(),
+  lat: z.number().min(-90).max(90).nullish(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -31,17 +31,17 @@ export const BaseEntitySchema = z.object({
  * Person entity schema
  */
 export const PersonSchema = BaseEntitySchema.extend({
-  birth_date: z.string().optional(),
-  death_date: z.string().optional(),
-  occupation: z.string().optional(),
+  birth_date: z.string().nullish(),
+  death_date: z.string().nullish(),
+  occupation: z.string().nullish(),
 });
 
 /**
  * Event entity schema
  */
 export const EventSchema = BaseEntitySchema.extend({
-  event_date: z.string().optional(),
-  location: z.string().optional(),
+  event_date: z.string().nullish(),
+  location: z.string().nullish(),
 });
 
 /**
@@ -57,36 +57,36 @@ export const TheorySchema = BaseEntitySchema.extend({
 export const PlaceSchema = BaseEntitySchema.omit({ lng: true, lat: true }).extend({
   lng: z.number().min(-180).max(180),
   lat: z.number().min(-90).max(90),
-  place_type: z.string().optional(),
+  place_type: z.string().nullish(),
 });
 
 /**
  * Artifact entity schema
  */
 export const ArtifactSchema = BaseEntitySchema.extend({
-  category: z.string().optional(),
-  subcategory: z.string().optional(),
-  period: z.string().optional(),
-  estimated_age: z.string().optional(),
-  date_found: z.string().optional(),
-  date_range: z.string().optional(),
-  findspot_place_id: z.string().uuid().optional(),
-  findspot_description: z.string().optional(),
-  findspot: PlaceSchema.nullable().optional(),
-  excavation_notes: z.string().optional(),
-  current_owner: z.string().optional(),
-  current_location: z.string().optional(),
-  owner_type: z.string().optional(),
-  owner_name: z.string().optional(),
-  accession_number: z.string().optional(),
-  material: z.string().optional(),
-  dimensions: z.string().optional(),
-  weight: z.string().optional(),
-  condition: z.string().optional(),
-  notes: z.string().optional(),
-  images: z.string().optional(), // JSON array string
-  image_urls: z.array(z.string().url()).optional(),
-  has_disputed_ownership: z.boolean().optional(),
+  category: z.string().nullish(),
+  subcategory: z.string().nullish(),
+  period: z.string().nullish(),
+  estimated_age: z.string().nullish(),
+  date_found: z.string().nullish(),
+  date_range: z.string().nullish(),
+  findspot_place_id: z.string().uuid().nullish(),
+  findspot_description: z.string().nullish(),
+  findspot: PlaceSchema.nullish(),
+  excavation_notes: z.string().nullish(),
+  current_owner: z.string().nullish(),
+  current_location: z.string().nullish(),
+  owner_type: z.string().nullish(),
+  owner_name: z.string().nullish(),
+  accession_number: z.string().nullish(),
+  material: z.string().nullish(),
+  dimensions: z.string().nullish(),
+  weight: z.string().nullish(),
+  condition: z.string().nullish(),
+  notes: z.string().nullish(),
+  images: z.string().nullish(), // JSON array string
+  image_urls: z.array(z.string().url()).nullish(),
+  has_disputed_ownership: z.boolean().nullish(),
 });
 
 /**
@@ -108,8 +108,8 @@ export const CreatePersonInputSchema = PersonSchema.omit({
   created_at: true,
   updated_at: true,
 }).extend({
-  annotation_id: z.string().uuid().optional(),
-  relationship_type: z.string().optional(),
+  annotation_id: z.string().uuid().nullish(),
+  relationship_type: z.string().nullish(),
 });
 
 export const CreateEventInputSchema = EventSchema.omit({
@@ -117,8 +117,8 @@ export const CreateEventInputSchema = EventSchema.omit({
   created_at: true,
   updated_at: true,
 }).extend({
-  annotation_id: z.string().uuid().optional(),
-  relationship_type: z.string().optional(),
+  annotation_id: z.string().uuid().nullish(),
+  relationship_type: z.string().nullish(),
 });
 
 export const CreateTheoryInputSchema = TheorySchema.omit({
@@ -126,8 +126,8 @@ export const CreateTheoryInputSchema = TheorySchema.omit({
   created_at: true,
   updated_at: true,
 }).extend({
-  annotation_id: z.string().uuid().optional(),
-  relationship_type: z.string().optional(),
+  annotation_id: z.string().uuid().nullish(),
+  relationship_type: z.string().nullish(),
 });
 
 export const CreatePlaceInputSchema = PlaceSchema.omit({
@@ -135,7 +135,7 @@ export const CreatePlaceInputSchema = PlaceSchema.omit({
   created_at: true,
   updated_at: true,
 }).extend({
-  annotation_id: z.string().uuid().optional(),
+  annotation_id: z.string().uuid().nullish(),
 });
 
 export const CreateArtifactInputSchema = ArtifactSchema.omit({
@@ -143,8 +143,8 @@ export const CreateArtifactInputSchema = ArtifactSchema.omit({
   created_at: true,
   updated_at: true,
 }).extend({
-  annotation_id: z.string().uuid().optional(),
-  relationship_type: z.string().optional(),
+  annotation_id: z.string().uuid().nullish(),
+  relationship_type: z.string().nullish(),
 });
 
 /**

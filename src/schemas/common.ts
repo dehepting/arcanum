@@ -12,7 +12,7 @@ import { z } from 'zod';
 export const ProjectSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
-  description: z.string().optional(),
+  description: z.string().nullish(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -27,9 +27,9 @@ export const SourceSchema = z.object({
   file_name: z.string().min(1),
   storage_path: z.string(),
   file_url: z.string(),
-  file_size: z.number().int().nonnegative().optional(),
-  mime_type: z.string().optional(),
-  metadata: z.string().optional(), // JSON string
+  file_size: z.number().int().nonnegative().nullish(),
+  mime_type: z.string().nullish(),
+  metadata: z.string().nullish(), // JSON string
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -55,5 +55,5 @@ export const MapOverlaySchema = z.object({
  */
 export const FileReadResultSchema = z.object({
   data: z.instanceof(Uint8Array),
-  mime_type: z.string().optional(),
+  mime_type: z.string().nullish(),
 });

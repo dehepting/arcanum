@@ -38,11 +38,11 @@ export const AnnotationSchema = z.object({
   id: z.string().uuid(),
   source_id: z.string().uuid(),
   project_id: z.string().uuid(),
-  page_number: z.number().int().nonnegative().optional(),
+  page_number: z.number().int().nonnegative().nullish(),
   annotation_type: AnnotationTypeSchema,
-  content: z.string().optional(),
-  geometry: z.string().optional(), // JSON string of Geometry
-  metadata: z.string().optional(), // JSON string, often InkMetadata
+  content: z.string().nullish(),
+  geometry: z.string().nullish(), // JSON string of Geometry
+  metadata: z.string().nullish(), // JSON string, often InkMetadata
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -51,7 +51,7 @@ export const AnnotationSchema = z.object({
  * Annotation with parsed geometry
  */
 export const AnnotationWithGeometrySchema = AnnotationSchema.omit({ geometry: true }).extend({
-  geometry: GeometrySchema.optional(),
+  geometry: GeometrySchema.nullish(),
 });
 
 /**
@@ -63,8 +63,8 @@ export const InkAnnotationSchema = AnnotationSchema.omit({
   annotation_type: true,
 }).extend({
   annotation_type: z.literal('ink'),
-  geometry: GeometrySchema.optional(),
-  metadata: InkMetadataSchema.optional(),
+  geometry: GeometrySchema.nullish(),
+  metadata: InkMetadataSchema.nullish(),
 });
 
 /**
@@ -73,31 +73,31 @@ export const InkAnnotationSchema = AnnotationSchema.omit({
 export const CreateAnnotationInputSchema = z.object({
   source_id: z.string().uuid(),
   project_id: z.string().uuid(),
-  page_number: z.number().int().nonnegative().optional(),
+  page_number: z.number().int().nonnegative().nullish(),
   annotation_type: AnnotationTypeSchema,
-  content: z.string().optional(),
-  geometry: z.union([GeometrySchema, z.string()]).optional(), // Accept parsed or stringified
-  metadata: z.union([z.record(z.string(), z.unknown()), z.string()]).optional(), // Accept parsed or stringified
+  content: z.string().nullish(),
+  geometry: z.union([GeometrySchema, z.string()]).nullish(), // Accept parsed or stringified
+  metadata: z.union([z.record(z.string(), z.unknown()), z.string()]).nullish(), // Accept parsed or stringified
 });
 
 /**
  * Update annotation input schema
  */
 export const UpdateAnnotationInputSchema = z.object({
-  content: z.string().optional(),
-  geometry: z.union([GeometrySchema, z.string()]).optional(),
-  metadata: z.union([z.record(z.string(), z.unknown()), z.string()]).optional(),
+  content: z.string().nullish(),
+  geometry: z.union([GeometrySchema, z.string()]).nullish(),
+  metadata: z.union([z.record(z.string(), z.unknown()), z.string()]).nullish(),
 });
 
 /**
  * Annotation with linked entities
  */
 export const AnnotationWithLinksSchema = AnnotationSchema.extend({
-  linkedPeople: z.array(z.string().uuid()).optional(),
-  linkedEvents: z.array(z.string().uuid()).optional(),
-  linkedTheories: z.array(z.string().uuid()).optional(),
-  linkedPlaces: z.array(z.string().uuid()).optional(),
-  linkedArtifacts: z.array(z.string().uuid()).optional(),
+  linkedPeople: z.array(z.string().uuid()).nullish(),
+  linkedEvents: z.array(z.string().uuid()).nullish(),
+  linkedTheories: z.array(z.string().uuid()).nullish(),
+  linkedPlaces: z.array(z.string().uuid()).nullish(),
+  linkedArtifacts: z.array(z.string().uuid()).nullish(),
 });
 
 /**

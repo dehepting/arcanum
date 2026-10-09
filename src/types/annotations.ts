@@ -34,11 +34,11 @@ export interface Annotation {
   id: string;
   source_id: string;
   project_id: string;
-  page_number?: number;
+  page_number?: number | null;
   annotation_type: AnnotationType;
-  content?: string;
-  geometry?: string; // JSON string of Geometry
-  metadata?: string; // JSON string, often InkMetadata for ink annotations
+  content?: string | null;
+  geometry?: string | null; // JSON string of Geometry
+  metadata?: string | null; // JSON string, often InkMetadata for ink annotations
   created_at: string;
   updated_at: string;
 }
@@ -47,7 +47,7 @@ export interface Annotation {
  * Parsed annotation with typed geometry
  */
 export interface AnnotationWithGeometry extends Omit<Annotation, 'geometry'> {
-  geometry?: Geometry;
+  geometry?: Geometry | null;
 }
 
 /**
@@ -55,8 +55,8 @@ export interface AnnotationWithGeometry extends Omit<Annotation, 'geometry'> {
  */
 export interface InkAnnotation extends Omit<Annotation, 'metadata' | 'geometry'> {
   annotation_type: 'ink';
-  geometry?: Geometry;
-  metadata?: InkMetadata;
+  geometry?: Geometry | null;
+  metadata?: InkMetadata | null;
 }
 
 /**
@@ -65,31 +65,31 @@ export interface InkAnnotation extends Omit<Annotation, 'metadata' | 'geometry'>
 export interface CreateAnnotationInput {
   source_id: string;
   project_id: string;
-  page_number?: number;
+  page_number?: number | null;
   annotation_type: AnnotationType;
-  content?: string;
-  geometry?: Geometry | string; // Accept parsed or stringified
-  metadata?: Record<string, unknown> | string; // Accept parsed or stringified
+  content?: string | null;
+  geometry?: Geometry | string | null; // Accept parsed or stringified
+  metadata?: Record<string, unknown> | string | null; // Accept parsed or stringified
 }
 
 /**
  * Update annotation input
  */
 export interface UpdateAnnotationInput {
-  content?: string;
-  geometry?: Geometry | string;
-  metadata?: Record<string, unknown> | string;
+  content?: string | null;
+  geometry?: Geometry | string | null;
+  metadata?: Record<string, unknown> | string | null;
 }
 
 /**
  * Annotation with linked entities (for display)
  */
 export interface AnnotationWithLinks extends Annotation {
-  linkedPeople?: string[];
-  linkedEvents?: string[];
-  linkedTheories?: string[];
-  linkedPlaces?: string[];
-  linkedArtifacts?: string[];
+  linkedPeople?: string[] | null;
+  linkedEvents?: string[] | null;
+  linkedTheories?: string[] | null;
+  linkedPlaces?: string[] | null;
+  linkedArtifacts?: string[] | null;
 }
 
 /**
