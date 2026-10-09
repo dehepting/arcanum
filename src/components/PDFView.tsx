@@ -17,7 +17,11 @@ interface CanvasSize {
 }
 
 // Set worker path from npm package (ensures version match)
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+// Note: Disabled for Tauri compatibility - workers can cause ReadableStream errors
+// pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+// Disable worker to avoid ReadableStream API issues in Tauri webview
+pdfjsLib.GlobalWorkerOptions.workerSrc = '';
 
 export default function PDFView() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -91,14 +95,17 @@ export default function PDFView() {
         const uint8Array = new Uint8Array(fileData);
 
         logger.debug('Loading PDF document...');
-        // Load PDF from binary data with options for large files
-        const doc = await pdfjsLib.getDocument({
+        // Load PDF from binary data with options for Tauri compatibility
+        const loadingTask = pdfjsLib.getDocument({
           data: uint8Array,
-          // Disable streaming for better compatibility with large files
+          // Disable features that require ReadableStream API
           disableStream: true,
-          // Disable auto-fetch for better memory management
           disableAutoFetch: true,
-        }).promise;
+          // Use standard fonts to reduce render complexity
+          useSystemFonts: false,
+        });
+
+        const doc = await loadingTask.promise;
         logger.debug('PDF loaded successfully, pages:', doc.numPages);
 
         setPdfDoc(doc);
