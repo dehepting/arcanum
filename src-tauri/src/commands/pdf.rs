@@ -64,8 +64,9 @@ pub async fn render_pdf_page(
         });
     }
 
-    // pdftoppm creates files with format: prefix-N.png where N is the page number
-    let png_file = format!("{}-{}.png", output_prefix.to_string_lossy(), page_number);
+    // pdftoppm creates files with format: prefix-NNN.png where NNN is zero-padded page number
+    // For single-page extraction, it always creates -001.png regardless of which page was extracted
+    let png_file = format!("{}-001.png", output_prefix.to_string_lossy());
 
     eprintln!("Looking for PNG file: {}", png_file);
 
