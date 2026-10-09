@@ -50,20 +50,30 @@ pub async fn render_pdf_page(
         });
     }
 
-    // qlmanage creates a file with .png extension added to the original filename
-    let file_name = std::path::Path::new(&file_path)
-        .file_name()
-        .ok_or_else(|| CommandError {
-            message: "Invalid file path".to_string(),
+    // List all files created in the output directory for debugging
+    let files_created: Vec<_> = std::fs::read_dir(&output_dir)
+        .map_err(|e| CommandError {
+            message: format!("Failed to read output directory: {}", e),
         })?
-        .to_string_lossy();
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .collect();
 
-    let png_file = output_dir.join(format!("{}.png", file_name));
+    eprintln!("qlmanage created {} files: {:?}", files_created.len(), files_created);
+
+    // Find the first PNG file
+    let png_file = files_created.iter()
+        .find(|p| p.extension().and_then(|s| s.to_str()) == Some("png"))
+        .ok_or_else(|| CommandError {
+            message: format!("No PNG file created by qlmanage. Files: {:?}", files_created),
+        })?;
+
+    eprintln!("Using PNG file: {:?}", png_file);
 
     // Read the generated PNG file
     let png_bytes = std::fs::read(&png_file)
         .map_err(|e| CommandError {
-            message: format!("Failed to read generated PNG (looked for {:?}): {}", png_file, e),
+            message: format!("Failed to read generated PNG {:?}: {}", png_file, e),
         })?;
 
     // Clean up temp directory
