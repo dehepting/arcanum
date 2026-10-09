@@ -26,11 +26,11 @@ interface CanvasSize {
   height: number;
 }
 
-// Disable worker entirely for Tauri compatibility
-// The worker runs in a separate context where polyfills aren't available
-// This forces PDF.js to run synchronously in the main thread
-// Trade-off: Slower rendering but actually works in Tauri
-pdfjsLib.GlobalWorkerOptions.workerSrc = false as any;
+// Don't set workerSrc at all - PDF.js will run without a worker
+// This avoids the ReadableStream issues in the worker context
+// The polyfill in the main thread will be used instead
+// Trade-off: Slower rendering but compatible with Tauri
+// pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker; // Commented out for Tauri compatibility
 
 export default function PDFView() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
