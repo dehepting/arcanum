@@ -176,7 +176,7 @@ export default function PDFView() {
 
   // Handle touchpad pinch-to-zoom
   useEffect(() => {
-    const container = overlayRef.current?.parentElement;
+    const container = scrollContainerRef.current;
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
