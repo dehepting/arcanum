@@ -29,6 +29,8 @@ export default function PDFView() {
   const [selectedText, setSelectedText] = useState<string>('');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pageInput, setPageInput] = useState<string>('1');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isRendering, setIsRendering] = useState<boolean>(false);
 
   const activeSourceId = useStore((state) => state.activeSourceId);
   const sources = useStore((state) => state.sources);
@@ -70,6 +72,7 @@ export default function PDFView() {
 
     const loadPDF = async () => {
       try {
+        setIsLoading(true);
         setLoadError(null);
         logger.debug('Reading PDF file from:', activeSource.file_url);
 
@@ -84,19 +87,31 @@ export default function PDFView() {
           throw new Error('PDF file is empty or could not be read');
         }
 
-        // Load PDF from binary data
-        const doc = await pdfjsLib.getDocument({ data: new Uint8Array(fileData) }).promise;
+        logger.debug('Converting to Uint8Array...');
+        const uint8Array = new Uint8Array(fileData);
+
+        logger.debug('Loading PDF document...');
+        // Load PDF from binary data with options for large files
+        const doc = await pdfjsLib.getDocument({
+          data: uint8Array,
+          // Disable streaming for better compatibility with large files
+          disableStream: true,
+          // Disable auto-fetch for better memory management
+          disableAutoFetch: true,
+        }).promise;
         logger.debug('PDF loaded successfully, pages:', doc.numPages);
 
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setCurrentPage(1);
         setPageInput('1');
+        setIsLoading(false);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         logger.error('Error loading PDF:', err);
         logger.error('Failed to load from:', activeSource.file_url);
         setLoadError(`Failed to load PDF: ${errorMsg}`);
+        setIsLoading(false);
       }
     };
 
@@ -108,53 +123,78 @@ export default function PDFView() {
     if (!pdfDoc || !canvasRef.current || !textLayerRef.current) return;
 
     const renderPage = async () => {
-      const page = await pdfDoc.getPage(currentPage);
-      const viewport = page.getViewport({ scale: pdfScale });
-      const canvas = canvasRef.current!;
-      const ctx = canvas.getContext('2d')!;
+      try {
+        setIsRendering(true);
+        logger.debug(`Rendering page ${currentPage}...`);
 
-      // Clear the canvas before rendering new page
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const page = await pdfDoc.getPage(currentPage);
+        logger.debug(`Page ${currentPage} loaded, rendering viewport...`);
 
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+        const viewport = page.getViewport({ scale: pdfScale });
+        const canvas = canvasRef.current!;
+        const ctx = canvas.getContext('2d');
 
-      // Update canvas size for overlay
-      setCanvasSize({ width: viewport.width, height: viewport.height });
+        if (!ctx) {
+          throw new Error('Failed to get canvas context');
+        }
 
-      // Set white background for proper PDF rendering
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Clear the canvas before rendering new page
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      await page.render({
-        canvasContext: ctx,
-        viewport,
-      } as any).promise;
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
 
-      // Render text layer for selection
-      const textContent = await page.getTextContent();
-      const textLayer = textLayerRef.current!;
-      textLayer.innerHTML = '';
-      textLayer.style.width = `${viewport.width}px`;
-      textLayer.style.height = `${viewport.height}px`;
+        // Update canvas size for overlay
+        setCanvasSize({ width: viewport.width, height: viewport.height });
 
-      // Simple text layer rendering (invisible but selectable)
-      textContent.items.forEach((item) => {
-        // Filter out marked content (only process TextItem)
-        if (!('str' in item)) return;
+        // Set white background for proper PDF rendering
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        const textItem = item as TextItem;
-        const div = document.createElement('div');
-        div.textContent = textItem.str;
-        div.style.position = 'absolute';
-        div.style.left = `${textItem.transform[4]}px`;
-        div.style.top = `${textItem.transform[5]}px`;
-        div.style.fontSize = `${Math.sqrt(textItem.transform[0] * textItem.transform[0] + textItem.transform[1] * textItem.transform[1])}px`;
-        div.style.fontFamily = textItem.fontName;
-        div.style.color = 'transparent'; // Make text invisible but still selectable
-        div.style.userSelect = 'text';
-        textLayer.appendChild(div);
-      });
+        logger.debug(`Rendering page ${currentPage} to canvas...`);
+        const renderTask = page.render({
+          canvasContext: ctx,
+          viewport,
+        } as any);
+
+        await renderTask.promise;
+        logger.debug(`Page ${currentPage} rendered successfully`);
+
+        // Render text layer for selection
+        logger.debug(`Rendering text layer for page ${currentPage}...`);
+        const textContent = await page.getTextContent();
+        const textLayer = textLayerRef.current!;
+        textLayer.innerHTML = '';
+        textLayer.style.width = `${viewport.width}px`;
+        textLayer.style.height = `${viewport.height}px`;
+
+        // Simple text layer rendering (invisible but selectable)
+        textContent.items.forEach((item) => {
+          // Filter out marked content (only process TextItem)
+          if (!('str' in item)) return;
+
+          const textItem = item as TextItem;
+          const div = document.createElement('div');
+          div.textContent = textItem.str;
+          div.style.position = 'absolute';
+          div.style.left = `${textItem.transform[4]}px`;
+          div.style.top = `${textItem.transform[5]}px`;
+          div.style.fontSize = `${Math.sqrt(textItem.transform[0] * textItem.transform[0] + textItem.transform[1] * textItem.transform[1])}px`;
+          div.style.fontFamily = textItem.fontName;
+          div.style.color = 'transparent'; // Make text invisible but still selectable
+          div.style.userSelect = 'text';
+          textLayer.appendChild(div);
+        });
+
+        logger.debug(`Page ${currentPage} fully rendered with text layer`);
+        setIsRendering(false);
+      } catch (err) {
+        logger.error(`Error rendering page ${currentPage}:`, err);
+        setIsRendering(false);
+        setLoadError(
+          `Failed to render page ${currentPage}: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
     };
 
     renderPage();
@@ -251,6 +291,16 @@ export default function PDFView() {
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">⏳</div>
+        <div className="empty-state-title">Loading PDF...</div>
+        <div className="empty-state-text">Reading file data</div>
+      </div>
+    );
+  }
+
   if (loadError) {
     return (
       <div className="empty-state">
@@ -267,6 +317,23 @@ export default function PDFView() {
         >
           File path: {activeSource.file_url}
         </div>
+        <button
+          onClick={() => {
+            setLoadError(null);
+            window.location.reload();
+          }}
+          style={{
+            marginTop: 'var(--space-4)',
+            padding: '8px 16px',
+            background: 'var(--primary)',
+            color: 'white',
+            border: 'none',
+            borderRadius: 'var(--radius)',
+            cursor: 'pointer',
+          }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -275,18 +342,29 @@ export default function PDFView() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
       <div className="toolbar">
+        {isRendering && (
+          <div
+            style={{
+              marginRight: 'var(--space-3)',
+              color: 'var(--text-secondary)',
+              fontSize: '0.875rem',
+            }}
+          >
+            ⏳ Rendering...
+          </div>
+        )}
         <div className="toolbar-group">
           <button
             className="btn-icon"
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage <= 1}
+            disabled={currentPage <= 1 || isRendering}
           >
             ←
           </button>
           <button
             className="btn-icon"
             onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
-            disabled={currentPage >= numPages}
+            disabled={currentPage >= numPages || isRendering}
           >
             →
           </button>
