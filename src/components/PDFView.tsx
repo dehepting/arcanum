@@ -82,6 +82,9 @@ export default function PDFView() {
       return;
     }
 
+    // Reset page immediately when source changes to prevent race conditions
+    setCurrentPage(1);
+
     const loadPDF = async () => {
       try {
         setIsLoading(true);
@@ -90,7 +93,6 @@ export default function PDFView() {
 
         const info = await getPdfInfo(activeSource.file_url);
         setPdfInfo(info);
-        setCurrentPage(1);
         logger.debug('PDF loaded:', info);
       } catch (err) {
         logger.error('Failed to load PDF:', err);
