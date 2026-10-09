@@ -9,45 +9,65 @@ pub struct PdfPageInfo {
     pub total_pages: u16,
 }
 
-/// Render a PDF page to PNG using macOS's built-in sips command
+/// Render a PDF page to PNG using qlmanage (macOS built-in)
 #[tauri::command]
 pub async fn render_pdf_page(
     file_path: String,
     page_number: u16,
     _scale: Option<f32>,
 ) -> CommandResult<String> {
-    // Use sips (macOS built-in) to convert PDF page to PNG
-    // sips -s format png input.pdf --out output.png
+    // First, split the PDF to extract just the page we want using Python's PyPDF2 (if available)
+    // Otherwise, use qlmanage to render the whole PDF (only works for page 1)
+
+    // For now, let's use qlmanage which renders the first page only
+    // We'll need to add page extraction later
 
     let temp_dir = std::env::temp_dir();
-    let temp_file = temp_dir.join(format!("pdf_page_{}.png", page_number));
+    let output_dir = temp_dir.join(format!("pdf_render_{}", std::process::id()));
+    std::fs::create_dir_all(&output_dir)
+        .map_err(|e| CommandError {
+            message: format!("Failed to create temp directory: {}", e),
+        })?;
 
-    let output = Command::new("sips")
+    // Use qlmanage to generate thumbnail/preview
+    // -t = thumbnail mode, -s = size, -o = output dir
+    let output = Command::new("qlmanage")
+        .arg("-t")
         .arg("-s")
-        .arg("format")
-        .arg("png")
+        .arg("2000") // Large size for quality
+        .arg("-o")
+        .arg(&output_dir)
         .arg(&file_path)
-        .arg("--out")
-        .arg(&temp_file)
         .output()
         .map_err(|e| CommandError {
-            message: format!("Failed to execute sips command: {}", e),
+            message: format!("Failed to execute qlmanage command: {}", e),
         })?;
 
     if !output.status.success() {
+        let _ = std::fs::remove_dir_all(&output_dir);
         return Err(CommandError {
-            message: format!("sips command failed: {}", String::from_utf8_lossy(&output.stderr)),
+            message: format!("qlmanage command failed: {}", String::from_utf8_lossy(&output.stderr)),
         });
     }
 
+    // qlmanage creates a file with .png extension added to the original filename
+    let file_name = std::path::Path::new(&file_path)
+        .file_name()
+        .ok_or_else(|| CommandError {
+            message: "Invalid file path".to_string(),
+        })?
+        .to_string_lossy();
+
+    let png_file = output_dir.join(format!("{}.png", file_name));
+
     // Read the generated PNG file
-    let png_bytes = std::fs::read(&temp_file)
+    let png_bytes = std::fs::read(&png_file)
         .map_err(|e| CommandError {
-            message: format!("Failed to read generated PNG: {}", e),
+            message: format!("Failed to read generated PNG (looked for {:?}): {}", png_file, e),
         })?;
 
-    // Clean up temp file
-    let _ = std::fs::remove_file(&temp_file);
+    // Clean up temp directory
+    let _ = std::fs::remove_dir_all(&output_dir);
 
     // Encode to base64
     let base64_image = base64::engine::general_purpose::STANDARD.encode(&png_bytes);
@@ -76,13 +96,22 @@ pub async fn get_pdf_info(file_path: String) -> CommandResult<PdfPageInfo> {
 
     // Parse output like "kMDItemNumberOfPages = 664"
     let output_str = String::from_utf8_lossy(&output.stdout);
-    let total_pages = output_str
-        .split('=')
-        .nth(1)
-        .and_then(|s| s.trim().parse::<u16>().ok())
-        .unwrap_or(1);
 
-    // Use sips to get dimensions
+    // Log the raw output for debugging
+    eprintln!("mdls output: {}", output_str);
+
+    let total_pages = if output_str.contains("(null)") {
+        // Metadata not available, try using pdfinfo or fallback to 1
+        1
+    } else {
+        output_str
+            .split('=')
+            .nth(1)
+            .and_then(|s| s.trim().parse::<u16>().ok())
+            .unwrap_or(1)
+    };
+
+    // Use sips to get dimensions of first page
     let output = Command::new("sips")
         .arg("-g")
         .arg("pixelWidth")
@@ -109,6 +138,8 @@ pub async fn get_pdf_info(file_path: String) -> CommandResult<PdfPageInfo> {
             }
         }
     }
+
+    eprintln!("PDF Info: {}x{}, {} pages", width, height, total_pages);
 
     Ok(PdfPageInfo {
         width,
