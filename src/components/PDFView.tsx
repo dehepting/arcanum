@@ -71,7 +71,17 @@ export default function PDFView() {
         logger.debug('PDF loaded:', info);
       } catch (err) {
         logger.error('Failed to load PDF:', err);
-        setLoadError(`Failed to load PDF: ${err instanceof Error ? err.message : String(err)}`);
+        // Properly extract error message from various error formats
+        let errorMessage = 'Unknown error';
+        if (err instanceof Error) {
+          errorMessage = err.message;
+        } else if (typeof err === 'string') {
+          errorMessage = err;
+        } else if (err && typeof err === 'object') {
+          // Try to extract message from object (Tauri errors)
+          errorMessage = (err as any).message || JSON.stringify(err);
+        }
+        setLoadError(`Failed to load PDF: ${errorMessage}`);
       } finally {
         setIsLoading(false);
       }
@@ -115,9 +125,17 @@ export default function PDFView() {
         logger.debug(`Page ${currentPage} rendered`);
       } catch (err) {
         logger.error(`Error rendering page ${currentPage}:`, err);
-        setLoadError(
-          `Failed to render page ${currentPage}: ${err instanceof Error ? err.message : String(err)}`
-        );
+        // Properly extract error message from various error formats
+        let errorMessage = 'Unknown error';
+        if (err instanceof Error) {
+          errorMessage = err.message;
+        } else if (typeof err === 'string') {
+          errorMessage = err;
+        } else if (err && typeof err === 'object') {
+          // Try to extract message from object (Tauri errors)
+          errorMessage = (err as any).message || JSON.stringify(err);
+        }
+        setLoadError(`Failed to render page ${currentPage}: ${errorMessage}`);
       } finally {
         setIsRendering(false);
       }
