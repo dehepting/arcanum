@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { logger } from '../utils/logger';
+
+// Polyfill ReadableStream for Tauri webview environment
+// PDF.js requires ReadableStream which isn't available in Tauri
+import * as streamPolyfill from 'web-streams-polyfill';
+if (typeof globalThis.ReadableStream === 'undefined') {
+  (globalThis as any).ReadableStream = streamPolyfill.ReadableStream;
+  (globalThis as any).TransformStream = streamPolyfill.TransformStream;
+  logger.debug('ReadableStream polyfill installed for Tauri compatibility');
+}
+
 import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFDocumentProxy, TextItem } from 'pdfjs-dist/types/src/display/api';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -91,15 +101,12 @@ export default function PDFView() {
         const uint8Array = new Uint8Array(fileData);
 
         logger.debug('Loading PDF document...');
-        // Load PDF from binary data with options for Tauri compatibility
+        // Load PDF from binary data with polyfilled stream support
         const loadingTask = pdfjsLib.getDocument({
           data: uint8Array,
-          // Critical: Provide data as typed array to avoid streaming
-          // This prevents PDF.js from trying to use ReadableStream
-          isEvalSupported: false,
           // Disable auto-fetch to prevent additional stream usage
           disableAutoFetch: true,
-          // Disable range requests which can trigger streaming
+          // Disable range requests
           disableRange: true,
           // Use standard fonts
           useSystemFonts: false,
