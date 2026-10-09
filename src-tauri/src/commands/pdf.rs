@@ -34,6 +34,7 @@ pub async fn render_pdf_page(
     // -f = first page, -l = last page (same number = single page)
     // -png = output format
     // -r = resolution in DPI
+    eprintln!("Executing pdftoppm command...");
     let output = Command::new("pdftoppm")
         .arg("-f")
         .arg(page_number.to_string())
@@ -48,6 +49,8 @@ pub async fn render_pdf_page(
         .map_err(|e| CommandError {
             message: format!("Failed to execute pdftoppm (is poppler installed? try: brew install poppler): {}", e),
         })?;
+
+    eprintln!("pdftoppm command completed");
 
     eprintln!("pdftoppm exit status: {}", output.status);
     eprintln!("pdftoppm stdout: {}", String::from_utf8_lossy(&output.stdout));
