@@ -175,25 +175,30 @@ export default function PDFView() {
   }, [activeSource?.file_url, pdfInfo, currentPage, debouncedScale]);
 
   // Handle touchpad pinch-to-zoom
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const handleWheel = (e: WheelEvent) => {
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
       // Check for pinch gesture (ctrlKey + wheel on Mac trackpad)
       if (e.ctrlKey) {
         e.preventDefault();
 
         // Adjust scale based on wheel delta
-        const delta = -e.deltaY * 0.01;
-        const newScale = Math.max(0.5, Math.min(3.0, pdfScale + delta));
-        setScale(newScale);
+        setScale((currentScale) => {
+          const delta = -e.deltaY * 0.01;
+          const newScale = Math.max(0.5, Math.min(3.0, currentScale + delta));
+          return newScale;
+        });
       }
-    };
+    },
+    [setScale]
+  );
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
-  }, [pdfScale, setScale]);
+  }, [handleWheel]);
 
   // Handle page number input
   const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -223,30 +228,38 @@ export default function PDFView() {
     setPageInput(String(currentPage));
   }, [currentPage]);
 
-  // Handle click-and-drag panning
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (activeTool !== 'select') return; // Only allow dragging in select mode
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-    e.preventDefault();
-  };
+  // Handle click-and-drag panning with useCallback to avoid stale closures
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (activeTool !== 'select') return; // Only allow dragging in select mode
+      setIsDragging(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+      e.preventDefault();
+    },
+    [activeTool]
+  );
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging || !dragStart || !scrollContainerRef.current) return;
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!scrollContainerRef.current) return;
 
-    const deltaX = e.clientX - dragStart.x;
-    const deltaY = e.clientY - dragStart.y;
+    const container = scrollContainerRef.current;
+    setDragStart((prev) => {
+      if (!prev) return null;
 
-    scrollContainerRef.current.scrollLeft -= deltaX;
-    scrollContainerRef.current.scrollTop -= deltaY;
+      const deltaX = e.clientX - prev.x;
+      const deltaY = e.clientY - prev.y;
 
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
+      container.scrollLeft -= deltaX;
+      container.scrollTop -= deltaY;
 
-  const handleMouseUp = () => {
+      return { x: e.clientX, y: e.clientY };
+    });
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
     setDragStart(null);
-  };
+  }, []);
 
   useEffect(() => {
     if (isDragging) {
@@ -257,7 +270,7 @@ export default function PDFView() {
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, dragStart]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   if (!activeSource) {
     return (
