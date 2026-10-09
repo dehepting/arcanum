@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { logger } from '../utils/logger';
 import { renderPdfPage, getPdfInfo, type PdfPageInfo } from '../lib/tauri';
 import useStore from '../store/useStore';
@@ -7,6 +7,23 @@ import InkOverlay from './InkOverlay';
 import AnnotationModal from './AnnotationModal';
 import PDFThumbnailSidebar from './PDFThumbnailSidebar';
 import { loadAnnotations } from '../lib/annotations';
+
+// Debounce helper
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 interface ImageSize {
   width: number;
@@ -33,6 +50,9 @@ export default function PDFView() {
   const activeTool = useStore((state) => state.activeTool);
   const setActiveTool = useStore((state) => state.setActiveTool);
   const setAnnotations = useStore((state) => state.setAnnotations);
+
+  // Debounce scale to prevent re-rendering on every zoom change
+  const debouncedScale = useDebounce(pdfScale, 300);
 
   const activeSource = sources.find((s) => s.id === activeSourceId);
 
@@ -90,7 +110,7 @@ export default function PDFView() {
     loadPDF();
   }, [activeSource?.file_url, setCurrentPage]);
 
-  // Render current page
+  // Render current page (only when debounced scale changes to avoid lag)
   useEffect(() => {
     if (
       !activeSource?.file_url ||
@@ -106,8 +126,8 @@ export default function PDFView() {
         setIsRendering(true);
         logger.debug(`Rendering page ${currentPage}...`);
 
-        // Render page with Rust backend
-        const base64Image = await renderPdfPage(activeSource.file_url, currentPage, pdfScale);
+        // Render page with Rust backend using debounced scale
+        const base64Image = await renderPdfPage(activeSource.file_url, currentPage, debouncedScale);
         const imageUrl = `data:image/png;base64,${base64Image}`;
 
         // Clear old image URL
@@ -117,9 +137,9 @@ export default function PDFView() {
 
         setPageImageUrl(imageUrl);
 
-        // Calculate rendered size based on PDF dimensions and scale
-        const scaledWidth = pdfInfo.width * pdfScale;
-        const scaledHeight = pdfInfo.height * pdfScale;
+        // Calculate rendered size based on PDF dimensions and debounced scale
+        const scaledWidth = pdfInfo.width * debouncedScale;
+        const scaledHeight = pdfInfo.height * debouncedScale;
         setImageSize({ width: scaledWidth, height: scaledHeight });
 
         logger.debug(`Page ${currentPage} rendered`);
@@ -149,7 +169,7 @@ export default function PDFView() {
         URL.revokeObjectURL(pageImageUrl);
       }
     };
-  }, [activeSource?.file_url, pdfInfo, currentPage, pdfScale]);
+  }, [activeSource?.file_url, pdfInfo, currentPage, debouncedScale]);
 
   // Handle touchpad pinch-to-zoom
   useEffect(() => {
@@ -267,17 +287,6 @@ export default function PDFView() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
       <div className="toolbar">
-        {isRendering && (
-          <div
-            style={{
-              marginRight: 'var(--space-3)',
-              color: 'var(--text-secondary)',
-              fontSize: '0.875rem',
-            }}
-          >
-            ⏳ Rendering...
-          </div>
-        )}
         <div className="toolbar-group">
           <button
             className="btn-icon"
@@ -356,6 +365,19 @@ export default function PDFView() {
             📝
           </button>
         </div>
+
+        {/* Rendering indicator - pushed to the right */}
+        {isRendering && (
+          <div
+            style={{
+              marginLeft: 'auto',
+              color: 'var(--text-secondary)',
+              fontSize: '0.875rem',
+            }}
+          >
+            ⏳ Rendering...
+          </div>
+        )}
       </div>
 
       {/* PDF Image and Overlays */}
