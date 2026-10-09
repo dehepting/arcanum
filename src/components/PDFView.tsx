@@ -450,6 +450,11 @@ export default function PDFView() {
                   display: 'block',
                   width: `${imageSize.width}px`,
                   height: `${imageSize.height}px`,
+                  // Instantly scale the image while waiting for new render
+                  transform: `scale(${pdfScale / debouncedScale})`,
+                  transformOrigin: 'top left',
+                  // Smooth scaling
+                  imageRendering: 'auto',
                 }}
               />
             )}
