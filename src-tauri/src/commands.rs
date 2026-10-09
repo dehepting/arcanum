@@ -19,6 +19,7 @@ pub mod overlays;
 pub mod provenance;
 pub mod canvases;
 pub mod search;
+pub mod pdf;
 
 // App state that holds the database connection and storage
 pub struct AppState {
