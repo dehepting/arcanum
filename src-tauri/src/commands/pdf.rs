@@ -24,14 +24,23 @@ pub async fn render_pdf_page(
     // We'll need to add page extraction later
 
     let temp_dir = std::env::temp_dir();
-    let output_dir = temp_dir.join(format!("pdf_render_{}", std::process::id()));
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let output_dir = temp_dir.join(format!("pdf_render_{}_{}", std::process::id(), timestamp));
+
+    eprintln!("Creating temp directory: {:?}", output_dir);
     std::fs::create_dir_all(&output_dir)
         .map_err(|e| CommandError {
-            message: format!("Failed to create temp directory: {}", e),
+            message: format!("Failed to create temp directory {:?}: {}", output_dir, e),
         })?;
+
+    eprintln!("Temp directory created successfully");
 
     // Use qlmanage to generate thumbnail/preview
     // -t = thumbnail mode, -s = size, -o = output dir
+    eprintln!("Running qlmanage on: {}", file_path);
     let output = Command::new("qlmanage")
         .arg("-t")
         .arg("-s")
@@ -44,37 +53,57 @@ pub async fn render_pdf_page(
             message: format!("Failed to execute qlmanage command: {}", e),
         })?;
 
+    eprintln!("qlmanage exit status: {}", output.status);
+    eprintln!("qlmanage stdout: {}", String::from_utf8_lossy(&output.stdout));
+    eprintln!("qlmanage stderr: {}", String::from_utf8_lossy(&output.stderr));
+
     if !output.status.success() {
         let _ = std::fs::remove_dir_all(&output_dir);
         return Err(CommandError {
-            message: format!("qlmanage command failed: {}", String::from_utf8_lossy(&output.stderr)),
+            message: format!("qlmanage command failed with status {}: stdout: {} stderr: {}",
+                output.status,
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)),
+        });
+    }
+
+    // Check if output directory still exists
+    if !output_dir.exists() {
+        return Err(CommandError {
+            message: format!("Output directory {:?} disappeared after qlmanage", output_dir),
         });
     }
 
     // List all files created in the output directory for debugging
     let files_created: Vec<_> = std::fs::read_dir(&output_dir)
         .map_err(|e| CommandError {
-            message: format!("Failed to read output directory: {}", e),
+            message: format!("Failed to read output directory {:?}: {}", output_dir, e),
         })?
         .filter_map(|entry| entry.ok())
         .map(|entry| entry.path())
         .collect();
 
-    eprintln!("qlmanage created {} files: {:?}", files_created.len(), files_created);
+    eprintln!("qlmanage created {} files in {:?}: {:?}", files_created.len(), output_dir, files_created);
 
     // Find the first PNG file
     let png_file = files_created.iter()
         .find(|p| p.extension().and_then(|s| s.to_str()) == Some("png"))
-        .ok_or_else(|| CommandError {
-            message: format!("No PNG file created by qlmanage. Files: {:?}", files_created),
+        .ok_or_else(|| {
+            let _ = std::fs::remove_dir_all(&output_dir);
+            CommandError {
+                message: format!("No PNG file created by qlmanage. Directory: {:?}, Files: {:?}", output_dir, files_created),
+            }
         })?;
 
     eprintln!("Using PNG file: {:?}", png_file);
 
     // Read the generated PNG file
     let png_bytes = std::fs::read(&png_file)
-        .map_err(|e| CommandError {
-            message: format!("Failed to read generated PNG {:?}: {}", png_file, e),
+        .map_err(|e| {
+            let _ = std::fs::remove_dir_all(&output_dir);
+            CommandError {
+                message: format!("Failed to read generated PNG {:?}: {}", png_file, e),
+            }
         })?;
 
     // Clean up temp directory
