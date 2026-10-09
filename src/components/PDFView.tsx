@@ -82,7 +82,8 @@ export default function PDFView() {
       return;
     }
 
-    // Reset page immediately when source changes to prevent race conditions
+    // Clear old image and reset page immediately when source changes
+    setPageImageUrl(null);
     setCurrentPage(1);
 
     const loadPDF = async () => {
